@@ -159,7 +159,7 @@ function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
       <div className="container-backed flex h-16 items-center gap-7">
         <Link to="/" aria-label="Backed home" className="shrink-0">
-          <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-12 w-auto" />
+          <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-14 w-auto" />
         </Link>
         <Link
           to="/discover"
