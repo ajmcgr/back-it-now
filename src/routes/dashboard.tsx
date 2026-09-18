@@ -35,6 +35,7 @@ function Dashboard() {
     const load = async () => {
       if (!supabase) return setIsLoading(false);
       const { data: session } = await supabase.auth.getSession();
+      console.info("[Backed auth] dashboard session", { exists: Boolean(session.session) });
       if (!session.session) return setIsLoading(false);
       const { data } = await supabase
         .from("projects")
