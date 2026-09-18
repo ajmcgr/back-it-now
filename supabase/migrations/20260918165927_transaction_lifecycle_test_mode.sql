@@ -71,7 +71,7 @@ begin
     stripe_payment_intent_id, stripe_charge_id, paid_at
   ) values (
     p_id, rw.id, r.user_id, r.id, p_backer_email, rw.amount,
-    fee, greatest(0, p_processing_fee_amount), proceeds, proceeds, 'usd', 'succeeded',
+    fee, greatest(0, p_processing_fee_amount), proceeds, proceeds, 'usd', 'paid',
     p_checkout_session_id, p_payment_intent_id, p_stripe_charge_id, now()
   ) returning id into b_id;
 
