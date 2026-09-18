@@ -2,7 +2,40 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — Backed" }, { name: "description", content: "Sign in to back projects and launch your own." }, { property: "og:title", content: "Sign in — Backed" }, { property: "og:description", content: "Sign in to back projects and launch your own." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({
+    meta: [
+      { title: "Sign in — Backed" },
+      { name: "description", content: "Sign in to back projects and launch your own." },
+      { property: "og:title", content: "Sign in — Backed" },
+      { property: "og:description", content: "Sign in to back projects and launch your own." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AuthPage,
 });
-function AuthPage(){return <main className="container-backed grid min-h-[calc(100vh-8rem)] place-items-center py-16"><div className="w-full max-w-md text-center"><Link to="/" className="font-display text-2xl font-bold">BACKED<span className="text-primary">.</span></Link><h1 className="mt-10 text-4xl font-semibold">Welcome to Backed</h1><p className="mt-3 text-muted-foreground">Use your internet identity to back and launch projects.</p><Button className="mt-8 w-full" size="lg" disabled><svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817-5.967 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>Continue with X</Button><p className="mt-4 text-sm leading-6 text-muted-foreground">Sign-in is not connected yet. It requires enabling Lovable Cloud. Backed will only request basic read-only identity details and will never post for you.</p></div></main>}
+function AuthPage() {
+  return (
+    <main className="container-backed grid min-h-[calc(100vh-8rem)] place-items-center py-16">
+      <div className="w-full max-w-md text-center">
+        <Link to="/" className="font-display text-2xl font-bold">
+          BACKED<span className="text-primary">.</span>
+        </Link>
+        <h1 className="mt-10 text-4xl font-semibold">Welcome to Backed</h1>
+        <p className="mt-3 text-muted-foreground">
+          Use your internet identity to back and launch projects.
+        </p>
+        <Button className="mt-8 w-full" size="lg" disabled>
+          <svg viewBox="0 0 24 24" className="size-4 fill-current">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817-5.967 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
+          </svg>
+          Continue with X
+        </Button>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          Sign-in is not connected yet. It requires enabling Lovable Cloud. Backed will only request
+          basic read-only identity details and will never post for you.
+        </p>
+      </div>
+    </main>
+  );
+}
