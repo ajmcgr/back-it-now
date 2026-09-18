@@ -7,7 +7,7 @@ import { ProjectGrid } from "@/components/backed/project-card";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/discover")({
-  validateSearch: (search: Record<string, unknown>) => ({ q: typeof search.q === "string" ? search.q : "" }),
+  validateSearch: (search: Record<string, unknown>) => ({ q: typeof search['q'] === "string" ? search['q'] : "" }),
   head: () => ({ meta: [{ title: "Discover projects — Backed" }, { name: "description", content: "Explore independent products and projects worth backing." }, { property: "og:title", content: "Discover projects — Backed" }, { property: "og:description", content: "Explore independent products and projects worth backing." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: Discover,
 });

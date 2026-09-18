@@ -131,7 +131,7 @@ function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
       <div className="container-backed flex h-16 items-center gap-7">
         <Link to="/" className="font-display text-xl font-bold text-foreground">BACKED<span className="text-primary">.</span></Link>
-        <Link to="/discover" className="hidden text-sm font-semibold text-foreground hover:text-primary sm:block">Discover</Link>
+        <Link to="/discover" search={{ q: "" }} className="hidden text-sm font-semibold text-foreground hover:text-primary sm:block">Discover</Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-3">
           <Link to="/discover" search={{ q: "" }} aria-label="Search projects" className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent">
             <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
