@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -51,6 +52,11 @@ const DiscoverRoute = DiscoverRouteImport.update({
   path: '/discover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
+  '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
+  '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
+  '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/discover'
+    | '/faq'
     | '/privacy'
     | '/start'
     | '/terms'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/discover'
+    | '/faq'
     | '/privacy'
     | '/start'
     | '/terms'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/discover'
+    | '/faq'
     | '/privacy'
     | '/start'
     | '/terms'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   DiscoverRoute: typeof DiscoverRoute
+  FaqRoute: typeof FaqRoute
   PrivacyRoute: typeof PrivacyRoute
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/discover'
       fullPath: '/discover'
       preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -271,6 +291,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   DiscoverRoute: DiscoverRoute,
+  FaqRoute: FaqRoute,
   PrivacyRoute: PrivacyRoute,
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,

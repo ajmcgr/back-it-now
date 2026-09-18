@@ -40,9 +40,13 @@ function AboutPage() {
         </div>
 
         <div className="mt-12 border-t border-border pt-8">
-          <span className="grid size-14 place-items-center rounded-full bg-secondary font-bold">
-            AM
-          </span>
+          <img
+            src="/alex-macgregor.png"
+            alt="Alex MacGregor"
+            width={1000}
+            height={1000}
+            className="size-20 object-cover"
+          />
           <p className="mt-4 font-semibold">Alex MacGregor</p>
           <p className="text-sm text-muted-foreground">Founder, Backed</p>
           <a

@@ -149,8 +149,20 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <SiteHeader />
       <Outlet />
+      <FloatingStartButton />
       <SiteFooter />
     </QueryClientProvider>
+  );
+}
+
+function FloatingStartButton() {
+  return (
+    <Link
+      to="/start"
+      className="fixed inset-x-4 bottom-4 z-30 inline-flex h-12 items-center justify-center rounded-md bg-black px-5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:inset-x-auto md:right-6 md:w-auto"
+    >
+      Start a project
+    </Link>
   );
 }
 
@@ -193,6 +205,12 @@ function SiteHeader() {
             Start a project
           </Link>
           <Link
+            to="/faq"
+            className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
+          >
+            FAQ
+          </Link>
+          <Link
             to="/auth"
             className="hidden rounded-md border border-input px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent md:block"
           >
@@ -229,6 +247,14 @@ function SiteHeader() {
                     className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
                   >
                     Start a project
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link
+                    to="/faq"
+                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                  >
+                    FAQ
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
@@ -312,6 +338,32 @@ function SiteFooter() {
   return (
     <footer className="border-t border-border py-8">
       <div className="container-backed text-center text-sm text-muted-foreground">
+        <nav
+          className="mb-4 flex flex-wrap justify-center gap-x-5 gap-y-2"
+          aria-label="Footer navigation"
+        >
+          <Link to="/faq" className="hover:text-primary">
+            FAQ
+          </Link>
+          <Link to="/contact" className="hover:text-primary">
+            Contact
+          </Link>
+          <Link to="/privacy" className="hover:text-primary">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-primary">
+            Terms
+          </Link>
+          <a
+            href="https://x.com/backedit"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-primary"
+          >
+            Follow us on X
+          </a>
+        </nav>
+        <p className="mb-2">© 2026 Backed</p>
         <p>
           Built with 🫶🏻 by{" "}
           <a
