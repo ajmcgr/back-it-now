@@ -93,7 +93,10 @@ Deno.serve(async (req) => {
       const result = Array.isArray(data) ? data[0] : data;
       if (result) await deliverConfirmation(admin, result.email_delivery_id, result.backing_id);
     }
-    if (event.type === "checkout.session.expired") {
+    if (
+      event.type === "checkout.session.expired" ||
+      event.type === "checkout.session.async_payment_failed"
+    ) {
       const session = event.data.object as Stripe.Checkout.Session;
       await admin.rpc("release_checkout_reservation", { p_checkout_session_id: session.id });
     }
