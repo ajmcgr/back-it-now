@@ -91,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
     ],
   }),
   shellComponent: RootShell,
@@ -119,8 +119,31 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <SiteHeader />
       <Outlet />
+      <SiteFooter />
     </QueryClientProvider>
   );
+}
+
+function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
+      <div className="container-backed flex h-16 items-center gap-7">
+        <Link to="/" className="font-display text-xl font-bold text-foreground">BACKED<span className="text-primary">.</span></Link>
+        <Link to="/discover" className="hidden text-sm font-semibold text-foreground hover:text-primary sm:block">Discover</Link>
+        <div className="ml-auto flex items-center gap-1 sm:gap-3">
+          <Link to="/discover" search={{ q: "" }} aria-label="Search projects" className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent">
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          </Link>
+          <Link to="/start" className="hidden text-sm font-semibold text-foreground hover:text-primary md:block">Start a project</Link>
+          <Link to="/auth" className="rounded-md border border-input px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent">Sign in</Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function SiteFooter() {
+  return <footer className="border-t border-border py-8"><div className="container-backed flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span className="font-display font-bold text-foreground">BACKED.</span><span>Back things you want to exist.</span><span>© 2026 Backed</span></div></footer>;
 }
