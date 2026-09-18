@@ -43,7 +43,7 @@ function FaqPage() {
         </p>
         <div className="mt-12 divide-y divide-border border-y border-border">
           {questions.map(([question, answer]) => (
-            <details key={question} className="group py-5">
+            <details key={question} open className="group py-5">
               <summary className="cursor-pointer list-none pr-8 text-lg font-semibold marker:hidden">
                 {question}
               </summary>

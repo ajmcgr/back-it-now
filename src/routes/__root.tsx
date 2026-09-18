@@ -212,7 +212,7 @@ function SiteHeader() {
           </Link>
           <Link
             to="/auth"
-            className="hidden rounded-md border border-input px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent md:block"
+            className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
           >
             Sign in
           </Link>

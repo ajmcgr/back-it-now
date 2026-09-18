@@ -48,8 +48,8 @@ function AuthPage() {
   return (
     <main className="container-backed grid min-h-[calc(100vh-8rem)] place-items-center py-16">
       <div className="w-full max-w-md text-center">
-        <Link to="/" className="font-display text-2xl font-bold">
-          BACKED<span className="text-primary">.</span>
+        <Link to="/" aria-label="Backed home" className="inline-flex">
+          <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-14 w-auto" />
         </Link>
         <h1 className="mt-10 text-4xl font-semibold">Welcome to Backed</h1>
         <p className="mt-3 text-muted-foreground">
