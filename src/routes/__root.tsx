@@ -222,13 +222,21 @@ function SiteHeader() {
             FAQ
           </Link>
           {isSignedIn ? (
-            <button
-              type="button"
-              onClick={signOut}
-              className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
-            >
-              Sign out
-            </button>
+            <>
+              <Link
+                to="/dashboard"
+                className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
+              >
+                Dashboard
+              </Link>
+              <button
+                type="button"
+                onClick={signOut}
+                className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
+              >
+                Log out
+              </button>
+            </>
           ) : (
             <Link
               to="/auth"
@@ -295,15 +303,25 @@ function SiteHeader() {
                   </Link>
                 </SheetClose>
                 {isSignedIn ? (
-                  <SheetClose asChild>
-                    <button
-                      type="button"
-                      onClick={signOut}
-                      className="rounded-md px-3 py-3 text-left text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                    >
-                      Sign out
-                    </button>
-                  </SheetClose>
+                  <>
+                    <SheetClose asChild>
+                      <Link
+                        to="/dashboard"
+                        className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                      >
+                        Dashboard
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <button
+                        type="button"
+                        onClick={signOut}
+                        className="rounded-md px-3 py-3 text-left text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                      >
+                        Log out
+                      </button>
+                    </SheetClose>
+                  </>
                 ) : (
                   <SheetClose asChild>
                     <Link
