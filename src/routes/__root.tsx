@@ -193,28 +193,22 @@ function SiteHeader() {
         <Link
           to="/discover"
           search={{ q: "" }}
-          className="hidden text-sm font-semibold text-foreground hover:text-primary sm:block"
+          className="hidden items-center gap-2 text-sm font-semibold text-foreground hover:text-primary sm:inline-flex"
         >
+          <svg
+            viewBox="0 0 24 24"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-4-4" />
+          </svg>
           Discover
         </Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-3">
-          <Link
-            to="/discover"
-            search={{ q: "" }}
-            aria-label="Search projects"
-            className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-4-4" />
-            </svg>
-          </Link>
           <Link
             to="/start"
             className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
