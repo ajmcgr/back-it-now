@@ -11,6 +11,15 @@ function AuthCallback() {
   const started = useRef(false);
 
   useEffect(() => {
+    const safeErrorDetails = (value: unknown, fallback: string) => {
+      if (!value || typeof value !== "object") return fallback;
+      const candidate = value as { message?: unknown; status?: unknown; code?: unknown; name?: unknown };
+      const details = [candidate.name, candidate.message, candidate.code, candidate.status]
+        .filter((detail): detail is string | number => typeof detail === "string" || typeof detail === "number")
+        .join(" · ");
+      return details || fallback;
+    };
+
     async function completeSignIn() {
       if (started.current) return;
       started.current = true;
@@ -25,26 +34,29 @@ function AuthCallback() {
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
       if (exchangeError) {
         setStage("Authentication failed · stage: PKCE code exchange");
-        return setError(
-          exchangeError.message || "The code exchange was rejected by Supabase Auth.",
-        );
+        return setError(safeErrorDetails(exchangeError, "The code exchange was rejected by Supabase Auth."));
       }
       const { data: session } = await supabase.auth.getSession();
       setStage(
         `Session check · session exists: ${Boolean(session.session)} · user exists: ${Boolean(session.session?.user)}`,
       );
       if (!session.session) return setError("Your sign-in link has expired. Please try again.");
-      const { data: profile } = await supabase
+      // The code is no longer needed once Supabase has persisted the session. Remove it
+      // before profile work so a profile error cannot leave an authorization code visible.
+      window.history.replaceState({}, "", "/auth/callback");
+      setStage("Profile initialization · started");
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("id", session.session.user.id)
         .maybeSingle();
-      if (!profile)
+      if (profileError || !profile) {
+        setStage("Signed in successfully · stage: profile initialization");
         return setError(
-          "Signed in successfully, but Backed could not load your profile. Please refresh in a moment.",
+          `Signed in successfully, but Backed could not load your profile. ${safeErrorDetails(profileError, "Profile was not found.")}`,
         );
-      window.history.replaceState({}, "", "/auth/callback");
-      setStage(`Session established · navigating to ${destination}`);
+      }
+      setStage(`Profile initialization · succeeded · navigating to ${destination}`);
       navigate({ to: destination });
     }
     void completeSignIn();
