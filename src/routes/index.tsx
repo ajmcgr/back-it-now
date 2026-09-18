@@ -27,13 +27,25 @@ export const Route = createFileRoute("/")({
 function Index() {
   const liveProjects = projects.filter((project) => project.status === "live");
   const newAndNoteworthy = liveProjects.slice(3);
-  const categories = ["All", "Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
+  const categories = [
+    "All",
+    "Technology",
+    "Design",
+    "Fashion",
+    "Games",
+    "Publishing",
+    "Food",
+    "Other",
+  ];
 
   return (
     <main>
       <section className="container-backed pb-16 pt-20 text-center sm:pb-24 sm:pt-28">
         <div className="mx-auto max-w-4xl">
-          <nav aria-label="Project categories" className="mb-7 flex flex-wrap justify-center gap-x-4 gap-y-2">
+          <nav
+            aria-label="Project categories"
+            className="mb-7 flex flex-wrap justify-center gap-x-4 gap-y-2"
+          >
             {categories.map((category) => (
               <Link
                 key={category}

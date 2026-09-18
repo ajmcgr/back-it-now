@@ -24,9 +24,9 @@ function TermsPage() {
             investment and does not provide equity, ownership or a financial return.
           </TermsSection>
           <TermsSection title="Funding">
-            Each project has a funding goal and deadline. A pledge may be collected only if the
-            project reaches its goal, as explained on the project page and during checkout. Any
-            starting amount shown separately from paid pledges is campaign progress supplied by the
+            Each project has a funding goal and deadline. Backed uses all-or-nothing funding: if a
+            project does not reach its goal by its deadline, eligible backings are refunded. Any
+            starting amount shown separately from paid backings is campaign progress supplied by the
             project owner and is not represented as a payment or backer.
           </TermsSection>
           <TermsSection title="Creator responsibilities">
@@ -46,8 +46,10 @@ function TermsPage() {
           </TermsSection>
           <TermsSection title="Payments and refunds">
             Payments, when enabled, are handled by a third-party payment provider. Backed does not
-            store full card details. Refunds, cancellations and fulfillment are governed by the
-            project terms, the payment provider's rules and applicable law.
+            store full card details. Backed charges creators a 10% platform fee only when a campaign
+            succeeds; payment processing fees are additional. Failed campaigns pay no Backed
+            platform fee. Refunds, cancellations and fulfillment are governed by the project terms,
+            the payment provider's rules and applicable law.
           </TermsSection>
           <TermsSection title="Service availability">
             We may change, suspend or discontinue parts of Backed. To the extent permitted by law,

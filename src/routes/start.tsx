@@ -200,7 +200,9 @@ function StartPage() {
                   <Input type="date" className="h-12" {...field("deadline")} />
                 </Field>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Backers are charged only if your project reaches its goal by the deadline.
+                  Backed charges a 10% platform fee only on successful campaigns, plus payment
+                  processing. If your project does not reach its goal by the deadline, eligible
+                  backings are refunded and no Backed platform fee applies.
                 </p>
               </>
             )}
@@ -281,9 +283,10 @@ function StartPage() {
             )}
           </div>
           {step === 4 && (
-            <p className="mt-3 text-right text-xs text-muted-foreground">
-              Your draft is saved on this device. Sign in only when you are ready to launch.
-            </p>
+            <div className="mt-3 space-y-1 text-right text-xs text-muted-foreground">
+              <p>Your draft is saved on this device. Sign in only when you are ready to launch.</p>
+              <p>Successful campaigns pay a 10% Backed platform fee, plus payment processing.</p>
+            </div>
           )}
           {launchMessage && (
             <p className="mt-3 text-right text-xs text-destructive">{launchMessage}</p>
