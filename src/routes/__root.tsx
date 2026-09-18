@@ -394,7 +394,7 @@ function SiteFooter() {
             Terms
           </Link>
           <a
-            href="https://x.com/backedit"
+            href="https://x.com/backeditco"
             target="_blank"
             rel="noreferrer"
             className="hover:text-primary"
