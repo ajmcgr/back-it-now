@@ -100,6 +100,49 @@ Deno.serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       await admin.rpc("release_checkout_reservation", { p_checkout_session_id: session.id });
     }
+    if (event.type === "account.updated") {
+      const account = event.data.object as Stripe.Account;
+      await admin
+        .from("profiles")
+        .update({
+          stripe_onboarding_complete: account.details_submitted,
+          stripe_charges_enabled: account.charges_enabled,
+          stripe_payouts_enabled: account.payouts_enabled,
+        })
+        .eq("stripe_account_id", account.id);
+    }
+    if (event.type === "transfer.created") {
+      const transfer = event.data.object as Stripe.Transfer;
+      await admin
+        .from("backings")
+        .update({ transferred_at: new Date().toISOString(), transfer_failure_reason: null })
+        .eq("stripe_transfer_id", transfer.id)
+        .is("transferred_at", null);
+    }
+    if (event.type === "transfer.reversed") {
+      const transfer = event.data.object as Stripe.Transfer;
+      await admin
+        .from("backings")
+        .update({ transfer_failure_reason: "transfer_reversed" })
+        .eq("stripe_transfer_id", transfer.id);
+    }
+    if (event.type === "refund.updated") {
+      const refund = event.data.object as Stripe.Refund;
+      const status =
+        refund.status === "succeeded"
+          ? "succeeded"
+          : refund.status === "failed"
+            ? "failed"
+            : "pending";
+      await admin
+        .from("backings")
+        .update({
+          refund_status: status,
+          refunded_at: status === "succeeded" ? new Date().toISOString() : null,
+          status: status === "succeeded" ? "refunded" : "paid",
+        })
+        .eq("stripe_refund_id", refund.id);
+    }
     return Response.json({ received: true });
   } catch (error) {
     return new Response(error instanceof Error ? error.message : "webhook_error", { status: 400 });
