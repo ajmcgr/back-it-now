@@ -1,6 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { amountBacked, daysRemaining, money, percent, projects } from "@/lib/projects";
+import { money } from "@/lib/projects";
+import { supabase } from "@/lib/supabase";
+
+type CreatorProject = {
+  id: string;
+  name: string;
+  status: string;
+  funding_goal_amount: number;
+  initial_backed_amount: number;
+  successful_backed_amount: number;
+  successful_backer_count: number;
+  deadline_at: string | null;
+};
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -16,8 +29,25 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 function Dashboard() {
-  const project = projects[0];
-  if (!project) return null;
+  const [projects, setProjects] = useState<CreatorProject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const load = async () => {
+      if (!supabase) return setIsLoading(false);
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return setIsLoading(false);
+      const { data } = await supabase
+        .from("projects")
+        .select(
+          "id, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
+        )
+        .eq("creator_id", session.session.user.id)
+        .order("created_at", { ascending: false });
+      setProjects(data ?? []);
+      setIsLoading(false);
+    };
+    void load();
+  }, []);
   return (
     <main className="container-backed py-14 sm:py-20">
       <div className="flex items-center justify-between gap-4">
@@ -34,27 +64,39 @@ function Dashboard() {
           <span>Backers</span>
           <span>Days remaining</span>
         </div>
-        <div className="grid items-center gap-4 p-5 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
-          <div className="flex items-center gap-4">
-            <img
-              src={project.coverImage}
-              alt=""
-              width={160}
-              height={100}
-              className="aspect-[16/10] w-24 rounded-sm object-cover"
-            />
-            <div>
-              <strong className="block">{project.title}</strong>
-              <span className="text-xs text-muted-foreground">{percent(project)}% funded</span>
-            </div>
-          </div>
-          <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
-            Live
-          </span>
-          <span className="font-semibold">{money(amountBacked(project))}</span>
-          <span>{project.successfulBackingCount}</span>
-          <span>{daysRemaining(project)}</span>
-        </div>
+        {isLoading ? (
+          <p className="p-5 text-sm text-muted-foreground">Loading projects…</p>
+        ) : projects.length === 0 ? (
+          <p className="p-5 text-sm text-muted-foreground">You have no live projects yet.</p>
+        ) : (
+          projects.map((project) => {
+            const backed = project.initial_backed_amount + project.successful_backed_amount;
+            const funded = Math.round((backed / project.funding_goal_amount) * 100);
+            const days = project.deadline_at
+              ? Math.max(
+                  0,
+                  Math.ceil((new Date(project.deadline_at).getTime() - Date.now()) / 86400000),
+                )
+              : 0;
+            return (
+              <div
+                key={project.id}
+                className="grid items-center gap-4 p-5 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]"
+              >
+                <div>
+                  <strong className="block">{project.name}</strong>
+                  <span className="text-xs text-muted-foreground">{funded}% funded</span>
+                </div>
+                <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
+                  {project.status}
+                </span>
+                <span className="font-semibold">{money(backed / 100)}</span>
+                <span>{project.successful_backer_count}</span>
+                <span>{days}</span>
+              </div>
+            );
+          })
+        )}
       </div>
     </main>
   );
