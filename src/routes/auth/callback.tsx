@@ -16,6 +16,8 @@ function AuthCallback() {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) return setError(exchangeError.message);
       }
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return setError("Your sign-in link has expired. Please try again.");
       const next = new URLSearchParams(window.location.search).get("next");
       navigate({ to: next?.startsWith("/") ? next : "/dashboard" });
     }
