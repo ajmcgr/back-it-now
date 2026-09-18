@@ -24,7 +24,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85"
           >
             Go home
           </Link>
@@ -56,7 +56,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85"
           >
             Try again
           </button>
@@ -90,8 +90,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" },
-      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap",
+      },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,
@@ -105,6 +108,17 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-3MGN9JG9RQ" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-3MGN9JG9RQ');
+            `,
+          }}
+        />
       </head>
       <body>
         {children}
@@ -130,14 +144,46 @@ function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
       <div className="container-backed flex h-16 items-center gap-7">
-        <Link to="/" className="font-display text-xl font-bold text-foreground">BACKED<span className="text-primary">.</span></Link>
-        <Link to="/discover" search={{ q: "" }} className="hidden text-sm font-semibold text-foreground hover:text-primary sm:block">Discover</Link>
+        <Link to="/" aria-label="Backed home" className="shrink-0">
+          <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-10 w-auto" />
+        </Link>
+        <Link
+          to="/discover"
+          search={{ q: "" }}
+          className="hidden text-sm font-semibold text-foreground hover:text-primary sm:block"
+        >
+          Discover
+        </Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-3">
-          <Link to="/discover" search={{ q: "" }} aria-label="Search projects" className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent">
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <Link
+            to="/discover"
+            search={{ q: "" }}
+            aria-label="Search projects"
+            className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="size-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-4-4" />
+            </svg>
           </Link>
-          <Link to="/start" className="hidden text-sm font-semibold text-foreground hover:text-primary md:block">Start a project</Link>
-          <Link to="/auth" className="rounded-md border border-input px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent">Sign in</Link>
+          <Link
+            to="/start"
+            className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
+          >
+            Start a project
+          </Link>
+          <Link
+            to="/auth"
+            className="rounded-md border border-input px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+          >
+            Sign in
+          </Link>
         </div>
       </div>
     </header>
@@ -145,5 +191,13 @@ function SiteHeader() {
 }
 
 function SiteFooter() {
-  return <footer className="border-t border-border py-8"><div className="container-backed flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span className="font-display font-bold text-foreground">BACKED.</span><span>Back things you want to exist.</span><span>© 2026 Backed</span></div></footer>;
+  return (
+    <footer className="border-t border-border py-8">
+      <div className="container-backed flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <span className="font-display font-bold text-foreground">BACKED.</span>
+        <span>Back things you want to exist.</span>
+        <span>© 2026 Backed</span>
+      </div>
+    </footer>
+  );
 }
