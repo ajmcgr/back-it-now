@@ -12,9 +12,8 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 const getStripe = () => {
-  if (Deno.env.get("STRIPE_MODE") !== "test") throw new Error("stripe_test_mode_required");
-  const key = Deno.env.get("STRIPE_TEST_SECRET_KEY");
-  if (!key?.startsWith("sk_test_")) throw new Error("stripe_test_key_required");
+  const key = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!key?.startsWith("sk_live_")) throw new Error("stripe_live_key_required");
   return new Stripe(key);
 };
 

@@ -2,9 +2,8 @@ import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 
 const stripe = () => {
-  if (Deno.env.get("STRIPE_MODE") !== "test") throw new Error("stripe_test_mode_required");
-  const key = Deno.env.get("STRIPE_TEST_SECRET_KEY");
-  if (!key?.startsWith("sk_test_")) throw new Error("stripe_test_key_required");
+  const key = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!key?.startsWith("sk_live_")) throw new Error("stripe_live_key_required");
   return new Stripe(key);
 };
 
@@ -54,8 +53,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   try {
     const api = stripe();
-    const secret = Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET");
-    if (!secret?.startsWith("whsec_")) throw new Error("stripe_test_webhook_secret_required");
+    const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    if (!secret?.startsWith("whsec_")) throw new Error("stripe_webhook_secret_required");
     const event = api.webhooks.constructEvent(
       await req.text(),
       req.headers.get("stripe-signature") ?? "",
