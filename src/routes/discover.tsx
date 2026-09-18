@@ -9,6 +9,7 @@ import { projects } from "@/lib/projects";
 export const Route = createFileRoute("/discover")({
   validateSearch: (search: Record<string, unknown>) => ({
     q: typeof search["q"] === "string" ? search["q"] : "",
+    category: typeof search["category"] === "string" ? search["category"] : "All",
   }),
   head: () => ({
     meta: [
@@ -26,9 +27,9 @@ export const Route = createFileRoute("/discover")({
   component: Discover,
 });
 function Discover() {
-  const { q } = Route.useSearch();
+  const { q, category: categorySearch } = Route.useSearch();
   const [query, setQuery] = useState(q);
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState(categorySearch);
   const categories = [
     "All",
     "Technology",

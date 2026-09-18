@@ -27,11 +27,24 @@ export const Route = createFileRoute("/")({
 function Index() {
   const liveProjects = projects.filter((project) => project.status === "live");
   const newAndNoteworthy = liveProjects.slice(3);
+  const categories = ["All", "Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
 
   return (
     <main>
       <section className="container-backed pb-16 pt-20 text-center sm:pb-24 sm:pt-28">
         <div className="mx-auto max-w-4xl">
+          <nav aria-label="Project categories" className="mb-7 flex flex-wrap justify-center gap-x-4 gap-y-2">
+            {categories.map((category) => (
+              <Link
+                key={category}
+                to="/discover"
+                search={{ q: "", category }}
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
+                {category}
+              </Link>
+            ))}
+          </nav>
           <h1 className="text-5xl font-semibold leading-[1.02] text-foreground sm:text-7xl lg:text-8xl">
             Back things you want to exist.
           </h1>
