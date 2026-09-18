@@ -204,7 +204,7 @@ function SiteHeader() {
               <button
                 type="button"
                 aria-label="Open menu"
-                className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent md:hidden"
+                className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
               >
                 <Menu className="size-5" />
               </button>
@@ -301,7 +301,7 @@ function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent md:hidden"
+      className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
     >
       {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
     </button>

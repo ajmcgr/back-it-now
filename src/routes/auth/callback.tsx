@@ -24,5 +24,9 @@ function AuthCallback() {
     void completeSignIn();
   }, [navigate]);
 
-  return <main className="container-backed grid min-h-[calc(100vh-8rem)] place-items-center py-16 text-muted-foreground">{error ?? "Completing secure sign-in…"}</main>;
+  return (
+    <main className="container-backed grid min-h-[calc(100vh-8rem)] place-items-center py-16 text-muted-foreground">
+      {error ?? "Completing secure sign-in…"}
+    </main>
+  );
 }
