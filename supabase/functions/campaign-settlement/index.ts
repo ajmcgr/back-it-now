@@ -42,9 +42,11 @@ const email = async (
 };
 
 Deno.serve(async (req) => {
+  const settlementSecret = Deno.env.get("SETTLEMENT_CRON_SECRET");
   if (
     req.method !== "POST" ||
-    req.headers.get("x-settlement-secret") !== Deno.env.get("SETTLEMENT_CRON_SECRET")
+    !settlementSecret ||
+    req.headers.get("x-settlement-secret") !== settlementSecret
   )
     return new Response("unauthorized", { status: 401 });
   const db = admin();
