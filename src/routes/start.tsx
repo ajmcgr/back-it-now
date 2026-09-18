@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ImagePlus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { projects } from "@/lib/projects";
 import { ProjectCard } from "@/components/backed/project-card";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/start")({
   head: () => ({
@@ -39,7 +40,87 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 function StartPage() {
   const [step, setStep] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [draftRecord, setDraftRecord] = useState<{ id: string; secret: string } | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return JSON.parse(window.localStorage.getItem("backed-project-draft-record") ?? "null");
+    } catch {
+      return null;
+    }
+  });
+  const [launchMessage, setLaunchMessage] = useState<string | null>(null);
+  const [draft, setDraft] = useState(() => {
+    if (typeof window === "undefined") return {} as Record<string, string>;
+    try {
+      return JSON.parse(window.localStorage.getItem("backed-project-draft") ?? "{}") as Record<
+        string,
+        string
+      >;
+    } catch {
+      return {} as Record<string, string>;
+    }
+  });
   const sample = projects[0];
+  useEffect(() => {
+    window.localStorage.setItem("backed-project-draft", JSON.stringify(draft));
+  }, [draft]);
+  useEffect(() => {
+    if (draftRecord)
+      window.localStorage.setItem("backed-project-draft-record", JSON.stringify(draftRecord));
+  }, [draftRecord]);
+  useEffect(() => {
+    if (!supabase) return;
+    void supabase.auth.getSession().then(({ data }) => {
+      setIsAuthenticated(Boolean(data.session));
+      if (data.session && new URLSearchParams(window.location.search).get("publish") === "1") {
+        void publish();
+      }
+    });
+  }, []);
+  const field = (name: string) => ({
+    value: draft[name] ?? "",
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setDraft((current) => ({ ...current, [name]: event.target.value })),
+  });
+  async function saveDraft() {
+    if (!supabase) throw new Error("Project saving is temporarily unavailable.");
+    const secret = draftRecord?.secret ?? `${crypto.randomUUID()}${crypto.randomUUID()}`;
+    const { data, error } = await supabase.functions.invoke("project-drafts", {
+      body: {
+        action: draftRecord ? "save" : "create",
+        id: draftRecord?.id,
+        secret,
+        payload: draft,
+      },
+    });
+    if (error || !data?.id) throw new Error(error?.message ?? "Could not save your draft.");
+    const record = { id: data.id as string, secret };
+    setDraftRecord(record);
+    return record;
+  }
+  async function publish() {
+    setLaunchMessage(null);
+    let record: { id: string; secret: string };
+    try {
+      record = await saveDraft();
+    } catch (error) {
+      setLaunchMessage(error instanceof Error ? error.message : "Could not save your draft.");
+      return;
+    }
+    if (!isAuthenticated) {
+      window.location.assign(`/auth?next=${encodeURIComponent("/start?publish=1")}`);
+      return;
+    }
+    const { data, error } = await supabase!.functions.invoke("project-drafts", {
+      body: { action: "publish", id: record.id, secret: record.secret },
+    });
+    if (error || !data?.slug)
+      return setLaunchMessage(error?.message ?? "Could not launch your project.");
+    window.localStorage.removeItem("backed-project-draft");
+    window.localStorage.removeItem("backed-project-draft-record");
+    window.location.assign(`/projects/${data.slug}`);
+  }
   if (!sample) return null;
   return (
     <main className="container-backed py-12 sm:py-16">
@@ -69,12 +150,13 @@ function StartPage() {
             {step === 0 && (
               <>
                 <Field label="Project name">
-                  <Input placeholder="e.g. Your project" className="h-12" />
+                  <Input placeholder="e.g. Your project" className="h-12" {...field("name")} />
                 </Field>
                 <Field label="Short description">
                   <Textarea
                     placeholder="One clear sentence about what you want to make"
                     className="min-h-28"
+                    {...field("summary")}
                   />
                 </Field>
                 <Field label="Category">
@@ -112,10 +194,10 @@ function StartPage() {
             {step === 1 && (
               <>
                 <Field label="Funding goal">
-                  <Input type="number" placeholder="$10,000" className="h-12" />
+                  <Input type="number" placeholder="$10,000" className="h-12" {...field("goal")} />
                 </Field>
                 <Field label="Deadline">
-                  <Input type="date" className="h-12" />
+                  <Input type="date" className="h-12" {...field("deadline")} />
                 </Field>
                 <p className="text-sm leading-6 text-muted-foreground">
                   Backers are charged only if your project reaches its goal by the deadline.
@@ -125,16 +207,25 @@ function StartPage() {
             {step === 2 && (
               <>
                 <Field label="Product or reward name">
-                  <Input placeholder="Founding edition" className="h-12" />
+                  <Input placeholder="Founding edition" className="h-12" {...field("rewardName")} />
                 </Field>
                 <Field label="Price">
-                  <Input type="number" placeholder="$100" className="h-12" />
+                  <Input
+                    type="number"
+                    placeholder="$100"
+                    className="h-12"
+                    {...field("rewardPrice")}
+                  />
                 </Field>
                 <Field label="Description">
-                  <Textarea placeholder="What backers receive" className="min-h-28" />
+                  <Textarea
+                    placeholder="What backers receive"
+                    className="min-h-28"
+                    {...field("rewardDescription")}
+                  />
                 </Field>
                 <Field label="Estimated delivery">
-                  <Input type="month" className="h-12" />
+                  <Input type="month" className="h-12" {...field("delivery")} />
                 </Field>
               </>
             )}
@@ -144,6 +235,7 @@ function StartPage() {
                   <Textarea
                     placeholder="Tell backers what you're making, why it matters, and how you'll make it happen."
                     className="min-h-64"
+                    {...field("story")}
                   />
                 </Field>
                 <Field label="Additional images">
@@ -183,13 +275,18 @@ function StartPage() {
                 <ArrowRight />
               </Button>
             ) : (
-              <Button disabled>Launch project</Button>
+              <Button onClick={publish}>
+                {isAuthenticated ? "Launch project" : "Sign in to launch"}
+              </Button>
             )}
           </div>
           {step === 4 && (
             <p className="mt-3 text-right text-xs text-muted-foreground">
-              Launching requires sign-in and Lovable Cloud.
+              Your draft is saved on this device. Sign in only when you are ready to launch.
             </p>
+          )}
+          {launchMessage && (
+            <p className="mt-3 text-right text-xs text-destructive">{launchMessage}</p>
           )}
         </section>
       </div>

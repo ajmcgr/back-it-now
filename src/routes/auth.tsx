@@ -18,6 +18,10 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 function AuthPage() {
+  const next =
+    typeof window === "undefined"
+      ? "/dashboard"
+      : (new URLSearchParams(window.location.search).get("next") ?? "/dashboard");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<"x" | "google" | "email" | null>(null);
@@ -27,7 +31,7 @@ function AuthPage() {
     setPending(provider);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: authRedirectUrl("/dashboard") },
+      options: { redirectTo: authRedirectUrl(next) },
     });
     if (error) setMessage(error.message);
     setPending(null);
@@ -39,7 +43,7 @@ function AuthPage() {
     setPending("email");
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: authRedirectUrl("/dashboard"), shouldCreateUser: true },
+      options: { emailRedirectTo: authRedirectUrl(next), shouldCreateUser: true },
     });
     setMessage(error ? error.message : "Check your inbox for a secure Backed sign-in link.");
     setPending(null);

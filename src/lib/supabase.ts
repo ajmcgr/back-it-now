@@ -8,12 +8,17 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKe
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabasePublishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        flowType: "pkce",
+      },
     })
   : null;
 
 export function authRedirectUrl(next?: string) {
   const url = new URL("/auth/callback", window.location.origin);
-  if (next?.startsWith("/")) url.searchParams.set("next", next);
+  if (next?.startsWith("/") && !next.startsWith("//")) url.searchParams.set("next", next);
   return url.toString();
 }

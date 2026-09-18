@@ -56,9 +56,6 @@ function Dashboard() {
           <span>{daysRemaining(project)}</span>
         </div>
       </div>
-      <p className="mt-6 text-sm text-muted-foreground">
-        This is a preview. Sign in and saved project management require Lovable Cloud.
-      </p>
     </main>
   );
 }

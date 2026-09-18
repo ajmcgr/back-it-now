@@ -12,32 +12,17 @@ function AuthCallback() {
     async function completeSignIn() {
       if (!supabase) return setError("Authentication is not configured.");
       const code = new URLSearchParams(window.location.search).get("code");
-      if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) return setError(exchangeError.message);
-      } else {
-        const fragment = new URLSearchParams(window.location.hash.slice(1));
-        const accessToken = fragment.get("access_token");
-        const refreshToken = fragment.get("refresh_token");
-
-        if (!accessToken || !refreshToken) {
-          return setError("Your sign-in link has expired. Please try again.");
-        }
-
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (sessionError) return setError(sessionError.message);
-
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = "";
-        window.history.replaceState({}, "", cleanUrl);
-      }
+      if (!code) return setError("Your sign-in link has expired. Please try again.");
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) return setError(exchangeError.message);
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return setError("Your sign-in link has expired. Please try again.");
       const next = new URLSearchParams(window.location.search).get("next");
-      navigate({ to: next?.startsWith("/") ? next : "/dashboard" });
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.search = "";
+      cleanUrl.hash = "";
+      window.history.replaceState({}, "", cleanUrl);
+      navigate({ to: next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard" });
     }
     void completeSignIn();
   }, [navigate]);

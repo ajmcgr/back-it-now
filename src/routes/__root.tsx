@@ -20,6 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
   return (
@@ -167,6 +168,22 @@ function FloatingStartButton() {
 }
 
 function SiteHeader() {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+    void supabase.auth.getSession().then(({ data }) => setIsSignedIn(Boolean(data.session)));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) =>
+      setIsSignedIn(Boolean(session)),
+    );
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function signOut() {
+    await supabase?.auth.signOut();
+    window.location.assign("/");
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
       <div className="container-backed flex h-16 items-center gap-7">
@@ -210,12 +227,22 @@ function SiteHeader() {
           >
             FAQ
           </Link>
-          <Link
-            to="/auth"
-            className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
-          >
-            Sign in
-          </Link>
+          {isSignedIn ? (
+            <button
+              type="button"
+              onClick={signOut}
+              className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
+            >
+              Sign in
+            </Link>
+          )}
           <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
@@ -273,14 +300,26 @@ function SiteHeader() {
                     Contact
                   </Link>
                 </SheetClose>
-                <SheetClose asChild>
-                  <Link
-                    to="/auth"
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
-                    Sign in
-                  </Link>
-                </SheetClose>
+                {isSignedIn ? (
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      onClick={signOut}
+                      className="rounded-md px-3 py-3 text-left text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                    >
+                      Sign out
+                    </button>
+                  </SheetClose>
+                ) : (
+                  <SheetClose asChild>
+                    <Link
+                      to="/auth"
+                      className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                    >
+                      Sign in
+                    </Link>
+                  </SheetClose>
+                )}
               </nav>
               <div className="mt-auto border-t border-border pt-5 text-sm text-muted-foreground">
                 <div className="flex gap-4">
