@@ -30,15 +30,15 @@ function Index() {
 
   return (
     <main>
-      <section className="container-backed pb-16 pt-20 sm:pb-24 sm:pt-28">
-        <div className="max-w-4xl">
+      <section className="container-backed pb-16 pt-20 text-center sm:pb-24 sm:pt-28">
+        <div className="mx-auto max-w-4xl">
           <h1 className="text-5xl font-semibold leading-[1.02] text-foreground sm:text-7xl lg:text-8xl">
             Back things you want to exist.
           </h1>
-          <p className="mt-7 max-w-xl text-lg leading-7 text-muted-foreground">
+          <p className="mx-auto mt-7 max-w-xl text-lg leading-7 text-muted-foreground">
             Discover products and projects from people building what's next.
           </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">
               <Link to="/discover" search={{ q: "" }}>
                 Explore projects
@@ -48,16 +48,19 @@ function Index() {
               <Link to="/start">Start a project</Link>
             </Button>
           </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Free to launch. 10% if you get backed. $0 if you don’t.
+          </p>
         </div>
       </section>
 
       <section className="container-backed pb-24">
-        <div className="mb-8 flex items-end justify-between">
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <h2 className="text-3xl font-semibold">Projects worth backing</h2>
           <Link
             to="/discover"
             search={{ q: "" }}
-            className="hidden items-center gap-1 text-sm font-semibold hover:text-primary sm:flex"
+            className="hidden items-center gap-1 text-sm font-semibold hover:text-primary sm:inline-flex"
           >
             View all <ArrowRight className="size-4" />
           </Link>
@@ -67,15 +70,15 @@ function Index() {
 
       {newAndNoteworthy.length > 0 && (
         <section className="border-t border-border bg-muted/40 py-20">
-          <div className="container-backed">
+          <div className="container-backed text-center">
             <h2 className="mb-8 text-3xl font-semibold">New &amp; noteworthy</h2>
             <ProjectGrid items={newAndNoteworthy} />
           </div>
         </section>
       )}
 
-      <section className="container-backed py-20 sm:py-28">
-        <h2 className="max-w-2xl text-4xl font-semibold sm:text-5xl">
+      <section className="container-backed py-20 text-center sm:py-28">
+        <h2 className="mx-auto max-w-2xl text-4xl font-semibold sm:text-5xl">
           Have something you want to make?
         </h2>
         <Link
