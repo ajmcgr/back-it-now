@@ -1,36 +1,37 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import {
+  resolveProjectCover,
+  useCanonicalProjectPresentation,
+  type CanonicalProjectPresentation,
+} from "@/lib/project-presentation";
 import { amountBacked, daysRemaining, money, percent, type Project } from "@/lib/projects";
-import { publicSupabase } from "@/lib/supabase";
 
-export function CreatorIdentity({ project }: { project: Project }) {
-  const [creatorUsername, setCreatorUsername] = useState(project.creatorUsername ?? null);
-
-  useEffect(() => {
-    if (!publicSupabase) return;
-    void publicSupabase
-      .from("public_profile_projects")
-      .select("creator_username")
-      .eq("slug", project.slug)
-      .maybeSingle()
-      .then(({ data }) =>
-        setCreatorUsername(data?.creator_username ?? project.creatorUsername ?? null),
-      );
-  }, [project.creatorUsername, project.slug]);
+export function CreatorIdentity({
+  presentation,
+}: {
+  presentation: CanonicalProjectPresentation | null;
+}) {
+  const creator = presentation?.creator;
 
   const identity = (
     <>
-      <span className="grid size-7 place-items-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground">
-        {project.initials}
+      <ProfileAvatar
+        avatarUrl={creator?.avatarUrl}
+        displayName={creator?.displayName}
+        username={creator?.username}
+        className="size-7"
+      />
+      <span className="text-xs font-semibold text-muted-foreground">
+        {creator?.displayName || creator?.username || "Creator"}
       </span>
-      <span className="text-xs font-semibold text-muted-foreground">{project.creator}</span>
     </>
   );
-  return creatorUsername ? (
+  return creator ? (
     <Link
       to="/$username"
-      params={{ username: creatorUsername }}
+      params={{ username: creator.username }}
       className="flex w-fit items-center gap-2 hover:text-primary"
     >
       {identity}
@@ -42,6 +43,13 @@ export function CreatorIdentity({ project }: { project: Project }) {
 
 export function ProjectCard({ project }: { project: Project }) {
   const funded = percent(project);
+  const presentation = useCanonicalProjectPresentation(project.slug);
+  const coverImage = resolveProjectCover({
+    slug: project.slug,
+    imageUrl: presentation?.imageUrl,
+    coverImage: project.coverImage,
+    gallery: project.gallery,
+  });
   return (
     <article className="group min-w-0">
       <Link
@@ -49,17 +57,21 @@ export function ProjectCard({ project }: { project: Project }) {
         params={{ slug: project.slug }}
         className="block overflow-hidden rounded-md bg-muted"
       >
-        <img
-          src={project.coverImage}
-          alt={project.title}
-          loading="lazy"
-          width={720}
-          height={480}
-          className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-        />
+        {coverImage ? (
+          <img
+            src={coverImage}
+            alt={project.title}
+            loading="lazy"
+            width={720}
+            height={480}
+            className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="aspect-[16/10] bg-secondary" />
+        )}
       </Link>
       <div className="pt-4">
-        <CreatorIdentity project={project} />
+        <CreatorIdentity presentation={presentation} />
         <Link to="/projects/$slug" params={{ slug: project.slug }}>
           <h3 className="mt-3 text-xl font-semibold leading-tight text-foreground group-hover:text-primary">
             {project.title}

@@ -1,10 +1,12 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BackingDialog } from "@/components/backed/backing-dialog";
+import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { resolveProjectCover, useCanonicalProjectPresentation } from "@/lib/project-presentation";
 import {
   amountBacked,
   daysRemaining,
@@ -13,7 +15,6 @@ import {
   projects,
   rewardAvailability,
 } from "@/lib/projects";
-import { publicSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/projects/$slug")({
   loader: ({ params }) => {
@@ -46,22 +47,17 @@ export const Route = createFileRoute("/projects/$slug")({
 function ProjectPage() {
   const project = Route.useLoaderData();
   const [tab, setTab] = useState("Story");
-  const [creatorUsername, setCreatorUsername] = useState(project.creatorUsername ?? null);
+  const presentation = useCanonicalProjectPresentation(project.slug);
+  const creator = presentation?.creator;
+  const coverImage = resolveProjectCover({
+    slug: project.slug,
+    imageUrl: presentation?.imageUrl,
+    coverImage: project.coverImage,
+    gallery: project.gallery,
+  });
   const funded = percent(project);
   const remaining = daysRemaining(project);
   const availability = rewardAvailability(project.reward);
-
-  useEffect(() => {
-    if (!publicSupabase) return;
-    void publicSupabase
-      .from("public_profile_projects")
-      .select("creator_username")
-      .eq("slug", project.slug)
-      .maybeSingle()
-      .then(({ data }) =>
-        setCreatorUsername(data?.creator_username ?? project.creatorUsername ?? null),
-      );
-  }, [project.creatorUsername, project.slug]);
 
   return (
     <main className="pb-24">
@@ -75,30 +71,25 @@ function ProjectPage() {
           <p className="mt-3 text-lg text-muted-foreground">{project.description}</p>
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
             <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-full bg-secondary text-xs font-bold">
-                {project.initials}
-              </span>
+              <ProfileAvatar
+                avatarUrl={creator?.avatarUrl}
+                displayName={creator?.displayName}
+                username={creator?.username}
+                className="size-10"
+              />
               <div>
-                {creatorUsername ? (
+                {creator ? (
                   <Link
                     to="/$username"
-                    params={{ username: creatorUsername }}
+                    params={{ username: creator.username }}
                     className="block font-bold hover:text-primary"
                   >
-                    {project.creator}
+                    {creator.displayName || creator.username}
                   </Link>
                 ) : (
-                  <strong className="block">{project.creator}</strong>
+                  <strong className="block">Creator</strong>
                 )}
-                <a
-                  href={project.externalWebsite}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary"
-                >
-                  {project.handle}
-                  <ExternalLink className="size-3" />
-                </a>
+                {creator ? <p className="text-muted-foreground">@{creator.username}</p> : null}
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
@@ -110,13 +101,17 @@ function ProjectPage() {
 
         <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div>
-            <img
-              src={project.coverImage}
-              alt={`${project.title} villa`}
-              width={720}
-              height={480}
-              className="aspect-[16/10] w-full rounded-md object-cover"
-            />
+            {coverImage ? (
+              <img
+                src={coverImage}
+                alt={project.title}
+                width={720}
+                height={480}
+                className="aspect-[16/10] w-full rounded-md object-cover"
+              />
+            ) : (
+              <div className="aspect-[16/10] rounded-md bg-secondary" />
+            )}
             <div className="mt-3 grid grid-cols-2 gap-3">
               {project.gallery.slice(1).map((image, index) => (
                 <img

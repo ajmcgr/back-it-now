@@ -46,7 +46,7 @@ function Discover() {
         (p) =>
           p.status === "live" &&
           (category === "All" || p.category === category) &&
-          (p.title + p.description + p.creator).toLowerCase().includes(query.toLowerCase()),
+          (p.title + p.description).toLowerCase().includes(query.toLowerCase()),
       ),
     [category, query],
   );

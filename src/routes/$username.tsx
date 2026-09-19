@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
+import { resolveProjectCover } from "@/lib/project-presentation";
 import { publicSupabase, supabase } from "@/lib/supabase";
 
 type PublicProfile = {
@@ -177,6 +178,10 @@ function PublicProfilePage() {
               const funded = project.funding_goal_amount
                 ? Math.round((backed / project.funding_goal_amount) * 100)
                 : 0;
+              const coverImage = resolveProjectCover({
+                slug: project.slug,
+                imageUrl: project.image_url,
+              });
               return (
                 <article key={project.slug} className="min-w-0">
                   <Link
@@ -184,9 +189,9 @@ function PublicProfilePage() {
                     params={{ slug: project.slug }}
                     className="block overflow-hidden rounded-md bg-muted"
                   >
-                    {project.image_url ? (
+                    {coverImage ? (
                       <img
-                        src={project.image_url}
+                        src={coverImage}
                         alt={project.name}
                         className="aspect-[16/10] w-full object-cover"
                       />
