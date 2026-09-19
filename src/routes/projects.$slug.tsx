@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BackingDialog } from "@/components/backed/backing-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,7 @@ import {
   projects,
   rewardAvailability,
 } from "@/lib/projects";
+import { publicSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/projects/$slug")({
   loader: ({ params }) => {
@@ -45,9 +46,22 @@ export const Route = createFileRoute("/projects/$slug")({
 function ProjectPage() {
   const project = Route.useLoaderData();
   const [tab, setTab] = useState("Story");
+  const [creatorUsername, setCreatorUsername] = useState(project.creatorUsername ?? null);
   const funded = percent(project);
   const remaining = daysRemaining(project);
   const availability = rewardAvailability(project.reward);
+
+  useEffect(() => {
+    if (!publicSupabase) return;
+    void publicSupabase
+      .from("public_profile_projects")
+      .select("creator_username")
+      .eq("slug", project.slug)
+      .maybeSingle()
+      .then(({ data }) =>
+        setCreatorUsername(data?.creator_username ?? project.creatorUsername ?? null),
+      );
+  }, [project.creatorUsername, project.slug]);
 
   return (
     <main className="pb-24">
@@ -65,10 +79,10 @@ function ProjectPage() {
                 {project.initials}
               </span>
               <div>
-                {project.creatorUsername ? (
+                {creatorUsername ? (
                   <Link
                     to="/$username"
-                    params={{ username: project.creatorUsername }}
+                    params={{ username: creatorUsername }}
                     className="block font-bold hover:text-primary"
                   >
                     {project.creator}
