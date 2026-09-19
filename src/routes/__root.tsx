@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -174,19 +175,43 @@ function FloatingStartButton() {
 }
 
 function SiteHeader() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [account, setAccount] = useState<{
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
-    void supabase.auth.getSession().then(({ data }) => {
-      const signedIn = Boolean(data.session);
-      setIsSignedIn(signedIn);
-    });
+    const loadAccount = async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (!user) return setAccount(null);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, display_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      const metadata = user.user_metadata ?? {};
+      setAccount({
+        username: profile?.username ?? null,
+        displayName: profile?.display_name ?? metadata.full_name ?? metadata.name ?? null,
+        avatarUrl: profile?.avatar_url ?? metadata.avatar_url ?? metadata.picture ?? null,
+      });
+    };
+    void loadAccount();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      const signedIn = Boolean(session);
-      setIsSignedIn(signedIn);
+      if (!session) {
+        setAccount(null);
+        return;
+      }
+      void loadAccount();
     });
-    return () => data.subscription.unsubscribe();
+    window.addEventListener("backed-profile-updated", loadAccount);
+    return () => {
+      data.subscription.unsubscribe();
+      window.removeEventListener("backed-profile-updated", loadAccount);
+    };
   }, []);
 
   async function signOut() {
@@ -231,24 +256,35 @@ function SiteHeader() {
           >
             FAQ
           </Link>
-          {isSignedIn ? (
+          {account ? (
             <>
-              <Link
-                to="/dashboard"
-                className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
-              >
-                Dashboard
-              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-accent md:block"
+                    aria-label="Open account menu"
+                    className="hidden rounded-full p-0.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring md:block"
                   >
-                    Account
+                    <ProfileAvatar
+                      avatarUrl={account.avatarUrl}
+                      displayName={account.displayName}
+                      username={account.username}
+                      className="size-9 border border-border"
+                    />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to={account.username ? "/$username" : "/settings"}
+                      params={account.username ? { username: account.username } : undefined}
+                    >
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>
                   </DropdownMenuItem>
@@ -321,8 +357,17 @@ function SiteHeader() {
                     Contact
                   </Link>
                 </SheetClose>
-                {isSignedIn ? (
+                {account ? (
                   <>
+                    <SheetClose asChild>
+                      <Link
+                        to={account.username ? "/$username" : "/settings"}
+                        params={account.username ? { username: account.username } : undefined}
+                        className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                      >
+                        Profile
+                      </Link>
+                    </SheetClose>
                     <SheetClose asChild>
                       <Link
                         to="/dashboard"
@@ -336,7 +381,7 @@ function SiteHeader() {
                         to="/settings"
                         className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
                       >
-                        Account settings
+                        Settings
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>

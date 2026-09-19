@@ -12,6 +12,7 @@ export type Project = {
   title: string;
   tagline: string;
   creator: string;
+  creatorUsername?: string;
   handle: string;
   initials: string;
   description: string;

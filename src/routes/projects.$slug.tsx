@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { BackingDialog } from "@/components/backed/backing-dialog";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,17 @@ function ProjectPage() {
                 {project.initials}
               </span>
               <div>
-                <strong className="block">{project.creator}</strong>
+                {project.creatorUsername ? (
+                  <Link
+                    to="/$username"
+                    params={{ username: project.creatorUsername }}
+                    className="block font-bold hover:text-primary"
+                  >
+                    {project.creator}
+                  </Link>
+                ) : (
+                  <strong className="block">{project.creator}</strong>
+                )}
                 <a
                   href={project.externalWebsite}
                   target="_blank"

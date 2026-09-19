@@ -3,13 +3,24 @@ import { Progress } from "@/components/ui/progress";
 import { amountBacked, daysRemaining, money, percent, type Project } from "@/lib/projects";
 
 export function CreatorIdentity({ project }: { project: Project }) {
-  return (
-    <div className="flex items-center gap-2">
+  const identity = (
+    <>
       <span className="grid size-7 place-items-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground">
         {project.initials}
       </span>
       <span className="text-xs font-semibold text-muted-foreground">{project.creator}</span>
-    </div>
+    </>
+  );
+  return project.creatorUsername ? (
+    <Link
+      to="/$username"
+      params={{ username: project.creatorUsername }}
+      className="flex w-fit items-center gap-2 hover:text-primary"
+    >
+      {identity}
+    </Link>
+  ) : (
+    <div className="flex items-center gap-2">{identity}</div>
   );
 }
 

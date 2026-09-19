@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,8 @@ function Settings() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -82,7 +85,7 @@ function Settings() {
     setMessage(null);
     const displayName = profile.display_name.trim();
     const username = profile.username.trim().toLowerCase();
-    const website = profile.website.trim();
+    let website = profile.website.trim();
     if (username && !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
       return setMessage(
         "Username must be 3–30 characters: lowercase letters, numbers, hyphens, or underscores.",
@@ -92,6 +95,7 @@ function Settings() {
       try {
         const url = new URL(website);
         if (!/^https?:$/.test(url.protocol)) throw new Error("unsupported protocol");
+        website = url.toString();
       } catch {
         return setMessage("Website must be a valid http:// or https:// URL.");
       }
@@ -104,7 +108,6 @@ function Settings() {
       .update({
         display_name: displayName || null,
         username: username || null,
-        avatar_url: profile.avatar_url || null,
         bio: profile.bio || null,
         website: website || null,
         receive_project_updates: profile.receive_project_updates,
@@ -126,7 +129,38 @@ function Settings() {
       ...savedProfile,
       email: savedProfile.email ?? data.session.user.email ?? "",
     });
+    window.dispatchEvent(new Event("backed-profile-updated"));
     setMessage("Changes saved.");
+  }
+
+  async function uploadAvatar(file?: File) {
+    if (!file || !supabase) return;
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowedTypes.has(file.type)) {
+      setMessage("Choose a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setMessage("Choose an image smaller than 5 MB.");
+      return;
+    }
+    setMessage(null);
+    setIsUploadingAvatar(true);
+    const form = new FormData();
+    form.append("file", file);
+    const { data, error } = await supabase.functions.invoke("avatar-upload", { body: form });
+    setIsUploadingAvatar(false);
+    const avatarUrl =
+      data && typeof data === "object" && "avatarUrl" in data && typeof data.avatarUrl === "string"
+        ? data.avatarUrl
+        : null;
+    if (error || !avatarUrl) {
+      setMessage("We couldn't upload your photo. Please try again.");
+      return;
+    }
+    update("avatar_url", avatarUrl);
+    window.dispatchEvent(new Event("backed-profile-updated"));
+    setMessage("Profile photo updated.");
   }
 
   async function changeEmail() {
@@ -193,6 +227,35 @@ function Settings() {
       <form onSubmit={saveProfile} className="mt-10 space-y-8">
         <section className="rounded-md border border-border p-6">
           <h2 className="text-xl font-semibold">Profile</h2>
+          <div className="mt-5 flex items-center gap-4">
+            <ProfileAvatar
+              avatarUrl={profile.avatar_url}
+              displayName={profile.display_name}
+              username={profile.username}
+              className="size-20 border border-border"
+            />
+            <div>
+              <input
+                ref={avatarInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={(event) => {
+                  void uploadAvatar(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => avatarInput.current?.click()}
+                disabled={isUploadingAvatar}
+              >
+                {isUploadingAvatar ? "Uploading…" : "Change photo"}
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground">JPG, PNG, or WebP. Up to 5 MB.</p>
+            </div>
+          </div>
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <Field label="Display name">
               <Input
@@ -207,16 +270,6 @@ function Settings() {
                 placeholder="your-handle"
               />
             </Field>
-            <div className="sm:col-span-2">
-              <Field label="Avatar URL">
-                <Input
-                  type="url"
-                  value={profile.avatar_url ?? ""}
-                  onChange={(e) => update("avatar_url", e.target.value)}
-                  placeholder="https://…"
-                />
-              </Field>
-            </div>
             <div className="sm:col-span-2">
               <Field label="Bio">
                 <Textarea

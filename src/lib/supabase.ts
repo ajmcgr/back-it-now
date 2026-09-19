@@ -25,6 +25,19 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
+// Public profile pages deliberately query as the anonymous role. This keeps
+// their narrow public RLS policy separate from an authenticated account's
+// private profile row and avoids exposing private fields through a shared view.
+export const publicSupabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    })
+  : null;
+
 export function authRedirectUrl(next?: string) {
   const url = new URL("/auth/callback", window.location.origin);
   if (next?.startsWith("/") && !next.startsWith("//")) url.searchParams.set("next", next);
