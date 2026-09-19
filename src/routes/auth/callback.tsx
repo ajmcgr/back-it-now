@@ -81,9 +81,9 @@ function AuthCallback() {
           const candidate: Record<string, unknown> = {
             id: user.id,
             email: user.email ?? null,
-            username: text(meta.user_name) ?? text(meta.preferred_username) ?? null,
-            display_name: text(meta.full_name) ?? text(meta.name) ?? null,
-            avatar_url: text(meta.avatar_url) ?? text(meta.picture) ?? null,
+            username: text(meta["user_name"]) ?? text(meta["preferred_username"]) ?? null,
+            display_name: text(meta["full_name"]) ?? text(meta["name"]) ?? null,
+            avatar_url: text(meta["avatar_url"]) ?? text(meta["picture"]) ?? null,
           };
           const { error: insertError } = await supabase.from("profiles").insert(candidate);
           if (insertError) await supabase.from("profiles").insert({ id: user.id });

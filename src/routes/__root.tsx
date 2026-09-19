@@ -198,7 +198,7 @@ function SiteHeader() {
         </Link>
         <Link
           to="/discover"
-          search={{ q: "" }}
+          search={{ q: "", category: "" }}
           className="hidden items-center gap-2 text-sm font-semibold text-foreground hover:text-primary sm:inline-flex"
         >
           <svg
@@ -270,7 +270,7 @@ function SiteHeader() {
                 <SheetClose asChild>
                   <Link
                     to="/discover"
-                    search={{ q: "" }}
+                    search={{ q: "", category: "" }}
                     className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
                   >
                     Discover

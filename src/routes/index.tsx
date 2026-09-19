@@ -65,7 +65,7 @@ function Index() {
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">
-              <Link to="/discover" search={{ q: "" }}>
+              <Link to="/discover" search={{ q: "", category: "" }}>
                 Explore projects
               </Link>
             </Button>
@@ -84,7 +84,7 @@ function Index() {
           <h2 className="text-3xl font-semibold">Projects worth backing</h2>
           <Link
             to="/discover"
-            search={{ q: "" }}
+            search={{ q: "", category: "" }}
             className="hidden items-center gap-1 text-sm font-semibold hover:text-primary sm:inline-flex"
           >
             View all <ArrowRight className="size-4" />
