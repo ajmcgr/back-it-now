@@ -7,11 +7,19 @@ const questions = [
   ],
   [
     "What happens when I back a project?",
-    "You choose a reward and support the project. Successful backing is recorded immediately; the funding goal shows progress but does not decide whether the creator receives those proceeds.",
+    "You choose a reward and complete checkout. Once your payment succeeds, your backing appears in the project's total and the creator can begin making the project happen.",
   ],
   [
-    "What if a project does not reach its goal?",
-    "A funding goal is a progress target. Successful backing proceeds remain available to the creator, less Backed and payment-processing fees.",
+    "Does a project have to reach its funding goal?",
+    "No. A funding goal is a progress target, not an all-or-nothing threshold. Creators remain entitled to successful backing proceeds, less Backed and payment-processing fees, even if they do not reach the goal.",
+  ],
+  [
+    "What does Backed cost?",
+    "It is free to launch. Backed charges creators a 5% platform fee on each successful backing, plus payment processing. Backers do not pay a separate Backed platform fee.",
+  ],
+  [
+    "How are payment processing fees handled?",
+    "Payment processing fees are separate from Backed's 5% platform fee. The exact processing cost depends on the payment method and is shown where relevant.",
   ],
   [
     "How do rewards work?",

@@ -251,6 +251,12 @@ function SiteHeader() {
             Start a project
           </Link>
           <Link
+            to="/pricing"
+            className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
+          >
+            Pricing
+          </Link>
+          <Link
             to="/faq"
             className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
           >
@@ -331,6 +337,14 @@ function SiteHeader() {
                     className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
                   >
                     Start a project
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link
+                    to="/pricing"
+                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                  >
+                    Pricing
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
