@@ -146,6 +146,21 @@ function RootShell({ children }: { children: ReactNode }) {
             `,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.$crisp = [];
+              window.CRISP_WEBSITE_ID = "dbdca1e6-de24-4e77-bff9-b425dba0126d";
+              (function () {
+                var d = document;
+                var s = d.createElement("script");
+                s.src = "https://client.crisp.chat/l.js";
+                s.async = true;
+                d.getElementsByTagName("head")[0].appendChild(s);
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         {children}
@@ -162,20 +177,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <SiteHeader />
       <Outlet />
-      <FloatingStartButton />
       <SiteFooter />
     </QueryClientProvider>
-  );
-}
-
-function FloatingStartButton() {
-  return (
-    <Link
-      to="/start"
-      className="fixed inset-x-4 bottom-4 z-30 inline-flex h-12 items-center justify-center rounded-md bg-black px-5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:inset-x-auto md:right-6 md:w-auto"
-    >
-      Start a project
-    </Link>
   );
 }
 
