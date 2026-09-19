@@ -21,6 +21,8 @@ async function sendDelivery(
     subject: string;
     title: string;
     body: string;
+    ctaLabel?: string;
+    ctaUrl?: string;
   },
 ) {
   if (!input.to) return;
@@ -39,7 +41,13 @@ async function sendDelivery(
   const response = await sendResendEmail({
     to: input.to,
     subject: input.subject,
-    email: renderBackedEmail({ title: input.title, preheader: input.title, body: input.body }),
+    email: renderBackedEmail({
+      title: input.title,
+      preheader: input.title,
+      body: input.body,
+      ctaLabel: input.ctaLabel,
+      ctaUrl: input.ctaUrl,
+    }),
     idempotencyKey: input.key,
   });
   await admin
@@ -50,6 +58,62 @@ async function sendDelivery(
         : { status: "failed", last_error: "resend_delivery_failed" },
     )
     .eq("id", delivery.id);
+}
+
+async function sendShareMilestones(admin: Admin, backingId: string) {
+  const { data: backing } = await admin
+    .from("backings")
+    .select("project_id")
+    .eq("id", backingId)
+    .maybeSingle();
+  if (!backing) return;
+  const { data: project } = await admin
+    .from("projects")
+    .select(
+      "id, slug, name, creator_id, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count",
+    )
+    .eq("id", backing.project_id)
+    .maybeSingle();
+  if (!project) return;
+  const { data: creator } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("id", project.creator_id)
+    .maybeSingle();
+  if (!creator?.email) return;
+
+  const amount = project.initial_backed_amount + project.successful_backed_amount;
+  const percent = project.funding_goal_amount
+    ? Math.floor((amount / project.funding_goal_amount) * 100)
+    : 0;
+  const milestones: Array<{ key: string; label: string }> = [];
+  for (const count of [1, 5, 10, 25, 50, 100]) {
+    if (project.successful_backer_count >= count)
+      milestones.push({ key: `backers:${count}`, label: `${count} backers` });
+  }
+  for (const threshold of [25, 50, 75, 100]) {
+    if (percent >= threshold)
+      milestones.push({ key: `funded:${threshold}`, label: `${threshold}% funded` });
+  }
+  for (const milestone of milestones) {
+    const { error } = await admin.from("project_share_milestones").insert({
+      project_id: project.id,
+      milestone_key: milestone.key,
+    });
+    if (error?.code === "23505") continue;
+    if (error) continue;
+    await sendDelivery(admin, {
+      key: `project-milestone:${project.id}:${milestone.key}`,
+      event: "project_milestone",
+      backingId,
+      to: creator.email,
+      subject: `${project.name} just hit ${milestone.label}`,
+      title: `${project.name} just hit ${milestone.label} 🎉`,
+      body: `Your project now has ${Math.round(amount / 100)} backed and ${project.successful_backer_count} backers. Keep the momentum going.`,
+      ctaLabel: `Share ${project.name}`,
+      ctaUrl: `https://backedit.co/projects/${project.slug}?share=1`,
+    });
+  }
 }
 
 async function attemptCreatorTransfer(admin: Admin, api: Stripe, backingId: string) {
@@ -222,6 +286,11 @@ Deno.serve(async (req) => {
               .from("backings")
               .update({ stripe_balance_transaction_id: balance.id })
               .eq("id", result.backing_id);
+          const { data: project } = await admin
+            .from("projects")
+            .select("id, slug, name, creator_id")
+            .eq("id", result.project_id)
+            .maybeSingle();
           await sendDelivery(admin, {
             key: `backing-confirmation:${result.backing_id}`,
             event: "backing_confirmation",
@@ -229,8 +298,30 @@ Deno.serve(async (req) => {
             to: session.customer_details?.email ?? "",
             subject: "Your Backed confirmation",
             title: "Your backing is confirmed",
-            body: "Thanks for backing this project. Your support has been recorded.",
+            body: "Thanks for backing this project. Your support has been recorded. Help make it happen by sharing the project with your community.",
+            ctaLabel: project ? "Share project" : undefined,
+            ctaUrl: project ? `https://backedit.co/projects/${project.slug}` : undefined,
           });
+          const { data: creator } = project
+            ? await admin
+                .from("profiles")
+                .select("email")
+                .eq("id", project.creator_id)
+                .maybeSingle()
+            : { data: null };
+          if (project && creator?.email)
+            await sendDelivery(admin, {
+              key: `creator-new-backing:${result.backing_id}`,
+              event: "creator_new_backing",
+              backingId: result.backing_id,
+              to: creator.email,
+              subject: `Someone backed ${project.name}`,
+              title: `Someone backed ${project.name} 🎉`,
+              body: "You have a new successful backing. Keep the momentum going by sharing your project.",
+              ctaLabel: "Share your project",
+              ctaUrl: `https://backedit.co/projects/${project.slug}?share=1`,
+            });
+          await sendShareMilestones(admin, result.backing_id);
           await attemptCreatorTransfer(admin, api, result.backing_id);
         }
       }

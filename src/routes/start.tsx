@@ -119,7 +119,7 @@ function StartPage() {
       return setLaunchMessage(error?.message ?? "Could not launch your project.");
     window.localStorage.removeItem("backed-project-draft");
     window.localStorage.removeItem("backed-project-draft-record");
-    window.location.assign(`/projects/${data.slug}`);
+    window.location.assign(`/projects/${data.slug}?published=1&share=1`);
   }
   if (!sample) return null;
   return (

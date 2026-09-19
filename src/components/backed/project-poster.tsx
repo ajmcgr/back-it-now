@@ -1,6 +1,7 @@
-import { Download, Linkedin, Link2, MessageCircle, X } from "lucide-react";
+import { Download, Instagram, Linkedin, Link2, MessageCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { shareUrls, trackShare, type ShareContext } from "@/lib/project-share";
 import {
   Dialog,
   DialogContent,
@@ -104,27 +105,53 @@ export function ProjectPosterDialog({
   project,
   open,
   onOpenChange,
+  context = "visitor",
 }: {
   project: PosterProject;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  context?: ShareContext;
 }) {
   const [poster, setPoster] = useState<string | null>(null);
-  const url = `https://backedit.co/projects/${project.slug}`;
+  const [instagramHint, setInstagramHint] = useState(false);
+  const links = shareUrls(project, context);
   useEffect(() => {
     if (!open) return;
+    trackShare(project.slug, "share_opened", context);
     void renderPoster(project)
       .then(setPoster)
       .catch(() => setPoster(null));
-  }, [open, project]);
-  const copy = `Back ${project.name} on Backed\n${url}`;
-  const share = (href: string) => window.open(href, "_blank", "noopener,noreferrer");
+  }, [context, open, project]);
+  const share = (href: string, event: string) => {
+    trackShare(project.slug, event, context);
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
   const download = () => {
     if (!poster) return;
     const anchor = document.createElement("a");
     anchor.href = poster;
     anchor.download = `${project.slug}-backed-poster.png`;
     anchor.click();
+    trackShare(project.slug, "share_poster_download", context);
+  };
+  const shareInstagram = async () => {
+    trackShare(project.slug, "share_instagram", context);
+    if (poster && navigator.canShare && navigator.share) {
+      const blob = await fetch(poster).then((response) => response.blob());
+      const file = new File([blob], `${project.slug}-backed-poster.png`, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: project.name,
+          text: links.copy,
+          url: links.url,
+        });
+        return;
+      }
+    }
+    if (navigator.clipboard) await navigator.clipboard.writeText(links.copy);
+    download();
+    setInstagramHint(true);
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,36 +176,44 @@ export function ProjectPosterDialog({
             <Download />
             Download poster
           </Button>
-          <Button variant="outline" onClick={() => void navigator.clipboard.writeText(url)}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              trackShare(project.slug, "share_copy_link", context);
+              void navigator.clipboard.writeText(links.url);
+            }}
+          >
             <Link2 />
             Copy link
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => share(`https://x.com/intent/post?text=${encodeURIComponent(copy)}`)}
-          >
+          <Button variant="outline" onClick={() => share(links.x, "share_x")}>
             <X />
             Share on X
           </Button>
-          <Button
-            variant="outline"
-            onClick={() =>
-              share(
-                `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-              )
-            }
-          >
+          <Button variant="outline" onClick={() => share(links.reddit, "share_reddit")}>
+            <span aria-hidden="true" className="font-bold">
+              r/
+            </span>
+            Reddit
+          </Button>
+          <Button variant="outline" onClick={() => share(links.linkedin, "share_linkedin")}>
             <Linkedin />
             LinkedIn
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => share(`https://wa.me/?text=${encodeURIComponent(copy)}`)}
-          >
+          <Button variant="outline" onClick={() => share(links.whatsapp, "share_whatsapp")}>
             <MessageCircle />
             WhatsApp
           </Button>
+          <Button variant="outline" onClick={() => void shareInstagram()}>
+            <Instagram />
+            Instagram
+          </Button>
         </div>
+        {instagramHint && (
+          <p className="text-sm text-muted-foreground">
+            Poster ready. Share it to Instagram and add your Backed link.
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

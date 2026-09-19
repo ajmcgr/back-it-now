@@ -8,6 +8,7 @@ import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { resolveProjectCover, useCanonicalProjectPresentation } from "@/lib/project-presentation";
+import { type ShareContext } from "@/lib/project-share";
 import { supabase } from "@/lib/supabase";
 import {
   amountBacked,
@@ -40,7 +41,21 @@ export const Route = createFileRoute("/projects/$slug")({
         content: loaderData?.description ?? "This Backed project is unavailable.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: `https://backedit.co/projects/${loaderData?.slug ?? ""}` },
+      {
+        property: "og:image",
+        content: `https://backedit.co${loaderData?.coverImage ?? "/logo.png"}`,
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: loaderData ? `${loaderData.title} — Backed` : "Backed" },
+      {
+        name: "twitter:description",
+        content: loaderData?.description ?? "This Backed project is unavailable.",
+      },
+      {
+        name: "twitter:image",
+        content: `https://backedit.co${loaderData?.coverImage ?? "/logo.png"}`,
+      },
     ],
   }),
   component: ProjectPage,
@@ -51,6 +66,7 @@ function ProjectPage() {
   const [tab, setTab] = useState("Story");
   const [isOwner, setIsOwner] = useState(false);
   const [isPosterOpen, setIsPosterOpen] = useState(false);
+  const [publishedNotice, setPublishedNotice] = useState(false);
   const presentation = useCanonicalProjectPresentation(project.slug);
   const creator = presentation?.creator;
   const coverImage = resolveProjectCover({
@@ -73,16 +89,31 @@ function ProjectPage() {
         .maybeSingle();
       const ownsProject = profile?.username?.toLowerCase() === creator.username.toLowerCase();
       setIsOwner(ownsProject);
-      if (ownsProject && new URLSearchParams(window.location.search).get("share") === "1") {
+      const params = new URLSearchParams(window.location.search);
+      if (ownsProject && params.get("share") === "1") {
         setIsPosterOpen(true);
-        window.history.replaceState({}, "", window.location.pathname);
       }
+      setPublishedNotice(ownsProject && params.get("published") === "1");
     });
   }, [creator?.username]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("checkout") === "success") {
+      setIsPosterOpen(true);
+    }
+  }, []);
 
   return (
     <main className="pb-24">
       <div className="container-backed pt-10 sm:pt-16">
+        {publishedNotice && (
+          <div className="mb-8 rounded-md border border-primary/30 bg-primary/5 p-5">
+            <p className="text-xl font-semibold">Your project is live 🎉</p>
+            <p className="mt-1 text-sm text-muted-foreground">Now get your first backers.</p>
+            <Button className="mt-4" onClick={() => setIsPosterOpen(true)}>
+              Share project
+            </Button>
+          </div>
+        )}
         <div className="mb-8 max-w-3xl">
           <span className="text-sm font-semibold text-primary">{project.category}</span>
           <h1 className="mt-3 text-4xl font-semibold sm:text-6xl">{project.title}</h1>
@@ -176,15 +207,9 @@ function ProjectPage() {
               {availability && <p className="mt-3 text-sm font-semibold">{availability}</p>}
             </div>
             <BackingCheckoutButton project={project} />
-            {isOwner && (
-              <Button
-                variant="outline"
-                className="mt-3 w-full"
-                onClick={() => setIsPosterOpen(true)}
-              >
-                Share project
-              </Button>
-            )}
+            <Button variant="outline" className="mt-3 w-full" onClick={() => setIsPosterOpen(true)}>
+              {isOwner ? "Share project" : "Share"}
+            </Button>
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
               This is a reward-based project. Backing does not provide equity, ownership, or
               financial returns.
@@ -248,6 +273,15 @@ function ProjectPage() {
             amountBacked: amountBacked(project) * 100,
             goal: project.goal * 100,
           }}
+          context={
+            isOwner
+              ? publishedNotice
+                ? "owner_launch"
+                : "owner_general"
+              : new URLSearchParams(window.location.search).get("checkout") === "success"
+                ? "backer"
+                : "visitor"
+          }
         />
       )}
     </main>
