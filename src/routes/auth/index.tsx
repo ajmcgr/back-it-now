@@ -32,7 +32,13 @@ function AuthPage() {
     setPending(provider);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: authRedirectUrl(next) },
+      options: {
+        redirectTo: authRedirectUrl(next),
+        // Ask Google to present its account picker. This keeps explicit sign-in
+        // intentional without changing Supabase's PKCE exchange or its session
+        // storage, and does not request a fresh consent screen each time.
+        ...(provider === "google" ? { queryParams: { prompt: "select_account" } } : {}),
+      },
     });
     if (error) setMessage(error.message);
     setPending(null);
