@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProjectGrid } from "@/components/backed/project-card";
-import { projects } from "@/lib/projects";
+import { projects, type Project } from "@/lib/projects";
+import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
+import { publicSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/discover")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -30,6 +32,18 @@ function Discover() {
   const { q, category: categorySearch } = Route.useSearch();
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(categorySearch);
+  const [canonicalProjects, setCanonicalProjects] = useState<Project[]>([]);
+  useEffect(() => {
+    if (!publicSupabase) return;
+    void publicSupabase.from("public_profile_projects").select("*").then(({ data }) => {
+      if (!data) return;
+      const loaded = data.flatMap((row) => {
+        const presentation = presentationFromPublicRow(row as Record<string, unknown>);
+        return presentation && typeof row.slug === "string" ? [presentationAsProject(row.slug, presentation)] : [];
+      });
+      setCanonicalProjects(loaded);
+    });
+  }, []);
   const categories = [
     "All",
     "Technology",
@@ -42,7 +56,7 @@ function Discover() {
   ];
   const filtered = useMemo(
     () =>
-      projects.filter(
+      [...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)), ...canonicalProjects].filter(
         (p) =>
           p.status === "live" &&
           (category === "All" || p.category === category) &&

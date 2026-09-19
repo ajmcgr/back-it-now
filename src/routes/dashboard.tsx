@@ -95,14 +95,12 @@ function Dashboard() {
                 <div>
                   <strong className="block">{project.name}</strong>
                   <span className="text-xs text-muted-foreground">{funded}% funded</span>
-                  {project.status === "live" && (
-                    <a
-                      href={`/projects/${project.slug}?share=1`}
-                      className="mt-2 inline-block text-xs font-semibold text-primary hover:underline"
-                    >
-                      Share project
-                    </a>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-primary">
+                    <Link to="/projects/$slug" params={{ slug: project.slug }} className="hover:underline">View</Link>
+                    <Link to="/projects/$slug/edit" params={{ slug: project.slug }} className="hover:underline">Edit</Link>
+                    {project.status === "live" && <a href={`/projects/${project.slug}?share=1`} className="hover:underline">Share</a>}
+                    <a href={`/projects/${project.slug}#backers`} className="hover:underline">Backers</a>
+                  </div>
                 </div>
                 <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
                   {project.status}

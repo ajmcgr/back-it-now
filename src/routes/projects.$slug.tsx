@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -7,7 +7,7 @@ import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { resolveProjectCover, useCanonicalProjectPresentation } from "@/lib/project-presentation";
+import { presentationAsProject, resolveProjectCover, useCanonicalProjectPresentation } from "@/lib/project-presentation";
 import { type ShareContext } from "@/lib/project-share";
 import { supabase } from "@/lib/supabase";
 import {
@@ -20,54 +20,34 @@ import {
 } from "@/lib/projects";
 
 export const Route = createFileRoute("/projects/$slug")({
-  loader: ({ params }) => {
-    const project = projects.find((item) => item.slug === params.slug && item.status === "live");
-    if (!project) throw notFound();
-    return project;
-  },
-  head: ({ loaderData }) => ({
+  loader: ({ params }) => params,
+  head: () => ({
     meta: [
-      { title: loaderData ? `${loaderData.title} — Backed` : "Project unavailable — Backed" },
-      {
-        name: "description",
-        content: loaderData?.description ?? "This Backed project is unavailable.",
-      },
-      {
-        property: "og:title",
-        content: loaderData ? `${loaderData.title} — Backed` : "Project unavailable — Backed",
-      },
-      {
-        property: "og:description",
-        content: loaderData?.description ?? "This Backed project is unavailable.",
-      },
+      { title: "Project — Backed" },
+      { name: "description", content: "Discover a project on Backed." },
+      { property: "og:title", content: "Project — Backed" },
+      { property: "og:description", content: "Discover a project on Backed." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: `https://backedit.co/projects/${loaderData?.slug ?? ""}` },
-      {
-        property: "og:image",
-        content: `https://backedit.co${loaderData?.coverImage ?? "/logo.png"}`,
-      },
+      { property: "og:image", content: "https://backedit.co/logo.png" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: loaderData ? `${loaderData.title} — Backed` : "Backed" },
-      {
-        name: "twitter:description",
-        content: loaderData?.description ?? "This Backed project is unavailable.",
-      },
-      {
-        name: "twitter:image",
-        content: `https://backedit.co${loaderData?.coverImage ?? "/logo.png"}`,
-      },
+      { name: "twitter:title", content: "Project — Backed" },
+      { name: "twitter:description", content: "Discover a project on Backed." },
+      { name: "twitter:image", content: "https://backedit.co/logo.png" },
     ],
   }),
   component: ProjectPage,
 });
 
 function ProjectPage() {
-  const project = Route.useLoaderData();
+  const { slug } = Route.useLoaderData();
+  const fallback = projects.find((item) => item.slug === slug && item.status === "live");
   const [tab, setTab] = useState("Story");
   const [isOwner, setIsOwner] = useState(false);
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
-  const presentation = useCanonicalProjectPresentation(project.slug);
+  const presentation = useCanonicalProjectPresentation(slug);
+  const project = presentation ? presentationAsProject(slug, presentation) : fallback;
+  if (!project) return <main className="container-backed py-24 text-center text-muted-foreground">Loading project…</main>;
   const creator = presentation?.creator;
   const coverImage = resolveProjectCover({
     slug: project.slug,
@@ -214,6 +194,11 @@ function ProjectPage() {
             <Button variant="outline" className="mt-3 w-full" onClick={() => setIsPosterOpen(true)}>
               {isOwner ? "Share project" : "Share"}
             </Button>
+            {isOwner && (
+              <Button asChild variant="ghost" className="mt-1 w-full">
+                <Link to="/projects/$slug/edit" params={{ slug: project.slug }}>Edit project</Link>
+              </Button>
+            )}
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
               This is a reward-based project. Backing does not provide equity, ownership, or
               financial returns.

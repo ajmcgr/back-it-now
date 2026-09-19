@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ProjectGrid } from "@/components/backed/project-card";
 import { Button } from "@/components/ui/button";
-import { projects } from "@/lib/projects";
+import { projects, type Project } from "@/lib/projects";
+import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
+import { publicSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,7 +28,18 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const liveProjects = projects.filter((project) => project.status === "live");
+  const [canonicalProjects, setCanonicalProjects] = useState<Project[]>([]);
+  useEffect(() => {
+    if (!publicSupabase) return;
+    void publicSupabase.from("public_profile_projects").select("*").then(({ data }) => {
+      if (!data) return;
+      setCanonicalProjects(data.flatMap((row) => {
+        const presentation = presentationFromPublicRow(row as Record<string, unknown>);
+        return presentation && typeof row.slug === "string" ? [presentationAsProject(row.slug, presentation)] : [];
+      }));
+    });
+  }, []);
+  const liveProjects = [...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)), ...canonicalProjects].filter((project) => project.status === "live");
   const newAndNoteworthy = liveProjects.slice(3);
   const categories = [
     "All",

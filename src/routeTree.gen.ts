@@ -25,6 +25,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
+import { Route as ProjectsSlugEditRouteImport } from './routes/projects.$slug.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +107,11 @@ const ProjectsSlugRoute = ProjectsSlugRouteImport.update({
   path: '/projects/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsSlugEditRoute = ProjectsSlugEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => ProjectsSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -122,8 +128,9 @@ export interface FileRoutesByFullPath {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/projects/$slug': typeof ProjectsSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
+  '/projects/$slug/edit': typeof ProjectsSlugEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,8 +147,9 @@ export interface FileRoutesByTo {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/projects/$slug': typeof ProjectsSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth': typeof AuthIndexRoute
+  '/projects/$slug/edit': typeof ProjectsSlugEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,8 +167,9 @@ export interface FileRoutesById {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/projects/$slug': typeof ProjectsSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
+  '/projects/$slug/edit': typeof ProjectsSlugEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/projects/$slug'
     | '/auth/'
+    | '/projects/$slug/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/projects/$slug'
     | '/auth'
+    | '/projects/$slug/edit'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/projects/$slug'
     | '/auth/'
+    | '/projects/$slug/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -234,7 +246,7 @@ export interface RootRouteChildren {
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  ProjectsSlugRoute: typeof ProjectsSlugRoute
+  ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
@@ -352,8 +364,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$slug/edit': {
+      id: '/projects/$slug/edit'
+      path: '/edit'
+      fullPath: '/projects/$slug/edit'
+      preLoaderRoute: typeof ProjectsSlugEditRouteImport
+      parentRoute: typeof ProjectsSlugRoute
+    }
   }
 }
+
+interface ProjectsSlugRouteChildren {
+  ProjectsSlugEditRoute: typeof ProjectsSlugEditRoute
+}
+
+const ProjectsSlugRouteChildren: ProjectsSlugRouteChildren = {
+  ProjectsSlugEditRoute: ProjectsSlugEditRoute,
+}
+
+const ProjectsSlugRouteWithChildren = ProjectsSlugRoute._addFileChildren(
+  ProjectsSlugRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -370,7 +401,7 @@ const rootRouteChildren: RootRouteChildren = {
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  ProjectsSlugRoute: ProjectsSlugRoute,
+  ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
 }
 export const routeTree = rootRouteImport
