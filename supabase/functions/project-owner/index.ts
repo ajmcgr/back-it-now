@@ -7,10 +7,19 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
 };
-const categories = new Set(["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"]);
+const categories = new Set([
+  "Technology",
+  "Design",
+  "Fashion",
+  "Games",
+  "Publishing",
+  "Food",
+  "Other",
+]);
 const reply = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: cors });
-const bounded = (value: unknown, max: number) => (typeof value === "string" ? value.trim().slice(0, max) : "");
+const bounded = (value: unknown, max: number) =>
+  typeof value === "string" ? value.trim().slice(0, max) : "";
 const isHttpsUrl = (value: string) => !value || /^https:\/\/[^\s]+$/i.test(value);
 
 Deno.serve(async (request) => {
@@ -18,7 +27,10 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return reply(405, { error: "method_not_allowed" });
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return reply(401, { error: "authentication_required" });
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
   const { data: auth } = await admin.auth.getUser(token);
   if (!auth.user) return reply(401, { error: "authentication_required" });
 
@@ -27,7 +39,9 @@ Deno.serve(async (request) => {
     const slug = typeof body.slug === "string" ? body.slug : "";
     const { data: project, error } = await admin
       .from("projects")
-      .select("id, slug, name, summary, description, image_url, gallery_urls, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at")
+      .select(
+        "id, slug, name, summary, description, image_url, gallery_urls, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at",
+      )
       .eq("slug", slug)
       .eq("creator_id", auth.user.id)
       .maybeSingle();
@@ -48,9 +62,16 @@ Deno.serve(async (request) => {
         .from("backings")
         .select("id", { count: "exact", head: true })
         .eq("project_id", project.id);
-      if ((count ?? 0) > 0 || project.successful_backed_amount > 0 || project.successful_backer_count > 0)
+      if (
+        (count ?? 0) > 0 ||
+        project.successful_backed_amount > 0 ||
+        project.successful_backer_count > 0
+      )
         return reply(409, { error: "projects_with_financial_history_cannot_be_archived" });
-      await admin.from("projects").update({ creator_archived_at: new Date().toISOString() }).eq("id", project.id);
+      await admin
+        .from("projects")
+        .update({ creator_archived_at: new Date().toISOString() })
+        .eq("id", project.id);
       return reply(200, { archived: true });
     }
 
@@ -64,11 +85,23 @@ Deno.serve(async (request) => {
     const externalWebsite = bounded(body.externalWebsite, 500);
     const imageUrl = bounded(body.imageUrl, 2000);
     const projectMediaPrefix = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/project-media/projects/${project.id}/`;
-    const isOwnedMedia = (value: string) => value.startsWith(projectMediaPrefix) || value.startsWith("https://backedit.co/");
+    const isOwnedMedia = (value: string) =>
+      value.startsWith(projectMediaPrefix) || value.startsWith("https://backedit.co/");
     const galleryUrls = Array.isArray(body.galleryUrls)
-      ? body.galleryUrls.filter((value: unknown): value is string => typeof value === "string" && isOwnedMedia(value)).slice(0, 8)
+      ? body.galleryUrls
+          .filter(
+            (value: unknown): value is string => typeof value === "string" && isOwnedMedia(value),
+          )
+          .slice(0, 8)
       : [];
-    if (name.length < 3 || summary.length < 3 || !categories.has(category) || !isHttpsUrl(externalWebsite) || !imageUrl || !isOwnedMedia(imageUrl))
+    if (
+      name.length < 3 ||
+      summary.length < 3 ||
+      !categories.has(category) ||
+      !isHttpsUrl(externalWebsite) ||
+      !imageUrl ||
+      !isOwnedMedia(imageUrl)
+    )
       return reply(422, { error: "invalid_project_presentation" });
 
     const updates: Record<string, unknown> = {
@@ -88,7 +121,16 @@ Deno.serve(async (request) => {
       const price = Number(body.rewardPrice);
       const quantity = Number(body.rewardQuantity);
       const deadline = typeof body.deadline === "string" ? new Date(body.deadline) : null;
-      if (!Number.isFinite(goal) || goal < 1 || !Number.isFinite(price) || price < 1 || !Number.isInteger(quantity) || quantity < 1 || !deadline || deadline <= new Date())
+      if (
+        !Number.isFinite(goal) ||
+        goal < 1 ||
+        !Number.isFinite(price) ||
+        price < 1 ||
+        !Number.isInteger(quantity) ||
+        quantity < 1 ||
+        !deadline ||
+        deadline <= new Date()
+      )
         return reply(422, { error: "invalid_project_economics" });
       if (reward && quantity < reward.claimed_quantity + reward.reserved_quantity)
         return reply(422, { error: "reward_capacity_below_claimed_or_reserved" });
@@ -97,15 +139,23 @@ Deno.serve(async (request) => {
       if (reward) {
         const rewardName = bounded(body.rewardName, 160);
         if (rewardName.length < 2) return reply(422, { error: "invalid_reward" });
-        await admin.from("rewards").update({
-          title: rewardName,
-          description: bounded(body.rewardDescription, 2000),
-          amount: Math.round(price * 100),
-          total_quantity: quantity,
-        }).eq("id", reward.id).eq("project_id", project.id);
+        await admin
+          .from("rewards")
+          .update({
+            title: rewardName,
+            description: bounded(body.rewardDescription, 2000),
+            amount: Math.round(price * 100),
+            total_quantity: quantity,
+          })
+          .eq("id", reward.id)
+          .eq("project_id", project.id);
       }
     }
-    const { error: updateError } = await admin.from("projects").update(updates).eq("id", project.id).eq("creator_id", auth.user.id);
+    const { error: updateError } = await admin
+      .from("projects")
+      .update(updates)
+      .eq("id", project.id)
+      .eq("creator_id", auth.user.id);
     if (updateError) return reply(500, { error: "project_update_failed" });
     return reply(200, { updated: true, restrictedEconomics: backed });
   } catch {

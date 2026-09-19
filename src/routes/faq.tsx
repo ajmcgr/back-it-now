@@ -7,7 +7,7 @@ const questions = [
   ],
   [
     "What happens when I back a project?",
-    "You choose a reward and complete checkout. Once your payment succeeds, your backing appears in the project's total and the creator can begin making the project happen.",
+    "Choose how much to back and optionally claim an eligible reward. Once payment succeeds, your backing is added to the project and shown in its progress.",
   ],
   [
     "Does a project have to reach its funding goal?",
@@ -23,7 +23,15 @@ const questions = [
   ],
   [
     "How do rewards work?",
-    "Each project states what supporters receive, how much it costs, and any available quantity. Limited rewards are available only while capacity remains.",
+    "Rewards are optional. Each project explains what an eligible backer receives, the minimum backing amount, and any available quantity. Limited rewards are available only while capacity remains.",
+  ],
+  [
+    "When do creators receive proceeds?",
+    "Creators receive proceeds from successful backings through their connected Stripe account, less Backed’s 5% platform fee and payment processing fees.",
+  ],
+  [
+    "Can a backing be refunded?",
+    "Refunds are handled through Stripe when a project cannot fulfill a backing or a refund is otherwise required. Backed is not equity or an investment product.",
   ],
   [
     "Can I launch a project?",

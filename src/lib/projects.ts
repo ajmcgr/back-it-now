@@ -1,6 +1,7 @@
 export type Reward = {
   name: string;
   description: string;
+  minimumAmount?: number;
   includes: string[];
   totalQuantity: number | null;
   successfulBackingCount: number;
@@ -47,7 +48,7 @@ export const projects: Project[] = [
       "No conference. No speakers. No networking badges.",
       "Just six builders, one villa, seven days, and whatever we can ship by the end of it.",
       "The first Launch Island will take place from November 1–8, 2026.",
-      "Back the project by reserving one of the six Founding Guest spots. If the project gets fully backed, Launch Island happens.",
+      "Back the project by reserving one of the six Founding Guest spots. Each successful backing helps make Launch Island happen.",
     ],
     coverImage: "/projects/launch-island/cover.jpeg",
     gallery: [
@@ -68,6 +69,7 @@ export const projects: Project[] = [
     reward: {
       name: "Founding Guest",
       description: "One of only six spots at the first Launch Island.",
+      minimumAmount: 1000,
       includes: [
         "Seven nights at the Launch Island villa",
         "Shared working and living spaces",

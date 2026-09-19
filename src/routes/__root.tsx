@@ -24,6 +24,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
@@ -236,94 +237,105 @@ function SiteHeader() {
     window.location.assign("/");
   }
 
+  const navClass =
+    "rounded-md px-2 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  const mobileNavClass =
+    "rounded-md px-3 py-3 text-lg font-semibold text-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
-      <div className="container-backed flex h-16 items-center gap-7">
-        <Link to="/" aria-label="Backed home" className="shrink-0">
-          <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-14 w-auto" />
-        </Link>
+      <div className="container-backed grid h-[4.5rem] grid-cols-[1fr_auto_1fr] items-center gap-3">
         <Link
-          to="/discover"
-          search={{ q: "", category: "" }}
-          className="hidden items-center gap-2 text-sm font-semibold text-foreground hover:text-primary sm:inline-flex"
+          to="/"
+          aria-label="Backed home"
+          className="w-fit shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-4-4" />
-          </svg>
-          Discover
+          <img
+            src="/logo.png"
+            alt="Backed"
+            width={3654}
+            height={1291}
+            className="h-11 w-auto sm:h-12"
+          />
         </Link>
-        <div className="ml-auto flex items-center gap-1 sm:gap-3">
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
+          <Link
+            to="/discover"
+            search={{ q: "", category: "" }}
+            className={navClass}
+            activeProps={{ className: `${navClass} text-foreground` }}
+          >
+            Discover
+          </Link>
           <Link
             to="/start"
-            className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
+            className={navClass}
+            activeProps={{ className: `${navClass} text-foreground` }}
           >
             Start a project
           </Link>
-          <Link
-            to="/pricing"
-            className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
-          >
-            Pricing
-          </Link>
-          <Link
-            to="/faq"
-            className="hidden text-sm font-semibold text-foreground hover:text-primary md:block"
-          >
-            FAQ
-          </Link>
+        </nav>
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Supporting navigation">
+            <Link
+              to="/pricing"
+              className={navClass}
+              activeProps={{ className: `${navClass} text-foreground` }}
+            >
+              Pricing
+            </Link>
+            <Link
+              to="/faq"
+              className={navClass}
+              activeProps={{ className: `${navClass} text-foreground` }}
+            >
+              FAQ
+            </Link>
+          </nav>
           {account ? (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Open account menu"
-                    className="hidden rounded-full p-0.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring md:block"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open account menu"
+                  className="rounded-full p-0.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  <ProfileAvatar
+                    avatarUrl={account.avatarUrl}
+                    displayName={account.displayName}
+                    username={account.username}
+                    className="size-9 border border-border"
+                  />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-40">
+                <DropdownMenuItem asChild>
+                  <Link
+                    to={account.username ? "/$username" : "/settings"}
+                    params={account.username ? { username: account.username } : undefined}
                   >
-                    <ProfileAvatar
-                      avatarUrl={account.avatarUrl}
-                      displayName={account.displayName}
-                      username={account.username}
-                      className="size-9 border border-border"
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">Settings</Link>
+                </DropdownMenuItem>
+                {isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link
-                      to={account.username ? "/$username" : "/settings"}
-                      params={account.username ? { username: account.username } : undefined}
-                    >
-                      Profile
-                    </Link>
+                    <Link to="/admin">Admin</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard">Dashboard</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin">Admin</Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onSelect={signOut}>Log out</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={signOut}>Log out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link
               to="/auth"
-              className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
+              className="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Sign in
             </Link>
@@ -334,7 +346,7 @@ function SiteHeader() {
               <button
                 type="button"
                 aria-label="Open menu"
-                className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
+                className="inline-flex size-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:hidden"
               >
                 <Menu className="size-5" />
               </button>
@@ -345,101 +357,35 @@ function SiteHeader() {
               </SheetHeader>
               <nav className="mt-8 flex flex-col gap-1" aria-label="Mobile navigation">
                 <SheetClose asChild>
-                  <Link
-                    to="/discover"
-                    search={{ q: "", category: "" }}
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
+                  <Link to="/discover" search={{ q: "", category: "" }} className={mobileNavClass}>
                     Discover
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link
-                    to="/start"
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
+                  <Link to="/start" className={mobileNavClass}>
                     Start a project
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link
-                    to="/pricing"
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
+                  <Link to="/pricing" className={mobileNavClass}>
                     Pricing
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link
-                    to="/faq"
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
+                  <Link to="/faq" className={mobileNavClass}>
                     FAQ
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link
-                    to="/about"
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
+                  <Link to="/about" className={mobileNavClass}>
                     About
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link
-                    to="/contact"
-                    className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                  >
+                  <Link to="/contact" className={mobileNavClass}>
                     Contact
                   </Link>
                 </SheetClose>
-                {account ? (
-                  <>
-                    <SheetClose asChild>
-                      <Link
-                        to={account.username ? "/$username" : "/settings"}
-                        params={account.username ? { username: account.username } : undefined}
-                        className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                      >
-                        Profile
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link
-                        to="/dashboard"
-                        className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                      >
-                        Dashboard
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link
-                        to="/settings"
-                        className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                      >
-                        Settings
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <button
-                        type="button"
-                        onClick={signOut}
-                        className="rounded-md px-3 py-3 text-left text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                      >
-                        Log out
-                      </button>
-                    </SheetClose>
-                  </>
-                ) : (
-                  <SheetClose asChild>
-                    <Link
-                      to="/auth"
-                      className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
-                    >
-                      Sign in
-                    </Link>
-                  </SheetClose>
-                )}
               </nav>
               <div className="mt-auto border-t border-border pt-5 text-sm text-muted-foreground">
                 <div className="flex gap-4">
@@ -486,7 +432,7 @@ function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="inline-flex size-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
+      className="inline-flex size-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
     </button>
@@ -495,56 +441,87 @@ function ThemeToggle() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-border py-8">
-      <div className="container-backed text-center text-sm text-muted-foreground">
-        <nav
-          className="mb-4 flex flex-wrap justify-center gap-x-5 gap-y-2"
-          aria-label="Footer navigation"
-        >
-          <Link to="/faq" className="hover:text-primary">
-            FAQ
-          </Link>
-          <Link to="/contact" className="hover:text-primary">
-            Contact
-          </Link>
-          <Link to="/privacy" className="hover:text-primary">
-            Privacy
-          </Link>
-          <Link to="/terms" className="hover:text-primary">
-            Terms
-          </Link>
-          <a
-            href="https://x.com/backeditco"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-primary"
-          >
-            Follow us on X
-          </a>
-        </nav>
-        <p className="mb-2">© 2026 Backed</p>
-        <p>
-          Built with 🫶🏻 by{" "}
-          <a
-            href="https://x.com/alexmacgregor__"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-primary"
-          >
-            Alex
-          </a>
-          . Inspired by{" "}
-          <a
-            href="https://x.com/marclou"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-primary"
-          >
-            Marc
-          </a>
-          . Backed is not affiliated with or endorsed by X.
-        </p>
+    <footer className="border-t border-border py-10 sm:py-12">
+      <div className="container-backed">
+        <div className="grid gap-8 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(3,1fr)]">
+          <div>
+            <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-10 w-auto" />
+            <p className="mt-3 max-w-xs leading-6">Back things you want to exist.</p>
+          </div>
+          <FooterGroup
+            title="Explore"
+            links={[
+              ["Discover", "/discover"],
+              ["Start a project", "/start"],
+              ["Pricing", "/pricing"],
+            ]}
+          />
+          <FooterGroup
+            title="Company"
+            links={[
+              ["About", "/about"],
+              ["FAQ", "/faq"],
+              ["Contact", "/contact"],
+            ]}
+          />
+          <FooterGroup
+            title="Legal"
+            links={[
+              ["Terms", "/terms"],
+              ["Privacy", "/privacy"],
+            ]}
+          />
+        </div>
+        <div className="mt-10 border-t border-border pt-5 text-center text-sm text-muted-foreground sm:flex sm:items-center sm:justify-between sm:text-left">
+          <p>
+            © 2026 Backed ·{" "}
+            <a
+              href="https://x.com/backeditco"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-primary"
+            >
+              Follow us on X
+            </a>
+          </p>
+          <p className="mt-2 sm:mt-0">
+            Built with 🫶🏻 by{" "}
+            <a
+              href="https://x.com/alexmacgregor__"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-primary"
+            >
+              Alex
+            </a>
+            . Inspired by{" "}
+            <a
+              href="https://x.com/marclou"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-primary"
+            >
+              Marc
+            </a>
+            . Backed is not affiliated with or endorsed by X.
+          </p>
+        </div>
       </div>
     </footer>
+  );
+}
+
+function FooterGroup({ title, links }: { title: string; links: [string, string][] }) {
+  return (
+    <nav aria-label={title}>
+      <p className="mb-3 font-semibold text-foreground">{title}</p>
+      <div className="flex flex-col gap-2">
+        {links.map(([label, href]) => (
+          <Link key={href} to={href as "/"} className="w-fit hover:text-primary">
+            {label}
+          </Link>
+        ))}
+      </div>
+    </nav>
   );
 }

@@ -52,12 +52,14 @@ function PricingPage() {
 
         <article className="rounded-xl border border-border bg-card p-7 text-left sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Backers</p>
-          <h2 className="mt-3 text-3xl font-semibold">Back the reward you want</h2>
+          <h2 className="mt-3 text-3xl font-semibold">Back any amount</h2>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Pick the reward that matters to you and review the amount at checkout before you pay.
+            Choose the amount that feels right. You can optionally claim an eligible reward at
+            checkout.
           </p>
           <ul className="mt-6 space-y-3 leading-7 text-muted-foreground">
             <li>No separate Backed platform fee for backers</li>
+            <li>Rewards are optional</li>
             <li>Limited rewards remain available only while capacity lasts</li>
             <li>Successful backings count toward the project’s visible progress</li>
           </ul>

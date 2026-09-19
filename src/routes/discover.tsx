@@ -35,14 +35,19 @@ function Discover() {
   const [canonicalProjects, setCanonicalProjects] = useState<Project[]>([]);
   useEffect(() => {
     if (!publicSupabase) return;
-    void publicSupabase.from("public_profile_projects").select("*").then(({ data }) => {
-      if (!data) return;
-      const loaded = data.flatMap((row) => {
-        const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-        return presentation && typeof row.slug === "string" ? [presentationAsProject(row.slug, presentation)] : [];
+    void publicSupabase
+      .from("public_profile_projects")
+      .select("*")
+      .then(({ data }) => {
+        if (!data) return;
+        const loaded = data.flatMap((row) => {
+          const presentation = presentationFromPublicRow(row as Record<string, unknown>);
+          return presentation && typeof row.slug === "string"
+            ? [presentationAsProject(row.slug, presentation)]
+            : [];
+        });
+        setCanonicalProjects(loaded);
       });
-      setCanonicalProjects(loaded);
-    });
   }, []);
   const categories = [
     "All",
@@ -56,7 +61,12 @@ function Discover() {
   ];
   const filtered = useMemo(
     () =>
-      [...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)), ...canonicalProjects].filter(
+      [
+        ...projects.filter(
+          (project) => !canonicalProjects.some((item) => item.slug === project.slug),
+        ),
+        ...canonicalProjects,
+      ].filter(
         (p) =>
           p.status === "live" &&
           (category === "All" || p.category === category) &&

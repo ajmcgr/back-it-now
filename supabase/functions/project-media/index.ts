@@ -12,14 +12,18 @@ const maxBytes = 5 * 1024 * 1024;
 const reply = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: cors });
 const hash = async (value: string) =>
-  Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))), (byte) =>
-    byte.toString(16).padStart(2, "0"),
+  Array.from(
+    new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))),
+    (byte) => byte.toString(16).padStart(2, "0"),
   ).join("");
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return reply(405, { error: "method_not_allowed" });
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
   try {
     const form = await request.formData();
     const scope = form.get("scope");
@@ -46,7 +50,8 @@ Deno.serve(async (request) => {
     } else if (scope === "project") {
       const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
       const slug = form.get("slug");
-      if (!token || typeof slug !== "string") return reply(401, { error: "authentication_required" });
+      if (!token || typeof slug !== "string")
+        return reply(401, { error: "authentication_required" });
       const { data: auth } = await admin.auth.getUser(token);
       if (!auth.user) return reply(401, { error: "authentication_required" });
       const { data: project } = await admin

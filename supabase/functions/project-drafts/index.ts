@@ -17,9 +17,11 @@ const hash = async (value: string) =>
 
 function messageFor(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  if (message.includes("incomplete_draft")) return "Add a title, summary, cover image, funding goal, deadline, and reward before publishing.";
+  if (message.includes("incomplete_draft"))
+    return "Add a title, summary, cover image, funding goal, deadline, and reward before publishing.";
   if (message.includes("invalid_external_website")) return "Use a valid HTTPS website address.";
-  if (message.includes("draft_owned_by_another_user")) return "This draft belongs to a different Backed account.";
+  if (message.includes("draft_owned_by_another_user"))
+    return "This draft belongs to a different Backed account.";
   if (message.includes("draft_not_found")) return "This draft is no longer available.";
   return "We could not publish this project. Please check the details and try again.";
 }
@@ -86,8 +88,12 @@ Deno.serve(async (request) => {
         .eq("owner_id", auth.user.id)
         .maybeSingle();
       const payload = (draft?.payload ?? {}) as Record<string, unknown>;
-      const paths = [payload.coverPath, ...(Array.isArray(payload.galleryPaths) ? payload.galleryPaths : [])]
-        .filter((path): path is string => typeof path === "string" && path.startsWith(`drafts/${id}/`));
+      const paths = [
+        payload.coverPath,
+        ...(Array.isArray(payload.galleryPaths) ? payload.galleryPaths : []),
+      ].filter(
+        (path): path is string => typeof path === "string" && path.startsWith(`drafts/${id}/`),
+      );
       const movedUrls: string[] = [];
       for (const sourcePath of paths) {
         const filename = sourcePath.split("/").pop();
@@ -97,7 +103,9 @@ Deno.serve(async (request) => {
           .from("project-media")
           .move(sourcePath, destinationPath);
         if (moveError) continue;
-        const { data: publicUrl } = admin.storage.from("project-media").getPublicUrl(destinationPath);
+        const { data: publicUrl } = admin.storage
+          .from("project-media")
+          .getPublicUrl(destinationPath);
         movedUrls.push(publicUrl.publicUrl);
       }
       if (movedUrls.length) {

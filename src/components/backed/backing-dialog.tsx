@@ -23,7 +23,7 @@ export function BackingCheckoutButton({
   const [claimReward, setClaimReward] = useState(false);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
-  const rewardMinimum = project.goal;
+  const rewardMinimum = project.reward.minimumAmount ?? project.goal;
 
   const startCheckout = async () => {
     if (!supabase || isStartingCheckout) return;

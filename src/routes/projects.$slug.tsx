@@ -7,7 +7,11 @@ import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { presentationAsProject, resolveProjectCover, useCanonicalProjectPresentation } from "@/lib/project-presentation";
+import {
+  presentationAsProject,
+  resolveProjectCover,
+  useCanonicalProjectPresentation,
+} from "@/lib/project-presentation";
 import { type ShareContext } from "@/lib/project-share";
 import { supabase } from "@/lib/supabase";
 import {
@@ -47,21 +51,7 @@ function ProjectPage() {
   const [publishedNotice, setPublishedNotice] = useState(false);
   const presentation = useCanonicalProjectPresentation(slug);
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
-  if (!project) return <main className="container-backed py-24 text-center text-muted-foreground">Loading project…</main>;
   const creator = presentation?.creator;
-  const coverImage = resolveProjectCover({
-    slug: project.slug,
-    imageUrl: presentation?.imageUrl,
-    coverImage: project.coverImage,
-    gallery: project.gallery,
-  });
-  const funded = percent(project);
-  const remaining = daysRemaining(project);
-  const availability =
-    presentation?.rewardAvailableQuantity === null ||
-    presentation?.rewardAvailableQuantity === undefined
-      ? rewardAvailability(project.reward)
-      : `${presentation.rewardAvailableQuantity} ${project.reward.availabilityLabel} available`;
   useEffect(() => {
     if (!supabase || !creator?.username) return;
     void supabase.auth.getSession().then(async ({ data }) => {
@@ -85,7 +75,25 @@ function ProjectPage() {
       setIsPosterOpen(true);
     }
   }, []);
-
+  if (!project)
+    return (
+      <main className="container-backed py-24 text-center text-muted-foreground">
+        Loading project…
+      </main>
+    );
+  const coverImage = resolveProjectCover({
+    slug: project.slug,
+    imageUrl: presentation?.imageUrl,
+    coverImage: project.coverImage,
+    gallery: project.gallery,
+  });
+  const funded = percent(project);
+  const remaining = daysRemaining(project);
+  const availability =
+    presentation?.rewardAvailableQuantity === null ||
+    presentation?.rewardAvailableQuantity === undefined
+      ? rewardAvailability(project.reward)
+      : `${presentation.rewardAvailableQuantity} ${project.reward.availabilityLabel} available`;
   return (
     <main className="pb-24">
       <div className="container-backed pt-10 sm:pt-16">
@@ -196,7 +204,9 @@ function ProjectPage() {
             </Button>
             {isOwner && (
               <Button asChild variant="ghost" className="mt-1 w-full">
-                <Link to="/projects/$slug/edit" params={{ slug: project.slug }}>Edit project</Link>
+                <Link to="/projects/$slug/edit" params={{ slug: project.slug }}>
+                  Edit project
+                </Link>
               </Button>
             )}
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
@@ -239,9 +249,13 @@ function ProjectPage() {
             </a>
           </article>
         ) : (
-          <div className="py-16">
+          <div id={tab === "Backers" ? "backers" : undefined} className="py-16">
             <h2 className="text-2xl font-semibold">{tab}</h2>
-            <p className="mt-2 text-muted-foreground">Nothing has been posted here yet.</p>
+            <p className="mt-2 text-muted-foreground">
+              {tab === "Backers"
+                ? "No backers yet. Be the first to help make this project happen."
+                : "No updates yet. Check back here for news from the creator."}
+            </p>
           </div>
         )}
       </div>

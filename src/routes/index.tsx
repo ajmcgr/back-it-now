@@ -31,15 +31,25 @@ function Index() {
   const [canonicalProjects, setCanonicalProjects] = useState<Project[]>([]);
   useEffect(() => {
     if (!publicSupabase) return;
-    void publicSupabase.from("public_profile_projects").select("*").then(({ data }) => {
-      if (!data) return;
-      setCanonicalProjects(data.flatMap((row) => {
-        const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-        return presentation && typeof row.slug === "string" ? [presentationAsProject(row.slug, presentation)] : [];
-      }));
-    });
+    void publicSupabase
+      .from("public_profile_projects")
+      .select("*")
+      .then(({ data }) => {
+        if (!data) return;
+        setCanonicalProjects(
+          data.flatMap((row) => {
+            const presentation = presentationFromPublicRow(row as Record<string, unknown>);
+            return presentation && typeof row.slug === "string"
+              ? [presentationAsProject(row.slug, presentation)]
+              : [];
+          }),
+        );
+      });
   }, []);
-  const liveProjects = [...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)), ...canonicalProjects].filter((project) => project.status === "live");
+  const liveProjects = [
+    ...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)),
+    ...canonicalProjects,
+  ].filter((project) => project.status === "live");
   const newAndNoteworthy = liveProjects.slice(3);
   const categories = [
     "All",

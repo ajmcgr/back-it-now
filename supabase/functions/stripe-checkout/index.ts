@@ -133,18 +133,16 @@ Deno.serve(async (req) => {
           .is("released_at", null);
         if (reservationUpdateError) throw reservationUpdateError;
       }
-      const { error: intentError } = await admin
-        .from("checkout_backing_intents")
-        .insert({
-          checkout_session_id: session.id,
-          project_id: project.id,
-          reward_id: claimReward && reward ? reward.id : null,
-          reservation_id: reservationId,
-          backer_id: user?.id ?? null,
-          amount,
-          currency: project.currency,
-          expires_at: expiresAt,
-        });
+      const { error: intentError } = await admin.from("checkout_backing_intents").insert({
+        checkout_session_id: session.id,
+        project_id: project.id,
+        reward_id: claimReward && reward ? reward.id : null,
+        reservation_id: reservationId,
+        backer_id: user?.id ?? null,
+        amount,
+        currency: project.currency,
+        expires_at: expiresAt,
+      });
       if (intentError) throw intentError;
       return json({ checkoutUrl: session.url });
     } catch (error) {
