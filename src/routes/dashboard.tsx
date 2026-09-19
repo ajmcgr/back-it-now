@@ -32,6 +32,7 @@ function Dashboard() {
   const [projects, setProjects] = useState<CreatorProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
+    console.info("[Backed auth] Dashboard mounted");
     const load = async () => {
       if (!supabase) return setIsLoading(false);
       const { data: session } = await supabase.auth.getSession();
