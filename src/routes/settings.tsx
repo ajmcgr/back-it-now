@@ -12,9 +12,14 @@ type Profile = {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  website: string | null;
   email: string | null;
   receive_project_updates: boolean;
   receive_product_news: boolean;
+  stripe_account_id: string | null;
+  stripe_onboarding_complete: boolean;
+  stripe_payouts_enabled: boolean;
+  stripe_requirements_due: string[];
 };
 
 const emptyProfile: Profile = {
@@ -22,9 +27,14 @@ const emptyProfile: Profile = {
   username: "",
   avatar_url: "",
   bio: "",
+  website: "",
   email: "",
   receive_project_updates: true,
   receive_product_news: false,
+  stripe_account_id: null,
+  stripe_onboarding_complete: false,
+  stripe_payouts_enabled: false,
+  stripe_requirements_due: [],
 };
 
 export const Route = createFileRoute("/settings")({ component: Settings });
@@ -36,6 +46,8 @@ function Settings() {
   const [message, setMessage] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -46,7 +58,7 @@ function Settings() {
       const { data: savedProfile } = await supabase
         .from("profiles")
         .select(
-          "display_name, username, avatar_url, bio, email, receive_project_updates, receive_product_news",
+          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_payouts_enabled, stripe_requirements_due",
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -68,20 +80,53 @@ function Settings() {
     event.preventDefault();
     if (!supabase) return;
     setMessage(null);
+    const displayName = profile.display_name.trim();
+    const username = profile.username.trim().toLowerCase();
+    const website = profile.website.trim();
+    if (username && !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
+      return setMessage(
+        "Username must be 3–30 characters: lowercase letters, numbers, hyphens, or underscores.",
+      );
+    }
+    if (website) {
+      try {
+        const url = new URL(website);
+        if (!/^https?:$/.test(url.protocol)) throw new Error("unsupported protocol");
+      } catch {
+        return setMessage("Website must be a valid http:// or https:// URL.");
+      }
+    }
+    setIsSaving(true);
     const { data } = await supabase.auth.getSession();
     if (!data.session) return window.location.assign("/auth?next=/settings");
-    const { error } = await supabase
+    const { data: savedProfile, error } = await supabase
       .from("profiles")
       .update({
-        display_name: profile.display_name || null,
-        username: profile.username || null,
+        display_name: displayName || null,
+        username: username || null,
         avatar_url: profile.avatar_url || null,
         bio: profile.bio || null,
+        website: website || null,
         receive_project_updates: profile.receive_project_updates,
         receive_product_news: profile.receive_product_news,
       })
-      .eq("id", data.session.user.id);
-    setMessage(error ? "We couldn't save your settings." : "Settings saved.");
+      .eq("id", data.session.user.id)
+      .select(
+        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_payouts_enabled, stripe_requirements_due",
+      )
+      .single();
+    setIsSaving(false);
+    if (error || !savedProfile) {
+      if (error?.code === "23505") return setMessage("That username is already taken.");
+      if (error?.code === "23514") return setMessage("That username or website is not allowed.");
+      return setMessage("We couldn't save your changes. Please try again.");
+    }
+    setProfile({
+      ...emptyProfile,
+      ...savedProfile,
+      email: savedProfile.email ?? data.session.user.email ?? "",
+    });
+    setMessage("Changes saved.");
   }
 
   async function changeEmail() {
@@ -108,6 +153,23 @@ function Settings() {
     }
     await supabase.auth.signOut();
     window.location.assign("/");
+  }
+
+  async function connectStripe() {
+    if (!supabase) return;
+    setIsConnectingStripe(true);
+    setMessage(null);
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return window.location.assign("/auth?next=/settings");
+    const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
+      body: { action: profile.stripe_payouts_enabled ? "dashboard" : "onboarding" },
+    });
+    if (error || !result?.onboardingUrl) {
+      setMessage("We couldn't open Stripe setup. Please try again.");
+      setIsConnectingStripe(false);
+      return;
+    }
+    window.location.assign(result.onboardingUrl);
   }
 
   if (isLoading)
@@ -164,7 +226,51 @@ function Settings() {
                 />
               </Field>
             </div>
+            <div className="sm:col-span-2">
+              <Field label="Website">
+                <Input
+                  type="url"
+                  value={profile.website ?? ""}
+                  onChange={(e) => update("website", e.target.value)}
+                  placeholder="https://your-site.com"
+                />
+              </Field>
+            </div>
           </div>
+        </section>
+
+        <section className="rounded-md border border-border p-6">
+          <h2 className="text-xl font-semibold">Creator payouts</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Backed uses Stripe Connect to send creator proceeds to your connected Stripe account.
+            Stripe then pays out to your bank on its payout schedule.
+          </p>
+          <p className="mt-4 text-sm font-semibold">
+            {profile.stripe_payouts_enabled
+              ? "Stripe payouts are ready."
+              : profile.stripe_account_id
+                ? "Stripe setup needs more information."
+                : "Connect Stripe before receiving creator proceeds."}
+          </p>
+          {profile.stripe_requirements_due.length > 0 && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Stripe still needs: {profile.stripe_requirements_due.join(", ")}.
+            </p>
+          )}
+          <Button
+            type="button"
+            className="mt-5"
+            onClick={connectStripe}
+            disabled={isConnectingStripe}
+          >
+            {isConnectingStripe
+              ? "Opening Stripe…"
+              : profile.stripe_payouts_enabled
+                ? "Manage Stripe account"
+                : profile.stripe_account_id
+                  ? "Resume Stripe setup"
+                  : "Connect with Stripe"}
+          </Button>
         </section>
 
         <section className="rounded-md border border-border p-6">
@@ -212,7 +318,9 @@ function Settings() {
           </div>
         </section>
 
-        <Button type="submit">Save settings</Button>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? "Saving…" : "Save changes"}
+        </Button>
         {message && <p className="text-sm text-muted-foreground">{message}</p>}
       </form>
 

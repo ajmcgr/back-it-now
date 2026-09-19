@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     );
     const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };
     if (!auth.user) return response({ error: "authentication_required" }, 401);
+    const { action = "onboarding" } = await req.json().catch(() => ({ action: "onboarding" }));
     const { data: profile } = await admin
       .from("profiles")
       .select("stripe_account_id")
@@ -49,8 +50,13 @@ Deno.serve(async (req) => {
         stripe_onboarding_complete: account.details_submitted,
         stripe_charges_enabled: account.charges_enabled,
         stripe_payouts_enabled: account.payouts_enabled,
+        stripe_requirements_due: account.requirements?.currently_due ?? [],
       })
       .eq("id", auth.user.id);
+    if (action === "dashboard" && account.details_submitted) {
+      const login = await api.accounts.createLoginLink(account.id);
+      return response({ onboardingUrl: login.url });
+    }
     const link = await api.accountLinks.create({
       account: account.id,
       type: "account_onboarding",

@@ -30,8 +30,8 @@ function AboutPage() {
             People who want it to exist can back it with money.
           </p>
           <p>
-            Each project has a funding goal and deadline. If enough people back it, the project gets
-            funded and the builder can make it happen.
+            Each project has a funding goal and deadline. The goal shows progress; every successful
+            backing helps the builder make the project happen.
           </p>
           <p>
             Backed is built around a simple idea: the product is the pitch. Clear projects, honest

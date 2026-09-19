@@ -100,8 +100,8 @@ export function BackingDialog({
               {isStartingCheckout ? "Opening checkout…" : "Back this project"}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              If this project does not reach its goal by the deadline, your eligible backing will be
-              refunded.
+              Your backing is charged securely through Stripe. A project goal is a progress target,
+              not a condition for the creator to receive successful backing proceeds.
             </p>
             {checkoutError && (
               <p className="mt-3 text-center text-xs text-destructive">{checkoutError}</p>

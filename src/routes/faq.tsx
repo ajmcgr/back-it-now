@@ -7,11 +7,11 @@ const questions = [
   ],
   [
     "What happens when I back a project?",
-    "You choose a reward and support the project. If the campaign reaches its goal by the deadline, the creator can move forward with the project and fulfill the stated reward.",
+    "You choose a reward and support the project. Successful backing is recorded immediately; the funding goal shows progress but does not decide whether the creator receives those proceeds.",
   ],
   [
     "What if a project does not reach its goal?",
-    "Eligible backings for unsuccessful campaigns are refunded. Creators do not receive campaign proceeds from unsuccessful projects.",
+    "A funding goal is a progress target. Successful backing proceeds remain available to the creator, less Backed and payment-processing fees.",
   ],
   [
     "How do rewards work?",

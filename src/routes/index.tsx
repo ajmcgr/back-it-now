@@ -74,7 +74,7 @@ function Index() {
             </Button>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            Free to launch. 10% if you get backed. $0 if you don’t.
+            Free to launch. 5% on what you raise.
           </p>
         </div>
       </section>
