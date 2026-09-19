@@ -172,10 +172,16 @@ function SiteHeader() {
 
   useEffect(() => {
     if (!supabase) return;
-    void supabase.auth.getSession().then(({ data }) => setIsSignedIn(Boolean(data.session)));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) =>
-      setIsSignedIn(Boolean(session)),
-    );
+    void supabase.auth.getSession().then(({ data }) => {
+      const signedIn = Boolean(data.session);
+      console.info("[Backed auth] Header initial session", { exists: signedIn });
+      setIsSignedIn(signedIn);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const signedIn = Boolean(session);
+      console.info("[Backed auth] Header auth state updated", { signedIn });
+      setIsSignedIn(signedIn);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
