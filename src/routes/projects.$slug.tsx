@@ -77,7 +77,11 @@ function ProjectPage() {
   });
   const funded = percent(project);
   const remaining = daysRemaining(project);
-  const availability = rewardAvailability(project.reward);
+  const availability =
+    presentation?.rewardAvailableQuantity === null ||
+    presentation?.rewardAvailableQuantity === undefined
+      ? rewardAvailability(project.reward)
+      : `${presentation.rewardAvailableQuantity} ${project.reward.availabilityLabel} available`;
   useEffect(() => {
     if (!supabase || !creator?.username) return;
     void supabase.auth.getSession().then(async ({ data }) => {

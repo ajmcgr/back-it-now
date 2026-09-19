@@ -47,20 +47,35 @@ function Admin() {
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [poster, setPoster] = useState<PosterProject | null>(null);
   const [editing, setEditing] = useState<AdminProject | null>(null);
   const [message, setMessage] = useState("");
   const load = async () => {
-    if (!supabase) return;
-    const { data, error } = await supabase.functions.invoke("admin-projects", {
-      body: { action: "list" },
-    });
-    if (error || !data?.projects) return setAllowed(false);
-    setAllowed(true);
-    setProjects(data.projects);
-    setTotals(data.totals);
+    if (!supabase) {
+      setLoadError("Admin is temporarily unavailable.");
+      return setAllowed(false);
+    }
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) return setAllowed(false);
+    try {
+      const result = await Promise.race([
+        supabase.functions.invoke("admin-projects", { body: { action: "list" } }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 12_000)),
+      ]);
+      if (result.error || !result.data?.projects) {
+        setLoadError("You don’t have access to Backed Admin.");
+        return setAllowed(false);
+      }
+      setAllowed(true);
+      setProjects(result.data.projects);
+      setTotals(result.data.totals);
+    } catch {
+      setLoadError("Admin couldn’t be loaded. Please try again.");
+      setAllowed(false);
+    }
   };
   useEffect(() => void load(), []);
   const visible = useMemo(
@@ -123,6 +138,7 @@ function Admin() {
     return (
       <main className="container-backed py-20 text-center">
         <h1 className="text-3xl font-semibold">Page not found</h1>
+        {loadError && <p className="mt-3 text-muted-foreground">{loadError}</p>}
       </main>
     );
   if (allowed === null)

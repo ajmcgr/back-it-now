@@ -11,6 +11,7 @@ export type CanonicalProjectCreator = {
 export type CanonicalProjectPresentation = {
   creator: CanonicalProjectCreator;
   imageUrl: string | null;
+  rewardAvailableQuantity: number | null;
 };
 
 type CoverSource = {
@@ -60,7 +61,9 @@ export function useCanonicalProjectPresentation(slug: string) {
 
     void publicSupabase
       .from("public_profile_projects")
-      .select("creator_username, creator_display_name, creator_avatar_url, image_url")
+      .select(
+        "creator_username, creator_display_name, creator_avatar_url, image_url, reward_available_quantity",
+      )
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -72,6 +75,10 @@ export function useCanonicalProjectPresentation(slug: string) {
             avatarUrl: data.creator_avatar_url,
           },
           imageUrl: data.image_url,
+          rewardAvailableQuantity:
+            typeof data.reward_available_quantity === "number"
+              ? data.reward_available_quantity
+              : null,
         });
       });
 
