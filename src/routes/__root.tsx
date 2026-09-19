@@ -132,6 +132,11 @@ function RootShell({ children }: { children: ReactNode }) {
           async
         />
         <script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="1e0eeedd-f47c-45fd-bdd7-966a0f1baada"
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
