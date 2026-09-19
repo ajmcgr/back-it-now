@@ -8,6 +8,8 @@ export type BackedEmail = {
   panel?: string;
 };
 
+const BACKED_LOGO_URL = "https://backedit.co/logo.png";
+
 const escapeHtml = (value: string) =>
   value.replace(/[&<>'"]/g, (character) => {
     const entities: Record<string, string> = {
@@ -44,14 +46,14 @@ export function renderBackedEmail({
 
   return {
     html: `<!doctype html>
-<html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>@media only screen and (max-width:620px){.backed-card{border-radius:12px!important}.backed-header,.backed-content,.backed-footer{padding-left:24px!important;padding-right:24px!important}.backed-title{font-size:25px!important}}</style></head>
 <body style="margin:0;padding:0;background:#f5f5f5;color:#111111;font-family:Inter,Arial,sans-serif;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${safePreheader}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;background:#f5f5f5;"><tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
-      <tr><td style="padding:32px 40px 24px;border-bottom:1px solid #e5e7eb;"><div style="font-size:30px;font-weight:800;letter-spacing:-1.5px;color:#5171ff;">backed</div></td></tr>
-      <tr><td style="padding:40px;"><h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;letter-spacing:-.5px;color:#111111;">${safeTitle}</h1><p style="margin:0 0 28px;font-size:16px;line-height:1.65;color:#4b5563;">${safeBody}</p>${panelHtml}${button ? `<div style="margin-top:28px;">${button}</div>` : ""}<p style="margin:28px 0 0;font-size:14px;line-height:1.6;color:#6b7280;">${safeFooter}</p></td></tr>
-      <tr><td style="padding:24px 40px;background:#fafafa;border-top:1px solid #e5e7eb;font-size:13px;line-height:1.6;color:#6b7280;">Backed<br><a href="https://backedit.co" style="color:#5171ff;text-decoration:none;">backedit.co</a></td></tr>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="backed-card" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
+      <tr><td class="backed-header" style="padding:30px 40px 24px;border-bottom:1px solid #e5e7eb;"><img src="${BACKED_LOGO_URL}" alt="Backed" width="150" height="53" style="display:block;width:150px;height:auto;border:0;outline:none;text-decoration:none;"></td></tr>
+      <tr><td class="backed-content" style="padding:40px;"><h1 class="backed-title" style="margin:0 0 16px;font-size:28px;line-height:1.2;letter-spacing:-.5px;color:#111111;">${safeTitle}</h1><p style="margin:0 0 28px;font-size:16px;line-height:1.65;color:#4b5563;">${safeBody}</p>${panelHtml}${button ? `<div style="margin-top:28px;">${button}</div>` : ""}<p style="margin:28px 0 0;font-size:14px;line-height:1.6;color:#6b7280;">${safeFooter}</p></td></tr>
+      <tr><td class="backed-footer" style="padding:24px 40px;background:#fafafa;border-top:1px solid #e5e7eb;font-size:13px;line-height:1.6;color:#6b7280;">Backed<br><a href="https://backedit.co" style="color:#5171ff;text-decoration:none;">backedit.co</a></td></tr>
     </table>
   </td></tr></table>
 </body></html>`,

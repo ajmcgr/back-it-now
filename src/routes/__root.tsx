@@ -276,8 +276,8 @@ function SiteHeader() {
               </button>
             </SheetTrigger>
             <SheetContent className="flex flex-col">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
+              <SheetHeader className="sr-only">
+                <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
               <nav className="mt-8 flex flex-col gap-1" aria-label="Mobile navigation">
                 <SheetClose asChild>
