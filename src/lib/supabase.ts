@@ -1,8 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env['VITE_SUPABASE_URL'] || "https://zlzaxgsyczfeepwidjii.supabase.co";
+const supabaseUrl =
+  import.meta.env["VITE_SUPABASE_URL"] || "https://zlzaxgsyczfeepwidjii.supabase.co";
 const supabasePublishableKey =
-  import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || "sb_publishable_xS6SYY2eNA8LIWhjFBUDyg__JTDgnhh";
+  import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+  "sb_publishable_xS6SYY2eNA8LIWhjFBUDyg__JTDgnhh";
 const supabaseProjectRef = new URL(supabaseUrl).hostname.split(".")[0];
 
 // This is Supabase's normal browser storage-key convention. Keeping it explicit

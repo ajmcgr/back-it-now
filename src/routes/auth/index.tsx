@@ -21,8 +21,8 @@ export const Route = createFileRoute("/auth/")({
 function AuthPage() {
   const next =
     typeof window === "undefined"
-      ? "/dashboard"
-      : (new URLSearchParams(window.location.search).get("next") ?? "/dashboard");
+      ? "/"
+      : (new URLSearchParams(window.location.search).get("next") ?? "/");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<"x" | "google" | "email" | null>(null);

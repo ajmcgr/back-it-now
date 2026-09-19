@@ -20,6 +20,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -174,12 +180,10 @@ function SiteHeader() {
     if (!supabase) return;
     void supabase.auth.getSession().then(({ data }) => {
       const signedIn = Boolean(data.session);
-      console.info("[Backed auth] Header initial session", { exists: signedIn });
       setIsSignedIn(signedIn);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const signedIn = Boolean(session);
-      console.info("[Backed auth] Header auth state updated", { signedIn });
       setIsSignedIn(signedIn);
     });
     return () => data.subscription.unsubscribe();
@@ -235,13 +239,25 @@ function SiteHeader() {
               >
                 Dashboard
               </Link>
-              <button
-                type="button"
-                onClick={signOut}
-                className="hidden rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/85 md:block"
-              >
-                Log out
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="hidden rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-accent md:block"
+                  >
+                    Account
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={signOut}>Log out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <Link
@@ -316,6 +332,14 @@ function SiteHeader() {
                         className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
                       >
                         Dashboard
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link
+                        to="/settings"
+                        className="rounded-md px-3 py-3 text-lg font-semibold text-foreground hover:bg-accent hover:text-primary"
+                      >
+                        Account settings
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>

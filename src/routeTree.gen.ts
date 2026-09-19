@@ -16,6 +16,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
@@ -57,6 +58,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StartRoute = StartRouteImport.update({
   id: '/start',
   path: '/start',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/faq'
     | '/privacy'
+    | '/settings'
     | '/start'
     | '/terms'
     | '/auth/callback'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/faq'
     | '/privacy'
+    | '/settings'
     | '/start'
     | '/terms'
     | '/auth/callback'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/faq'
     | '/privacy'
+    | '/settings'
     | '/start'
     | '/terms'
     | '/auth/callback'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   FaqRoute: typeof FaqRoute
   PrivacyRoute: typeof PrivacyRoute
+  SettingsRoute: typeof SettingsRoute
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/start': {
       id: '/start'
       path: '/start'
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   FaqRoute: FaqRoute,
   PrivacyRoute: PrivacyRoute,
+  SettingsRoute: SettingsRoute,
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,

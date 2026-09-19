@@ -32,21 +32,22 @@ function Dashboard() {
   const [projects, setProjects] = useState<CreatorProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    console.info("[Backed auth] Dashboard mounted");
     const load = async () => {
       if (!supabase) return setIsLoading(false);
       const { data: session } = await supabase.auth.getSession();
-      console.info("[Backed auth] dashboard session", { exists: Boolean(session.session) });
       if (!session.session) return setIsLoading(false);
-      const { data } = await supabase
-        .from("projects")
-        .select(
-          "id, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
-        )
-        .eq("creator_id", session.session.user.id)
-        .order("created_at", { ascending: false });
-      setProjects(data ?? []);
-      setIsLoading(false);
+      try {
+        const { data } = await supabase
+          .from("projects")
+          .select(
+            "id, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
+          )
+          .eq("creator_id", session.session.user.id)
+          .order("created_at", { ascending: false });
+        setProjects(data ?? []);
+      } finally {
+        setIsLoading(false);
+      }
     };
     void load();
   }, []);
@@ -69,7 +70,12 @@ function Dashboard() {
         {isLoading ? (
           <p className="p-5 text-sm text-muted-foreground">Loading projects…</p>
         ) : projects.length === 0 ? (
-          <p className="p-5 text-sm text-muted-foreground">You have no live projects yet.</p>
+          <div className="p-5 text-sm text-muted-foreground">
+            No projects yet.{" "}
+            <Link to="/start" className="font-semibold text-foreground hover:text-primary">
+              Start a project
+            </Link>
+          </div>
         ) : (
           projects.map((project) => {
             const backed = project.initial_backed_amount + project.successful_backed_amount;
