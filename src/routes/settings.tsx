@@ -146,21 +146,32 @@ function Settings() {
     }
     setMessage(null);
     setIsUploadingAvatar(true);
-    const form = new FormData();
-    form.append("file", file);
-    const { data, error } = await supabase.functions.invoke("avatar-upload", { body: form });
-    setIsUploadingAvatar(false);
-    const avatarUrl =
-      data && typeof data === "object" && "avatarUrl" in data && typeof data.avatarUrl === "string"
-        ? data.avatarUrl
-        : null;
-    if (error || !avatarUrl) {
-      setMessage("We couldn't upload your photo. Please try again.");
-      return;
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const { data, error } = await supabase.functions.invoke("avatar-upload", {
+        body: form,
+        timeout: 30_000,
+      });
+      const avatarUrl =
+        data &&
+        typeof data === "object" &&
+        "avatarUrl" in data &&
+        typeof data.avatarUrl === "string"
+          ? data.avatarUrl
+          : null;
+      if (error || !avatarUrl) {
+        setMessage("We couldn't upload your photo. Please try again.");
+        return;
+      }
+      update("avatar_url", avatarUrl);
+      window.dispatchEvent(new Event("backed-profile-updated"));
+      setMessage("Profile photo updated.");
+    } catch {
+      setMessage("The upload took too long. Please try again.");
+    } finally {
+      setIsUploadingAvatar(false);
     }
-    update("avatar_url", avatarUrl);
-    window.dispatchEvent(new Event("backed-profile-updated"));
-    setMessage("Profile photo updated.");
   }
 
   async function changeEmail() {
