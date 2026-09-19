@@ -1,12 +1,14 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
+import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { resolveProjectCover, useCanonicalProjectPresentation } from "@/lib/project-presentation";
+import { supabase } from "@/lib/supabase";
 import {
   amountBacked,
   daysRemaining,
@@ -47,6 +49,8 @@ export const Route = createFileRoute("/projects/$slug")({
 function ProjectPage() {
   const project = Route.useLoaderData();
   const [tab, setTab] = useState("Story");
+  const [isOwner, setIsOwner] = useState(false);
+  const [isPosterOpen, setIsPosterOpen] = useState(false);
   const presentation = useCanonicalProjectPresentation(project.slug);
   const creator = presentation?.creator;
   const coverImage = resolveProjectCover({
@@ -58,6 +62,23 @@ function ProjectPage() {
   const funded = percent(project);
   const remaining = daysRemaining(project);
   const availability = rewardAvailability(project.reward);
+  useEffect(() => {
+    if (!supabase || !creator?.username) return;
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      const ownsProject = profile?.username?.toLowerCase() === creator.username.toLowerCase();
+      setIsOwner(ownsProject);
+      if (ownsProject && new URLSearchParams(window.location.search).get("share") === "1") {
+        setIsPosterOpen(true);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    });
+  }, [creator?.username]);
 
   return (
     <main className="pb-24">
@@ -155,6 +176,15 @@ function ProjectPage() {
               {availability && <p className="mt-3 text-sm font-semibold">{availability}</p>}
             </div>
             <BackingCheckoutButton project={project} />
+            {isOwner && (
+              <Button
+                variant="outline"
+                className="mt-3 w-full"
+                onClick={() => setIsPosterOpen(true)}
+              >
+                Share project
+              </Button>
+            )}
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
               This is a reward-based project. Backing does not provide equity, ownership, or
               financial returns.
@@ -205,6 +235,21 @@ function ProjectPage() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-3 lg:hidden">
         <BackingCheckoutButton project={project} className="w-full" />
       </div>
+      {creator && (
+        <ProjectPosterDialog
+          open={isPosterOpen}
+          onOpenChange={setIsPosterOpen}
+          project={{
+            slug: project.slug,
+            name: project.title,
+            summary: project.tagline,
+            coverImage,
+            creatorName: creator.displayName || creator.username,
+            amountBacked: amountBacked(project) * 100,
+            goal: project.goal * 100,
+          }}
+        />
+      )}
     </main>
   );
 }

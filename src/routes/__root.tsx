@@ -185,13 +185,18 @@ function SiteHeader() {
     displayName: string | null;
     avatarUrl: string | null;
   } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
     const loadAccount = async () => {
       const { data } = await supabase.auth.getSession();
       const user = data.session?.user;
-      if (!user) return setAccount(null);
+      if (!user) {
+        setAccount(null);
+        setIsAdmin(false);
+        return;
+      }
       const { data: profile } = await supabase
         .from("profiles")
         .select("username, display_name, avatar_url")
@@ -203,6 +208,10 @@ function SiteHeader() {
         displayName: profile?.display_name ?? metadata.full_name ?? metadata.name ?? null,
         avatarUrl: profile?.avatar_url ?? metadata.avatar_url ?? metadata.picture ?? null,
       });
+      const { data: adminStatus } = await supabase.functions.invoke("admin-projects", {
+        body: { action: "status" },
+      });
+      setIsAdmin(Boolean(adminStatus?.isAdmin));
     };
     void loadAccount();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -299,6 +308,11 @@ function SiteHeader() {
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Admin</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onSelect={signOut}>Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

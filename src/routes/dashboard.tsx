@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 type CreatorProject = {
   id: string;
+  slug: string;
   name: string;
   status: string;
   funding_goal_amount: number;
@@ -40,7 +41,7 @@ function Dashboard() {
         const { data } = await supabase
           .from("projects")
           .select(
-            "id, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
+            "id, slug, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
           )
           .eq("creator_id", session.session.user.id)
           .order("created_at", { ascending: false });
@@ -94,6 +95,14 @@ function Dashboard() {
                 <div>
                   <strong className="block">{project.name}</strong>
                   <span className="text-xs text-muted-foreground">{funded}% funded</span>
+                  {project.status === "live" && (
+                    <a
+                      href={`/projects/${project.slug}?share=1`}
+                      className="mt-2 inline-block text-xs font-semibold text-primary hover:underline"
+                    >
+                      Share project
+                    </a>
+                  )}
                 </div>
                 <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
                   {project.status}
