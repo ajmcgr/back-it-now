@@ -17,6 +17,7 @@ export const Route = createFileRoute("/auth/")({
   }),
   component: AuthPage,
 });
+
 function AuthPage() {
   const next =
     typeof window === "undefined"
