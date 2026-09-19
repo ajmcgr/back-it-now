@@ -71,6 +71,32 @@ function Settings() {
         email: savedProfile?.email ?? user.email ?? "",
       });
       setProviders([...new Set((user.identities ?? []).map((identity) => identity.provider))]);
+      const stripeAction = new URLSearchParams(window.location.search).get("stripe");
+      if (stripeAction === "refresh" || stripeAction === "return") {
+        try {
+          const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
+            body: { action: stripeAction === "refresh" ? "onboarding" : "status" },
+            timeout: 30_000,
+          });
+          if (stripeAction === "refresh" && result?.onboardingUrl) {
+            window.location.assign(result.onboardingUrl);
+            return;
+          }
+          if (stripeAction === "return" && !error && result?.account) {
+            setProfile((current) => ({
+              ...current,
+              stripe_onboarding_complete: result.account.detailsSubmitted,
+              stripe_payouts_enabled: result.account.payoutsEnabled,
+              stripe_requirements_due: result.account.requirementsDue,
+            }));
+            setMessage("Stripe account status refreshed.");
+          } else if (stripeAction === "refresh") {
+            setMessage("We couldn't reopen Stripe setup. Please try again.");
+          }
+        } finally {
+          window.history.replaceState({}, "", "/settings");
+        }
+      }
       setIsLoading(false);
     }
     void load();
@@ -206,15 +232,21 @@ function Settings() {
     setMessage(null);
     const { data } = await supabase.auth.getSession();
     if (!data.session) return window.location.assign("/auth?next=/settings");
-    const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
-      body: { action: profile.stripe_payouts_enabled ? "dashboard" : "onboarding" },
-    });
-    if (error || !result?.onboardingUrl) {
+    try {
+      const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: profile.stripe_payouts_enabled ? "dashboard" : "onboarding" },
+        timeout: 30_000,
+      });
+      if (error || !result?.onboardingUrl) {
+        setMessage("We couldn't open Stripe setup. Please try again.");
+        return;
+      }
+      window.location.assign(result.onboardingUrl);
+    } catch {
       setMessage("We couldn't open Stripe setup. Please try again.");
+    } finally {
       setIsConnectingStripe(false);
-      return;
     }
-    window.location.assign(result.onboardingUrl);
   }
 
   if (isLoading)

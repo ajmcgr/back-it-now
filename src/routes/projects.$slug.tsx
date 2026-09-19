@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { BackingDialog } from "@/components/backed/backing-dialog";
+import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -154,7 +154,7 @@ function ProjectPage() {
               </p>
               {availability && <p className="mt-3 text-sm font-semibold">{availability}</p>}
             </div>
-            <BackingDialog project={project} />
+            <BackingCheckoutButton project={project} />
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
               This is a reward-based project. Backing does not provide equity, ownership, or
               financial returns.
@@ -203,11 +203,7 @@ function ProjectPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-3 lg:hidden">
-        <BackingDialog project={project}>
-          <Button size="lg" className="w-full">
-            Back this project
-          </Button>
-        </BackingDialog>
+        <BackingCheckoutButton project={project} className="w-full" />
       </div>
     </main>
   );
