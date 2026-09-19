@@ -66,20 +66,35 @@ function AuthCallback() {
       // before profile work so a profile error cannot leave an authorization code visible.
       window.history.replaceState({}, "", "/auth/callback");
       record("Profile initialization · started");
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", session.session.user.id)
-        .maybeSingle();
-      if (profileError || !profile) {
-        record("Signed in successfully · stage: profile initialization failed");
-        return setError(
-          `Signed in successfully, but Backed could not load your profile. ${safeErrorDetails(profileError, "Profile was not found.")}`,
-        );
+      // Best effort only: a valid Supabase Auth session must never be discarded because
+      // profile bookkeeping failed. X accounts may have no email — never fabricate one.
+      try {
+        const user = session.session.user;
+        const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+        const text = (value: unknown) => (typeof value === "string" && value ? value : undefined);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!profile) {
+          const candidate: Record<string, unknown> = {
+            id: user.id,
+            email: user.email ?? null,
+            username: text(meta.user_name) ?? text(meta.preferred_username) ?? null,
+            display_name: text(meta.full_name) ?? text(meta.name) ?? null,
+            avatar_url: text(meta.avatar_url) ?? text(meta.picture) ?? null,
+          };
+          const { error: insertError } = await supabase.from("profiles").insert(candidate);
+          if (insertError) await supabase.from("profiles").insert({ id: user.id });
+        }
+        record("Profile initialization · completed");
+      } catch {
+        record("Profile initialization · skipped (session kept)");
       }
-      record("Profile initialization · succeeded");
       record(`Navigation attempted · destination: ${destination}`);
-      navigate({ to: destination });
+      navigate({ to: destination, replace: true });
+
     }
     void completeSignIn();
   }, [navigate]);
