@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,16 +119,13 @@ function Settings() {
 
   return (
     <main className="container-backed max-w-3xl py-14 sm:py-20">
-      <div className="flex items-center justify-between gap-4">
+      <div>
         <div>
           <h1 className="text-4xl font-semibold sm:text-5xl">Account settings</h1>
           <p className="mt-3 text-muted-foreground">
             Manage your Backed profile and account preferences.
           </p>
         </div>
-        <Link to="/dashboard" className="text-sm font-semibold hover:text-primary">
-          Dashboard
-        </Link>
       </div>
 
       <form onSubmit={saveProfile} className="mt-10 space-y-8">
