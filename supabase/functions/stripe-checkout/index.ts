@@ -28,9 +28,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const { projectSlug } = await req.json();
+    const { projectSlug, amount, claimReward } = await req.json();
     if (typeof projectSlug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectSlug))
       return json({ error: "project_unavailable" }, 400);
+    if (!Number.isSafeInteger(amount) || amount < 500)
+      return json({ error: "minimum_backing_is_5_usd" }, 400);
+    if (typeof claimReward !== "boolean") return json({ error: "invalid_reward_selection" }, 400);
 
     let user: { id: string; email?: string | null } | null = null;
     if (token) {
@@ -59,21 +62,26 @@ Deno.serve(async (req) => {
       .select("id, title, description, amount")
       .eq("project_id", project.id)
       .order("created_at", { ascending: true })
-      .limit(2);
-    if (rewardError || !rewards || rewards.length !== 1)
-      return json({ error: "reward_unavailable" }, 409);
-    const reward = rewards[0];
+      .limit(1);
+    if (rewardError || !rewards) return json({ error: "reward_unavailable" }, 409);
+    const reward = rewards[0] ?? null;
+    if (claimReward && (!reward || amount < reward.amount))
+      return json({ error: "reward_minimum_not_met" }, 409);
 
     // Stripe requires Checkout sessions to expire at least 30 minutes after it receives the request.
     // A one-minute buffer keeps the reservation and Checkout window aligned without clock-skew failures.
     const checkoutExpiry = Date.now() + 31 * 60 * 1000;
     const expiresAt = new Date(checkoutExpiry).toISOString();
-    const { data: reservationId, error: reservationError } = await admin.rpc("reserve_reward", {
-      p_reward_id: reward.id,
-      p_user_id: user?.id ?? null,
-      p_expires_at: expiresAt,
-    });
-    if (reservationError || !reservationId) return json({ error: "reward_unavailable" }, 409);
+    let reservationId: string | null = null;
+    if (claimReward && reward) {
+      const { data, error: reservationError } = await admin.rpc("reserve_reward", {
+        p_reward_id: reward.id,
+        p_user_id: user?.id ?? null,
+        p_expires_at: expiresAt,
+      });
+      if (reservationError || !data) return json({ error: "reward_unavailable" }, 409);
+      reservationId = data;
+    }
     let checkoutSessionId: string | null = null;
     try {
       const stripe = getStripe();
@@ -85,8 +93,16 @@ Deno.serve(async (req) => {
           {
             price_data: {
               currency: project.currency,
-              product_data: { name: reward.title, description: reward.description || undefined },
-              unit_amount: reward.amount,
+              product_data: {
+                name:
+                  claimReward && reward
+                    ? `${project.slug} — ${reward.title}`
+                    : `Back ${project.slug}`,
+                description: claimReward
+                  ? reward?.description || undefined
+                  : "Support this project on Backed",
+              },
+              unit_amount: amount,
             },
             quantity: 1,
           },
@@ -95,8 +111,8 @@ Deno.serve(async (req) => {
         cancel_url: `${origin}/projects/${project.slug}?checkout=cancelled`,
         expires_at: Math.floor(checkoutExpiry / 1000),
         metadata: {
-          reservation_id: reservationId,
-          reward_id: reward.id,
+          reservation_id: reservationId ?? "",
+          reward_id: claimReward && reward ? reward.id : "",
           project_id: project.id,
         },
         payment_intent_data: {
@@ -108,13 +124,28 @@ Deno.serve(async (req) => {
         },
       });
       checkoutSessionId = session.id;
-      const { error: reservationUpdateError } = await admin
-        .from("reward_reservations")
-        .update({ checkout_session_id: session.id })
-        .eq("id", reservationId)
-        .is("converted_at", null)
-        .is("released_at", null);
-      if (reservationUpdateError) throw reservationUpdateError;
+      if (reservationId) {
+        const { error: reservationUpdateError } = await admin
+          .from("reward_reservations")
+          .update({ checkout_session_id: session.id })
+          .eq("id", reservationId)
+          .is("converted_at", null)
+          .is("released_at", null);
+        if (reservationUpdateError) throw reservationUpdateError;
+      }
+      const { error: intentError } = await admin
+        .from("checkout_backing_intents")
+        .insert({
+          checkout_session_id: session.id,
+          project_id: project.id,
+          reward_id: claimReward && reward ? reward.id : null,
+          reservation_id: reservationId,
+          backer_id: user?.id ?? null,
+          amount,
+          currency: project.currency,
+          expires_at: expiresAt,
+        });
+      if (intentError) throw intentError;
       return json({ checkoutUrl: session.url });
     } catch (error) {
       if (checkoutSessionId) {
@@ -124,7 +155,8 @@ Deno.serve(async (req) => {
           // The reservation is still released below; Stripe will also expire this session naturally.
         }
       }
-      await admin.rpc("release_reward_reservation", { p_reservation_id: reservationId });
+      if (reservationId)
+        await admin.rpc("release_reward_reservation", { p_reservation_id: reservationId });
       console.error(
         "stripe_checkout_failed",
         error instanceof Error ? error.message : "unknown_error",
