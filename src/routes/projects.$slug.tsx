@@ -106,16 +106,23 @@ function ProjectPage() {
   const fallback = projects.find((item) => item.slug === slug && item.status === "live");
   const [tab, setTab] = useState("Story");
   const [isOwner, setIsOwner] = useState(false);
+  const [ownershipResolved, setOwnershipResolved] = useState(false);
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
   const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
   const creator = presentation?.creator;
   useEffect(() => {
-    if (!supabase || !creator?.username) return;
+    if (!supabase || !creator?.username) {
+      setOwnershipResolved(true);
+      return;
+    }
     const client = supabase;
     void client.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
+      if (!data.session) {
+        setOwnershipResolved(true);
+        return;
+      }
       const { data: profile } = await client
         .from("profiles")
         .select("username")
@@ -128,6 +135,7 @@ function ProjectPage() {
         setIsPosterOpen(true);
       }
       setPublishedNotice(ownsProject && params.get("published") === "1");
+      setOwnershipResolved(true);
     });
   }, [creator?.username]);
   useEffect(() => {
@@ -252,7 +260,19 @@ function ProjectPage() {
               </p>
               {availability && <p className="mt-3 text-sm font-semibold">{availability}</p>}
             </div>
-            <BackingCheckoutButton project={project} />
+            {ownershipResolved ? (
+              isOwner ? (
+                <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-center text-sm font-medium text-muted-foreground">
+                  You can’t back your own project.
+                </div>
+              ) : (
+                <BackingCheckoutButton project={project} />
+              )
+            ) : (
+              <Button size="lg" className="w-full" disabled>
+                Checking availability…
+              </Button>
+            )}
             <Button variant="outline" className="mt-3 w-full" onClick={() => setIsPosterOpen(true)}>
               {isOwner ? "Share project" : "Share"}
             </Button>
@@ -317,7 +337,19 @@ function ProjectPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-3 lg:hidden">
-        <BackingCheckoutButton project={project} className="w-full" />
+        {ownershipResolved ? (
+          isOwner ? (
+            <Button className="w-full" onClick={() => setIsPosterOpen(true)}>
+              Share project
+            </Button>
+          ) : (
+            <BackingCheckoutButton project={project} className="w-full" />
+          )
+        ) : (
+          <Button className="w-full" disabled>
+            Checking availability…
+          </Button>
+        )}
       </div>
       {creator && (
         <ProjectPosterDialog

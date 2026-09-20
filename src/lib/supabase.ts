@@ -34,6 +34,9 @@ export const publicSupabase = isSupabaseConfigured
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false,
+        // Keep this read-only anonymous client isolated from the canonical
+        // authenticated client's PKCE/session storage and broadcast channel.
+        storageKey: `${supabaseAuthStorageKey}-public`,
       },
     })
   : null;
