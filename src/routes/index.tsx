@@ -79,7 +79,7 @@ function Index() {
               </Link>
             ))}
           </nav>
-          <h1 className="type-display text-5xl font-semibold text-foreground sm:text-7xl lg:text-8xl">
+          <h1 className="type-display text-4xl font-semibold text-foreground sm:text-6xl lg:text-7xl">
             Back things you want to exist.
           </h1>
           <p className="mx-auto mt-7 max-w-xl text-lg leading-7 text-muted-foreground">
