@@ -22,8 +22,14 @@ export function ProjectMediaGallery({ coverUrl, media, projectTitle }: ProjectMe
   }, [coverUrl, media]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const [failedMedia, setFailedMedia] = useState<Set<string>>(() => new Set());
   const touchStartX = useRef<number | null>(null);
   const selected = items[selectedIndex];
+  const selectedKey = selected
+    ? selected.type === "image"
+      ? `image:${selected.url}`
+      : `youtube:${selected.videoId}`
+    : "";
 
   useEffect(() => {
     setSelectedIndex((current) => Math.min(current, Math.max(0, items.length - 1)));
@@ -58,7 +64,11 @@ export function ProjectMediaGallery({ coverUrl, media, projectTitle }: ProjectMe
     >
       <div className="group relative overflow-hidden rounded-md border border-border bg-black">
         <div className="aspect-[16/10]">
-          {selected.type === "image" ? (
+          {failedMedia.has(selectedKey) ? (
+            <div className="grid size-full place-items-center bg-muted text-sm font-semibold text-muted-foreground">
+              Media unavailable
+            </div>
+          ) : selected.type === "image" ? (
             <img
               src={selected.url}
               alt={`${projectTitle} — media ${selectedIndex + 1}`}
@@ -66,6 +76,9 @@ export function ProjectMediaGallery({ coverUrl, media, projectTitle }: ProjectMe
               height={750}
               fetchPriority={selectedIndex === 0 ? "high" : "auto"}
               className="size-full object-cover"
+              onError={() =>
+                setFailedMedia((current) => new Set(current).add(`image:${selected.url}`))
+              }
             />
           ) : playingVideoId === selected.videoId ? (
             <iframe
@@ -89,6 +102,10 @@ export function ProjectMediaGallery({ coverUrl, media, projectTitle }: ProjectMe
                 onError={(event) => {
                   if (!event.currentTarget.src.endsWith("/mqdefault.jpg"))
                     event.currentTarget.src = `https://i.ytimg.com/vi/${selected.videoId}/mqdefault.jpg`;
+                  else
+                    setFailedMedia((current) =>
+                      new Set(current).add(`youtube:${selected.videoId}`),
+                    );
                 }}
                 className="size-full object-cover"
               />
@@ -142,19 +159,32 @@ export function ProjectMediaGallery({ coverUrl, media, projectTitle }: ProjectMe
               }}
               className={`relative overflow-hidden rounded-md border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selectedIndex === index ? "border-foreground" : "border-transparent hover:border-muted-foreground/40"}`}
             >
-              <img
-                src={item.type === "image" ? item.url : youtubeThumbnail(item.videoId)}
-                alt=""
-                loading="lazy"
-                onError={(event) => {
-                  if (
-                    item.type === "youtube" &&
-                    !event.currentTarget.src.endsWith("/mqdefault.jpg")
-                  )
-                    event.currentTarget.src = `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`;
-                }}
-                className="aspect-[4/3] w-full object-cover"
-              />
+              {failedMedia.has(
+                item.type === "image" ? `image:${item.url}` : `youtube:${item.videoId}`,
+              ) ? (
+                <span className="grid aspect-[4/3] place-items-center text-xs text-muted-foreground">
+                  Unavailable
+                </span>
+              ) : (
+                <img
+                  src={item.type === "image" ? item.url : youtubeThumbnail(item.videoId)}
+                  alt=""
+                  loading="lazy"
+                  onError={(event) => {
+                    if (
+                      item.type === "youtube" &&
+                      !event.currentTarget.src.endsWith("/mqdefault.jpg")
+                    ) {
+                      event.currentTarget.src = `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`;
+                    } else {
+                      const key =
+                        item.type === "image" ? `image:${item.url}` : `youtube:${item.videoId}`;
+                      setFailedMedia((current) => new Set(current).add(key));
+                    }
+                  }}
+                  className="aspect-[4/3] w-full object-cover"
+                />
+              )}
               {item.type === "youtube" ? (
                 <span className="absolute inset-0 grid place-items-center bg-black/10">
                   <span className="grid size-8 place-items-center rounded-full bg-black text-white">
