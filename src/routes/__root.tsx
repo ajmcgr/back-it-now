@@ -265,7 +265,7 @@ function SiteHeader() {
             alt="Backed"
             width={3654}
             height={1291}
-            className="h-11 w-auto sm:h-12"
+            className="h-12 w-auto sm:h-14"
           />
         </Link>
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
