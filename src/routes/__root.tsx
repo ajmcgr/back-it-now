@@ -302,6 +302,7 @@ function SiteHeader() {
               FAQ
             </Link>
           </nav>
+          <ThemeToggle />
           {account ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -351,7 +352,6 @@ function SiteHeader() {
               Sign in
             </Link>
           )}
-          <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
               <button
