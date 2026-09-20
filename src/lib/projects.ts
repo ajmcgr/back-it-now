@@ -14,6 +14,7 @@ export type Project = {
   tagline: string;
   creator: string;
   creatorUsername?: string;
+  creatorAvatarUrl?: string | null;
   handle: string;
   initials: string;
   description: string;

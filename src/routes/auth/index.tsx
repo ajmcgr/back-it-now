@@ -3,18 +3,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authRedirectUrl, isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/auth/")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — Backed" },
-      { name: "description", content: "Sign in to back projects and launch your own." },
-      { property: "og:title", content: "Sign in — Backed" },
-      { property: "og:description", content: "Sign in to back projects and launch your own." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: () => privateSeo("Sign in — Backed"),
   component: AuthPage,
 });
 

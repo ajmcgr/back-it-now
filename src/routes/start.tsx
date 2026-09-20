@@ -12,8 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
-export const Route = createFileRoute("/start")({ component: StartPage });
+export const Route = createFileRoute("/start")({
+  head: () => privateSeo("Start a project — Backed"),
+  component: StartPage,
+});
 const steps = ["Project", "Funding", "What backers get", "Story", "Preview"];
 const categories = ["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
 type Draft = Record<string, string | string[]>;

@@ -12,8 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
-export const Route = createFileRoute("/projects/$slug/edit")({ component: EditProject });
+export const Route = createFileRoute("/projects/$slug/edit")({
+  head: () => privateSeo("Edit project — Backed"),
+  component: EditProject,
+});
 const categories = ["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
 type Form = Record<string, string | string[]>;
 const text = (value: unknown) => (typeof value === "string" ? value : "");

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
 type AdminProject = {
   id: string;
@@ -41,7 +42,10 @@ const money = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount / 100);
 
-export const Route = createFileRoute("/admin")({ component: Admin });
+export const Route = createFileRoute("/admin")({
+  head: () => privateSeo("Admin — Backed"),
+  component: Admin,
+});
 
 function Admin() {
   const [projects, setProjects] = useState<AdminProject[]>([]);

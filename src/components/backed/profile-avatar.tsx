@@ -2,11 +2,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 type ProfileAvatarProps = {
-  avatarUrl?: string | null;
-  displayName?: string | null;
-  username?: string | null;
-  className?: string;
-  imageClassName?: string;
+  avatarUrl?: string | null | undefined;
+  displayName?: string | null | undefined;
+  username?: string | null | undefined;
+  className?: string | undefined;
+  imageClassName?: string | undefined;
 };
 
 export function profileInitial(displayName?: string | null, username?: string | null) {
@@ -24,7 +24,13 @@ export function ProfileAvatar({
   return (
     <Avatar className={cn("bg-secondary", className)}>
       {avatarUrl ? (
-        <AvatarImage src={avatarUrl} alt={`${name} avatar`} className={imageClassName} />
+        <AvatarImage
+          src={avatarUrl}
+          alt={`${name} avatar`}
+          loading="lazy"
+          decoding="async"
+          className={imageClassName}
+        />
       ) : null}
       <AvatarFallback className="bg-secondary text-sm font-semibold text-secondary-foreground">
         {profileInitial(displayName, username)}

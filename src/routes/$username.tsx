@@ -1,9 +1,10 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { resolveProjectCover } from "@/lib/project-presentation";
+import { absoluteUrl, privateSeo, publicSeo, trimDescription } from "@/lib/seo";
 import { publicSupabase, supabase } from "@/lib/supabase";
 
 type PublicProfile = {
@@ -29,9 +30,74 @@ type PublicProject = {
 };
 
 export const Route = createFileRoute("/$username")({
-  head: () => ({
-    meta: [{ title: "Creator profile — Backed" }],
-  }),
+  loader: async ({ params }) => {
+    const username = params.username.toLowerCase();
+    if (!publicSupabase || !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
+      throw notFound();
+    }
+    const [{ data: profile, error: profileError }, { data: projects, error: projectsError }] =
+      await Promise.all([
+        publicSupabase
+          .from("public_profiles")
+          .select("username, display_name, avatar_url, bio, website")
+          .eq("username", username)
+          .maybeSingle(),
+        publicSupabase
+          .from("public_profile_projects")
+          .select(
+            "slug, name, summary, description, image_url, currency, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
+          )
+          .eq("creator_username", username)
+          .order("deadline_at", { ascending: true }),
+      ]);
+    if (profileError || projectsError) throw new Error("Public profile data is unavailable.");
+    if (!profile) throw notFound();
+    return { profile: profile as PublicProfile, projects: (projects ?? []) as PublicProject[] };
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return privateSeo("Creator not found — Backed");
+    const { profile, projects } = loaderData;
+    const displayName = profile.display_name || profile.username;
+    const title = `${displayName} (@${profile.username}) | Backed`;
+    const description = trimDescription(
+      profile.bio || `${displayName} creates projects on Backed.`,
+      `${displayName} creates projects on Backed.`,
+    );
+    const path = `/${profile.username}`;
+    const meaningful = Boolean(
+      profile.bio || profile.website || profile.avatar_url || projects.length,
+    );
+    if (!meaningful) {
+      return {
+        meta: [
+          { title },
+          { name: "description", content: description },
+          { name: "robots", content: "noindex, follow" },
+        ],
+        links: [{ rel: "canonical", href: absoluteUrl(path) }],
+      };
+    }
+    return publicSeo({
+      title,
+      description,
+      path,
+      image: profile.avatar_url,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        url: absoluteUrl(path),
+        mainEntity: {
+          "@type": "Person",
+          name: displayName,
+          alternateName: `@${profile.username}`,
+          url: absoluteUrl(path),
+          ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+          ...(profile.bio ? { description: profile.bio } : {}),
+          ...(profile.website ? { sameAs: [profile.website] } : {}),
+        },
+      },
+    });
+  },
   component: PublicProfilePage,
 });
 
@@ -54,83 +120,22 @@ function formatMoney(cents: number, currency: string) {
 }
 
 function PublicProfilePage() {
-  const { username: routeUsername } = Route.useParams();
-  const username = routeUsername.toLowerCase();
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
-  const [projects, setProjects] = useState<PublicProject[]>([]);
+  const { profile, projects } = Route.useLoaderData();
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [status, setStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
 
   useEffect(() => {
-    async function load() {
-      if (!publicSupabase || !supabase || !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
-        setStatus("missing");
-        return;
-      }
-      const [{ data: publicProfile, error: profileError }, { data: sessionData }] =
-        await Promise.all([
-          publicSupabase
-            .from("public_profiles")
-            .select("username, display_name, avatar_url, bio, website")
-            .eq("username", username)
-            .maybeSingle(),
-          supabase.auth.getSession(),
-        ]);
-      if (profileError) {
-        setStatus("error");
-        return;
-      }
-      if (!publicProfile) {
-        setStatus("missing");
-        return;
-      }
-      setProfile(publicProfile);
-      const [{ data: publicProjects }, { data: ownProfile }] = await Promise.all([
-        publicSupabase
-          .from("public_profile_projects")
-          .select(
-            "slug, name, summary, description, image_url, currency, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
-          )
-          .eq("creator_username", username)
-          .order("deadline_at", { ascending: true }),
-        sessionData.session
-          ? supabase
-              .from("profiles")
-              .select("username")
-              .eq("id", sessionData.session.user.id)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
-      ]);
-      setProjects(publicProjects ?? []);
-      setIsOwnProfile(ownProfile?.username?.toLowerCase() === username);
-      setStatus("ready");
-    }
-    void load();
-  }, [username]);
-
-  if (status === "loading") {
-    return (
-      <main className="container-backed py-20 text-center text-muted-foreground">
-        Loading profile…
-      </main>
-    );
-  }
-  if (status === "missing") {
-    return (
-      <main className="container-backed py-20 text-center">
-        <h1 className="text-3xl font-semibold">Profile not found</h1>
-        <p className="mt-3 text-muted-foreground">This Backed profile is not public.</p>
-      </main>
-    );
-  }
-  if (status === "error" || !profile) {
-    return (
-      <main className="container-backed py-20 text-center">
-        <h1 className="text-3xl font-semibold">This profile couldn’t load</h1>
-        <p className="mt-3 text-muted-foreground">Please try again in a moment.</p>
-      </main>
-    );
-  }
+    if (!supabase) return;
+    const client = supabase;
+    void client.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const { data: ownProfile } = await client
+        .from("profiles")
+        .select("username")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      setIsOwnProfile(ownProfile?.username?.toLowerCase() === profile.username.toLowerCase());
+    });
+  }, [profile.username]);
 
   const website = safeWebsite(profile.website);
   const displayName = profile.display_name || profile.username;
@@ -160,7 +165,7 @@ function PublicProfilePage() {
           <a
             href={website}
             target="_blank"
-            rel="noreferrer"
+            rel="ugc noopener noreferrer"
             className="mt-5 inline-flex items-center gap-1.5 font-semibold text-primary hover:underline"
           >
             {new URL(website).hostname.replace(/^www\./, "")}

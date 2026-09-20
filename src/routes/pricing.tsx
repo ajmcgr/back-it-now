@@ -1,15 +1,14 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
-  head: () => ({
-    meta: [
-      { title: "Pricing — Backed" },
-      {
-        name: "description",
-        content: "Simple, transparent pricing for launching a project on Backed.",
-      },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "Pricing | Backed",
+      description:
+        "Launch free on Backed. Creators pay a 5% platform fee on successful backing amounts, plus payment processing.",
+      path: "/pricing",
+    }),
   component: PricingPage,
 });
 

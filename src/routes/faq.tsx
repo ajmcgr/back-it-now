@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { publicSeo } from "@/lib/seo";
 
 const questions = [
   [
@@ -40,12 +41,13 @@ const questions = [
 ];
 
 export const Route = createFileRoute("/faq")({
-  head: () => ({
-    meta: [
-      { title: "FAQ — Backed" },
-      { name: "description", content: "Frequently asked questions about Backed." },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "FAQ | Backed",
+      description:
+        "Answers about backing projects, optional rewards, funding goals, creator fees, payouts and refunds on Backed.",
+      path: "/faq",
+    }),
   component: FaqPage,
 });
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { money } from "@/lib/projects";
 import { supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
 type CreatorProject = {
   id: string;
@@ -17,16 +18,7 @@ type CreatorProject = {
 };
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({
-    meta: [
-      { title: "Your projects — Backed" },
-      { name: "description", content: "Manage your projects on Backed." },
-      { property: "og:title", content: "Your projects — Backed" },
-      { property: "og:description", content: "Manage your projects on Backed." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: () => privateSeo("Your projects — Backed"),
   component: Dashboard,
 });
 function Dashboard() {

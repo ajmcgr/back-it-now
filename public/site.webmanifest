@@ -1,0 +1,16 @@
+{
+  "name": "Backed",
+  "short_name": "Backed",
+  "description": "Back things you want to exist.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5171ff",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "250x250",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => ({
-    meta: [
-      { title: "Privacy Policy — Backed" },
-      { name: "description", content: "How Backed collects and uses information." },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "Privacy Policy | Backed",
+      description: "How Backed collects, uses and protects personal information.",
+      path: "/privacy",
+    }),
   component: PrivacyPage,
 });
 

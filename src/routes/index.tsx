@@ -1,51 +1,49 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
 import { ProjectGrid } from "@/components/backed/project-card";
 import { Button } from "@/components/ui/button";
 import { projects, type Project } from "@/lib/projects";
-import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
-import { publicSupabase } from "@/lib/supabase";
+import { loadCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
+import { absoluteUrl, publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Backed — Back things you want to exist" },
-      {
-        name: "description",
-        content: "Discover products and projects from people building what's next.",
+  loader: async () =>
+    (await loadCanonicalProjects()).map(({ slug, presentation }) =>
+      presentationAsProject(slug, presentation),
+    ),
+  head: () =>
+    publicSeo({
+      title: "Backed | Back things you want to exist",
+      description:
+        "Discover and back independent products and projects, or launch your own crowdfunding project on Backed.",
+      path: "/",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": `${absoluteUrl("/")}#organization`,
+            name: "Backed",
+            url: absoluteUrl("/"),
+            logo: absoluteUrl("/logo.png"),
+            sameAs: ["https://x.com/backeditco"],
+          },
+          {
+            "@type": "WebSite",
+            "@id": `${absoluteUrl("/")}#website`,
+            name: "Backed",
+            url: absoluteUrl("/"),
+            description: "Back things you want to exist.",
+            publisher: { "@id": `${absoluteUrl("/")}#organization` },
+          },
+        ],
       },
-      { property: "og:title", content: "Backed — Back things you want to exist" },
-      {
-        property: "og:description",
-        content: "Discover products and projects from people building what's next.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+    }),
   component: Index,
 });
 
 function Index() {
-  const [canonicalProjects, setCanonicalProjects] = useState<Project[]>([]);
-  useEffect(() => {
-    if (!publicSupabase) return;
-    void publicSupabase
-      .from("public_profile_projects")
-      .select("*")
-      .then(({ data }) => {
-        if (!data) return;
-        setCanonicalProjects(
-          data.flatMap((row) => {
-            const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-            return presentation && typeof row.slug === "string"
-              ? [presentationAsProject(row.slug, presentation)]
-              : [];
-          }),
-        );
-      });
-  }, []);
+  const canonicalProjects = Route.useLoaderData() as Project[];
   const liveProjects = [
     ...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)),
     ...canonicalProjects,
@@ -74,7 +72,7 @@ function Index() {
               <Link
                 key={category}
                 to="/discover"
-                search={{ q: "", category }}
+                search={category === "All" ? {} : { category }}
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
               >
                 {category}
@@ -85,11 +83,12 @@ function Index() {
             Back things you want to exist.
           </h1>
           <p className="mx-auto mt-7 max-w-xl text-lg leading-7 text-muted-foreground">
-            Discover products and projects from people building what's next.
+            Reward and preorder crowdfunding for independent products and creative projects.
+            Discover something worth backing—or launch your own.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">
-              <Link to="/discover" search={{ q: "", category: "" }}>
+              <Link to="/discover" search={{}}>
                 Explore projects
               </Link>
             </Button>
@@ -108,7 +107,7 @@ function Index() {
           <h2 className="text-3xl font-semibold">Projects worth backing</h2>
           <Link
             to="/discover"
-            search={{ q: "", category: "" }}
+            search={{}}
             className="hidden items-center gap-1 text-sm font-semibold hover:text-primary sm:inline-flex"
           >
             View all <ArrowRight className="size-4" />

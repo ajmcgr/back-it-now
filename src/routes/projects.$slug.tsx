@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   presentationAsProject,
+  loadCanonicalProjectPresentation,
   resolveProjectCover,
-  useCanonicalProjectPresentation,
 } from "@/lib/project-presentation";
 import { type ShareContext } from "@/lib/project-share";
+import { absoluteUrl, privateSeo, publicSeo, trimDescription } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 import {
   amountBacked,
@@ -24,39 +25,97 @@ import {
 } from "@/lib/projects";
 
 export const Route = createFileRoute("/projects/$slug")({
-  loader: ({ params }) => params,
-  head: () => ({
-    meta: [
-      { title: "Project — Backed" },
-      { name: "description", content: "Discover a project on Backed." },
-      { property: "og:title", content: "Project — Backed" },
-      { property: "og:description", content: "Discover a project on Backed." },
-      { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://backedit.co/logo.png" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Project — Backed" },
-      { name: "twitter:description", content: "Discover a project on Backed." },
-      { name: "twitter:image", content: "https://backedit.co/logo.png" },
-    ],
-  }),
+  loader: async ({ params }) => {
+    const presentation = await loadCanonicalProjectPresentation(params.slug);
+    const fallback = projects.find((item) => item.slug === params.slug && item.status === "live");
+    if (!presentation && !fallback) throw notFound();
+    return { slug: params.slug, presentation };
+  },
+  head: ({ loaderData }) => {
+    const slug = loaderData?.slug ?? "project";
+    const presentation = loaderData?.presentation ?? null;
+    const fallback = projects.find((item) => item.slug === slug && item.status === "live");
+    const project = presentation ? presentationAsProject(slug, presentation) : fallback;
+    if (!project) return privateSeo("Project not found — Backed");
+    const title = `${project.title} | Backed`;
+    const description = trimDescription(
+      `${project.description || project.tagline} Back ${project.title} on Backed.`,
+      `Back ${project.title} on Backed.`,
+    );
+    const path = `/projects/${project.slug}`;
+    const image = absoluteUrl(
+      resolveProjectCover({
+        slug: project.slug,
+        imageUrl: presentation?.imageUrl ?? null,
+        coverImage: project.coverImage,
+        gallery: project.gallery,
+      }) ?? "/logo.png",
+    );
+    const creatorName = presentation?.creator.displayName || presentation?.creator.username;
+    return publicSeo({
+      title,
+      description,
+      path,
+      image,
+      type: "article",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "CreativeWork",
+            "@id": `${absoluteUrl(path)}#project`,
+            url: absoluteUrl(path),
+            name: project.title,
+            headline: project.tagline,
+            description: project.description || project.tagline,
+            image,
+            genre: project.category,
+            ...(creatorName && presentation
+              ? {
+                  creator: {
+                    "@type": "Person",
+                    name: creatorName,
+                    url: absoluteUrl(`/${presentation.creator.username}`),
+                  },
+                }
+              : {}),
+            isPartOf: { "@type": "WebSite", name: "Backed", url: absoluteUrl("/") },
+          },
+          {
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Discover",
+                item: absoluteUrl("/discover"),
+              },
+              { "@type": "ListItem", position: 2, name: project.title, item: absoluteUrl(path) },
+            ],
+          },
+        ],
+      },
+    });
+  },
   component: ProjectPage,
 });
 
 function ProjectPage() {
-  const { slug } = Route.useLoaderData();
+  const { slug, presentation } = Route.useLoaderData();
   const fallback = projects.find((item) => item.slug === slug && item.status === "live");
   const [tab, setTab] = useState("Story");
   const [isOwner, setIsOwner] = useState(false);
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
-  const presentation = useCanonicalProjectPresentation(slug);
+  const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
   const creator = presentation?.creator;
   useEffect(() => {
     if (!supabase || !creator?.username) return;
-    void supabase.auth.getSession().then(async ({ data }) => {
+    const client = supabase;
+    void client.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
-      const { data: profile } = await supabase
+      const { data: profile } = await client
         .from("profiles")
         .select("username")
         .eq("id", data.session.user.id)
@@ -72,6 +131,7 @@ function ProjectPage() {
   }, [creator?.username]);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("checkout") === "success") {
+      setCheckoutSucceeded(true);
       setIsPosterOpen(true);
     }
   }, []);
@@ -83,7 +143,7 @@ function ProjectPage() {
     );
   const coverImage = resolveProjectCover({
     slug: project.slug,
-    imageUrl: presentation?.imageUrl,
+    imageUrl: presentation?.imageUrl ?? null,
     coverImage: project.coverImage,
     gallery: project.gallery,
   });
@@ -93,7 +153,8 @@ function ProjectPage() {
     presentation?.rewardAvailableQuantity === null ||
     presentation?.rewardAvailableQuantity === undefined
       ? rewardAvailability(project.reward)
-      : `${presentation.rewardAvailableQuantity} ${project.reward.availabilityLabel} available`;
+      : `${presentation.rewardAvailableQuantity} available`;
+  const locationDetails = [project.location, project.projectDates].filter(Boolean).join(" · ");
   return (
     <main className="pb-24">
       <div className="container-backed pt-10 sm:pt-16">
@@ -107,6 +168,17 @@ function ProjectPage() {
           </div>
         )}
         <div className="mb-8 max-w-3xl">
+          <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
+            <Link
+              to="/discover"
+              search={{ category: project.category }}
+              className="hover:text-primary"
+            >
+              Discover
+            </Link>
+            <span aria-hidden="true"> / </span>
+            <span aria-current="page">{project.title}</span>
+          </nav>
           <span className="text-sm font-semibold text-primary">{project.category}</span>
           <h1 className="mt-3 text-4xl font-semibold sm:text-6xl">{project.title}</h1>
           <p className="mt-4 text-xl font-semibold text-foreground sm:text-2xl">
@@ -136,10 +208,12 @@ function ProjectPage() {
                 {creator ? <p className="text-muted-foreground">@{creator.username}</p> : null}
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <MapPin className="size-4" />
-              {project.location} · {project.projectDates}
-            </span>
+            {locationDetails ? (
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <MapPin className="size-4" />
+                {locationDetails}
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -238,15 +312,17 @@ function ProjectPage() {
             {project.story.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
-            <a
-              href={project.externalWebsite}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 font-semibold text-primary hover:underline"
-            >
-              Visit Launch Island
-              <ExternalLink className="size-4" />
-            </a>
+            {project.externalWebsite ? (
+              <a
+                href={project.externalWebsite}
+                target="_blank"
+                rel="ugc noopener noreferrer"
+                className="inline-flex items-center gap-2 font-semibold text-primary hover:underline"
+              >
+                Visit {project.title}
+                <ExternalLink className="size-4" />
+              </a>
+            ) : null}
           </article>
         ) : (
           <div id={tab === "Backers" ? "backers" : undefined} className="py-16">
@@ -281,7 +357,7 @@ function ProjectPage() {
               ? publishedNotice
                 ? "owner_launch"
                 : "owner_general"
-              : new URLSearchParams(window.location.search).get("checkout") === "success"
+              : checkoutSucceeded
                 ? "backer"
                 : "visitor"
           }

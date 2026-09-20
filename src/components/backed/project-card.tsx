@@ -1,20 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Progress } from "@/components/ui/progress";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
-import {
-  resolveProjectCover,
-  useCanonicalProjectPresentation,
-  type CanonicalProjectPresentation,
-} from "@/lib/project-presentation";
+import { resolveProjectCover, type CanonicalProjectCreator } from "@/lib/project-presentation";
 import { amountBacked, daysRemaining, money, percent, type Project } from "@/lib/projects";
 
-export function CreatorIdentity({
-  presentation,
-}: {
-  presentation: CanonicalProjectPresentation | null;
-}) {
-  const creator = presentation?.creator;
-
+export function CreatorIdentity({ creator }: { creator: CanonicalProjectCreator | null }) {
   const identity = (
     <>
       <ProfileAvatar
@@ -43,10 +33,15 @@ export function CreatorIdentity({
 
 export function ProjectCard({ project }: { project: Project }) {
   const funded = percent(project);
-  const presentation = useCanonicalProjectPresentation(project.slug);
+  const creator = project.creatorUsername
+    ? {
+        username: project.creatorUsername,
+        displayName: project.creator,
+        avatarUrl: project.creatorAvatarUrl ?? null,
+      }
+    : null;
   const coverImage = resolveProjectCover({
     slug: project.slug,
-    imageUrl: presentation?.imageUrl,
     coverImage: project.coverImage,
     gallery: project.gallery,
   });
@@ -71,7 +66,7 @@ export function ProjectCard({ project }: { project: Project }) {
         )}
       </Link>
       <div className="pt-4">
-        <CreatorIdentity presentation={presentation} />
+        <CreatorIdentity creator={creator} />
         <Link to="/projects/$slug" params={{ slug: project.slug }}>
           <h3 className="mt-3 text-xl font-semibold leading-tight text-foreground group-hover:text-primary">
             {project.title}

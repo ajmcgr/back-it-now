@@ -3,14 +3,15 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact — Backed" },
-      { name: "description", content: "Contact the Backed team." },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "Contact | Backed",
+      description: "Contact Backed with questions about projects, partnerships or press.",
+      path: "/contact",
+    }),
   component: ContactPage,
 });
 

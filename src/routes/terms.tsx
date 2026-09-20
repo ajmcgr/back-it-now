@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => ({
-    meta: [
-      { title: "Terms of Service — Backed" },
-      { name: "description", content: "Terms governing the use of Backed." },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "Terms of Service | Backed",
+      description: "Terms that apply when creating, backing and using projects on Backed.",
+      path: "/terms",
+    }),
   component: TermsPage,
 });
 

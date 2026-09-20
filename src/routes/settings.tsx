@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
 type Profile = {
   display_name: string | null;
@@ -38,7 +39,10 @@ const emptyProfile: Profile = {
   stripe_requirements_due: [],
 };
 
-export const Route = createFileRoute("/settings")({ component: Settings });
+export const Route = createFileRoute("/settings")({
+  head: () => privateSeo("Settings — Backed"),
+  component: Settings,
+});
 
 function Settings() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);

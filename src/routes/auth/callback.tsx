@@ -1,8 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { privateSeo } from "@/lib/seo";
 
-export const Route = createFileRoute("/auth/callback")({ component: AuthCallback });
+export const Route = createFileRoute("/auth/callback")({
+  head: () => privateSeo("Completing sign in — Backed"),
+  component: AuthCallback,
+});
 
 function AuthCallback() {
   const navigate = useNavigate();

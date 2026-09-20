@@ -1,54 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProjectGrid } from "@/components/backed/project-card";
 import { projects, type Project } from "@/lib/projects";
-import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
-import { publicSupabase } from "@/lib/supabase";
+import { loadCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
+import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/discover")({
+  loader: async () =>
+    (await loadCanonicalProjects()).map(({ slug, presentation }) =>
+      presentationAsProject(slug, presentation),
+    ),
   validateSearch: (search: Record<string, unknown>) => ({
-    q: typeof search["q"] === "string" ? search["q"] : "",
-    category: typeof search["category"] === "string" ? search["category"] : "All",
+    ...(typeof search["q"] === "string" && search["q"] ? { q: search["q"] } : {}),
+    ...(typeof search["category"] === "string" && search["category"] !== "All"
+      ? { category: search["category"] }
+      : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: "Discover projects — Backed" },
-      { name: "description", content: "Explore independent products and projects worth backing." },
-      { property: "og:title", content: "Discover projects — Backed" },
-      {
-        property: "og:description",
-        content: "Explore independent products and projects worth backing.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "Discover Projects | Backed",
+      description: "Explore independent products and projects worth backing on Backed.",
+      path: "/discover",
+    }),
   component: Discover,
 });
 function Discover() {
-  const { q, category: categorySearch } = Route.useSearch();
+  const { q = "", category: categorySearch = "All" } = Route.useSearch();
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(categorySearch);
-  const [canonicalProjects, setCanonicalProjects] = useState<Project[]>([]);
-  useEffect(() => {
-    if (!publicSupabase) return;
-    void publicSupabase
-      .from("public_profile_projects")
-      .select("*")
-      .then(({ data }) => {
-        if (!data) return;
-        const loaded = data.flatMap((row) => {
-          const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-          return presentation && typeof row.slug === "string"
-            ? [presentationAsProject(row.slug, presentation)]
-            : [];
-        });
-        setCanonicalProjects(loaded);
-      });
-  }, []);
+  const canonicalProjects = Route.useLoaderData() as Project[];
   const categories = [
     "All",
     "Technology",
@@ -72,7 +55,7 @@ function Discover() {
           (category === "All" || p.category === category) &&
           (p.title + p.description).toLowerCase().includes(query.toLowerCase()),
       ),
-    [category, query],
+    [canonicalProjects, category, query],
   );
   return (
     <main className="container-backed py-14 sm:py-20">

@@ -39,12 +39,19 @@ function NotFoundComponent() {
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85"
+            className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             Go home
+          </Link>
+          <Link
+            to="/discover"
+            search={{}}
+            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85"
+          >
+            Explore projects
           </Link>
         </div>
       </div>
@@ -98,7 +105,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Backed" },
       { name: "description", content: "Back things you want to exist." },
       { name: "author", content: "Backed" },
+      { name: "theme-color", content: "#5171ff" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Backed" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -110,9 +119,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
@@ -193,15 +204,16 @@ function SiteHeader() {
 
   useEffect(() => {
     if (!supabase) return;
+    const client = supabase;
     const loadAccount = async () => {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       const user = data.session?.user;
       if (!user) {
         setAccount(null);
         setIsAdmin(false);
         return;
       }
-      const { data: profile } = await supabase
+      const { data: profile } = await client
         .from("profiles")
         .select("username, display_name, avatar_url")
         .eq("id", user.id)
@@ -209,16 +221,16 @@ function SiteHeader() {
       const metadata = user.user_metadata ?? {};
       setAccount({
         username: profile?.username ?? null,
-        displayName: profile?.display_name ?? metadata.full_name ?? metadata.name ?? null,
-        avatarUrl: profile?.avatar_url ?? metadata.avatar_url ?? metadata.picture ?? null,
+        displayName: profile?.display_name ?? metadata["full_name"] ?? metadata["name"] ?? null,
+        avatarUrl: profile?.avatar_url ?? metadata["avatar_url"] ?? metadata["picture"] ?? null,
       });
-      const { data: adminStatus } = await supabase.functions.invoke("admin-projects", {
+      const { data: adminStatus } = await client.functions.invoke("admin-projects", {
         body: { action: "status" },
       });
       setIsAdmin(Boolean(adminStatus?.isAdmin));
     };
     void loadAccount();
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         setAccount(null);
         return;
@@ -261,7 +273,7 @@ function SiteHeader() {
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
           <Link
             to="/discover"
-            search={{ q: "", category: "" }}
+            search={{}}
             className={navClass}
             activeProps={{ className: `${navClass} text-foreground` }}
           >
@@ -310,12 +322,13 @@ function SiteHeader() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-40">
                 <DropdownMenuItem asChild>
-                  <Link
-                    to={account.username ? "/$username" : "/settings"}
-                    params={account.username ? { username: account.username } : undefined}
-                  >
-                    Profile
-                  </Link>
+                  {account.username ? (
+                    <Link to="/$username" params={{ username: account.username }}>
+                      Profile
+                    </Link>
+                  ) : (
+                    <Link to="/settings">Profile</Link>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard">Dashboard</Link>
@@ -357,7 +370,7 @@ function SiteHeader() {
               </SheetHeader>
               <nav className="mt-8 flex flex-col gap-1" aria-label="Mobile navigation">
                 <SheetClose asChild>
-                  <Link to="/discover" search={{ q: "", category: "" }} className={mobileNavClass}>
+                  <Link to="/discover" search={{}} className={mobileNavClass}>
                     Discover
                   </Link>
                 </SheetClose>

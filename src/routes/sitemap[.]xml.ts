@@ -1,0 +1,65 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { SITE_URL } from "@/lib/seo";
+import { publicSupabase } from "@/lib/supabase";
+
+const staticPaths = [
+  "/",
+  "/discover",
+  "/pricing",
+  "/faq",
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+];
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+export const Route = createFileRoute("/sitemap.xml")({
+  server: {
+    handlers: {
+      GET: async () => {
+        const urls = new Set(staticPaths.map((path) => new URL(path, SITE_URL).toString()));
+        if (publicSupabase) {
+          const [{ data: projects }, { data: profiles }] = await Promise.all([
+            publicSupabase.from("public_profile_projects").select("slug, creator_username"),
+            publicSupabase.from("public_profiles").select("username, bio, website, avatar_url"),
+          ]);
+          for (const project of projects ?? []) {
+            if (typeof project.slug === "string") {
+              urls.add(new URL(`/projects/${project.slug}`, SITE_URL).toString());
+            }
+          }
+          for (const profile of profiles ?? []) {
+            const meaningful = Boolean(
+              profile.bio ||
+              profile.website ||
+              profile.avatar_url ||
+              (projects ?? []).some((project) => project.creator_username === profile.username),
+            );
+            if (meaningful && typeof profile.username === "string") {
+              urls.add(new URL(`/${profile.username}`, SITE_URL).toString());
+            }
+          }
+        }
+        const body = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${[...urls].map((url) => `  <url><loc>${escapeXml(url)}</loc></url>`).join("\n")}
+</urlset>`;
+        return new Response(body, {
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=3600",
+          },
+        });
+      },
+    },
+  },
+});

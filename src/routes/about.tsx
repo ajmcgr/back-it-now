@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
+import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About — Backed" },
-      {
-        name: "description",
-        content: "Backed is a crowdfunding marketplace for things people want to exist.",
-      },
-    ],
-  }),
+  head: () =>
+    publicSeo({
+      title: "About | Backed",
+      description:
+        "Backed is a reward and preorder crowdfunding marketplace for things people want to exist.",
+      path: "/about",
+    }),
   component: AboutPage,
 });
 
