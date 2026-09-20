@@ -17,7 +17,7 @@ function PricingPage() {
     <main className="container-backed py-16 sm:py-24">
       <section className="mx-auto max-w-4xl text-center">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Pricing</p>
-        <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">
+        <h1 className="mt-4 text-5xl font-semibold sm:text-6xl">
           Free to launch. 5% on what you raise.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-xl leading-8 text-muted-foreground">

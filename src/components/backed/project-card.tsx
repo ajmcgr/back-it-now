@@ -68,7 +68,7 @@ export function ProjectCard({ project }: { project: Project }) {
       <div className="pt-4">
         <CreatorIdentity creator={creator} />
         <Link to="/projects/$slug" params={{ slug: project.slug }}>
-          <h3 className="mt-3 text-xl font-semibold leading-tight text-foreground group-hover:text-primary">
+          <h3 className="mt-3 text-xl font-semibold text-foreground group-hover:text-primary">
             {project.title}
           </h3>
         </Link>

@@ -66,6 +66,14 @@
 
 :root {
   --radius: 0.45rem;
+  --tracking-display: -0.045em;
+  --tracking-h1: -0.037em;
+  --tracking-h2: -0.027em;
+  --tracking-h3: -0.017em;
+  --leading-display: 0.98;
+  --leading-h1: 1.06;
+  --leading-h2: 1.14;
+  --leading-h3: 1.2;
   --background: oklch(0.992 0.003 80);
   --foreground: oklch(0.16 0.015 265);
   --card: oklch(1 0 0);
@@ -152,7 +160,7 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    letter-spacing: 0;
+    text-wrap: balance;
   }
 
   ::selection {
@@ -163,4 +171,60 @@
 @utility container-backed {
   width: min(100% - 2rem, 78rem);
   margin-inline: auto;
+}
+
+/*
+ * Headline rules live outside Tailwind's cascade layers so text-size utilities
+ * cannot silently replace their tuned line heights. Component-level type
+ * classes are available when a non-semantic element needs the same treatment.
+ */
+h1,
+.type-h1 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-h1);
+  line-height: var(--leading-h1);
+  text-wrap: balance;
+}
+
+h2,
+.type-h2 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-h2);
+  line-height: var(--leading-h2);
+  text-wrap: balance;
+}
+
+h3,
+.type-h3 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-h3);
+  line-height: var(--leading-h3);
+  text-wrap: balance;
+}
+
+.type-display {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-display);
+  text-wrap: balance;
+}
+
+@utility type-body {
+  letter-spacing: 0;
+  line-height: 1.625;
+}
+
+@utility type-small {
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+@utility type-metadata {
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+@utility type-ui-label {
+  letter-spacing: 0;
+  line-height: 1.25;
 }
