@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +35,12 @@ type Profile = CreatorPayoutProfile & {
   email: string | null;
   receive_project_updates: boolean;
   receive_product_news: boolean;
+};
+
+type StripeResetStatus = {
+  eligible: boolean;
+  reason: string | null;
+  contactSupport: boolean;
 };
 
 const emptyProfile: Profile = {
@@ -58,6 +75,8 @@ function Settings() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+  const [isResettingStripe, setIsResettingStripe] = useState(false);
+  const [stripeReset, setStripeReset] = useState<StripeResetStatus | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
@@ -105,6 +124,7 @@ function Settings() {
           });
           if (!error && result?.account) {
             nextProfile = applyStripeStatus(nextProfile, result.account);
+            setStripeReset(result.reset ?? null);
             if (stripeAction === "return") setMessage("Payout status updated.");
           } else if (stripeAction === "return") {
             setMessage("We couldn't refresh your payout status. Please try again.");
@@ -269,6 +289,43 @@ function Settings() {
     }
   }
 
+  async function resetStripe() {
+    if (!supabase || !stripeReset?.eligible) return;
+    setIsResettingStripe(true);
+    setMessage(null);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "reset", confirmation: "START_OVER" },
+        timeout: 30_000,
+      });
+      if (error || !result?.reset) {
+        setMessage(
+          "We couldn't restart your Stripe setup. Your existing payout setup hasn't been changed. Please try again or contact support.",
+        );
+        return;
+      }
+      setProfile((current) => ({
+        ...current,
+        stripe_account_id: null,
+        stripe_onboarding_complete: false,
+        stripe_charges_enabled: false,
+        stripe_payouts_enabled: false,
+        stripe_requirements_due: [],
+        stripe_requirements_past_due: [],
+        stripe_requirements_pending_verification: [],
+        stripe_disabled_reason: null,
+      }));
+      setStripeReset(null);
+      setMessage("Your previous Stripe setup was removed. You can now set up payouts again.");
+    } catch {
+      setMessage(
+        "We couldn't restart your Stripe setup. Your existing payout setup hasn't been changed. Please try again or contact support.",
+      );
+    } finally {
+      setIsResettingStripe(false);
+    }
+  }
+
   if (isLoading)
     return (
       <main className="container-backed py-16 text-center text-muted-foreground">
@@ -372,14 +429,60 @@ function Settings() {
             </p>
           ) : null}
           {payout.cta ? (
-            <Button
-              type="button"
-              className="mt-5"
-              onClick={() => void connectStripe(payout.action)}
-              disabled={isConnectingStripe}
-            >
-              {isConnectingStripe ? "Opening Stripe…" : payout.cta}
-            </Button>
+            <div className="mt-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <Button
+                type="button"
+                onClick={() => void connectStripe(payout.action)}
+                disabled={isConnectingStripe || isResettingStripe}
+              >
+                {isConnectingStripe ? "Opening Stripe…" : payout.cta}
+              </Button>
+              {payoutState === "incomplete" && stripeReset?.eligible ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="outline" disabled={isResettingStripe}>
+                      Start over with Stripe
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Start over with Stripe?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove your current Stripe payout setup and let you create a new
+                        one. Use this if you selected the wrong country or need to restart setup.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isResettingStripe}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={isResettingStripe}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          void resetStripe();
+                        }}
+                      >
+                        {isResettingStripe ? "Starting over…" : "Start over"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : null}
+            </div>
+          ) : null}
+          {payoutState === "incomplete" && stripeReset?.contactSupport ? (
+            <div className="mt-5 rounded-md border border-border bg-muted/40 p-4 text-sm">
+              <p className="font-medium">Can't restart payout setup</p>
+              <p className="mt-1 text-muted-foreground">
+                This Stripe account has already been used for creator payments. Contact Backed
+                support if you need to change your payout setup.
+              </p>
+              <a
+                className="mt-3 inline-block font-medium underline underline-offset-4"
+                href="/contact"
+              >
+                Contact support
+              </a>
+            </div>
           ) : null}
         </section>
 
