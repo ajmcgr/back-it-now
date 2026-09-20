@@ -67,6 +67,9 @@ Deno.serve(async (req) => {
           chargesEnabled: account.charges_enabled,
           payoutsEnabled: account.payouts_enabled,
           requirementsDue: account.requirements?.currently_due ?? [],
+          requirementsPastDue: account.requirements?.past_due ?? [],
+          requirementsPendingVerification: account.requirements?.pending_verification ?? [],
+          disabledReason: account.requirements?.disabled_reason ?? null,
         },
       });
     if (action === "dashboard" && account.details_submitted) {

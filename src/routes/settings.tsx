@@ -8,8 +8,14 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { privateSeo } from "@/lib/seo";
+import {
+  applyStripeStatus,
+  getPayoutState,
+  payoutContent,
+  type CreatorPayoutProfile,
+} from "@/lib/creator-payouts";
 
-type Profile = {
+type Profile = CreatorPayoutProfile & {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
@@ -18,10 +24,6 @@ type Profile = {
   email: string | null;
   receive_project_updates: boolean;
   receive_product_news: boolean;
-  stripe_account_id: string | null;
-  stripe_onboarding_complete: boolean;
-  stripe_payouts_enabled: boolean;
-  stripe_requirements_due: string[];
 };
 
 const emptyProfile: Profile = {
@@ -35,8 +37,12 @@ const emptyProfile: Profile = {
   receive_product_news: false,
   stripe_account_id: null,
   stripe_onboarding_complete: false,
+  stripe_charges_enabled: false,
   stripe_payouts_enabled: false,
   stripe_requirements_due: [],
+  stripe_requirements_past_due: [],
+  stripe_requirements_pending_verification: [],
+  stripe_disabled_reason: null,
 };
 
 export const Route = createFileRoute("/settings")({
@@ -65,42 +71,52 @@ function Settings() {
       const { data: savedProfile } = await supabase
         .from("profiles")
         .select(
-          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_payouts_enabled, stripe_requirements_due",
+          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
         )
         .eq("id", user.id)
         .maybeSingle();
-      setProfile({
+      let nextProfile: Profile = {
         ...emptyProfile,
         ...savedProfile,
         email: savedProfile?.email ?? user.email ?? "",
-      });
+      };
       setProviders([...new Set((user.identities ?? []).map((identity) => identity.provider))]);
       const stripeAction = new URLSearchParams(window.location.search).get("stripe");
-      if (stripeAction === "refresh" || stripeAction === "return") {
+      if (stripeAction === "refresh") {
         try {
           const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
-            body: { action: stripeAction === "refresh" ? "onboarding" : "status" },
+            body: { action: "onboarding" },
             timeout: 30_000,
           });
-          if (stripeAction === "refresh" && result?.onboardingUrl) {
+          if (!error && result?.onboardingUrl) {
             window.location.assign(result.onboardingUrl);
             return;
           }
-          if (stripeAction === "return" && !error && result?.account) {
-            setProfile((current) => ({
-              ...current,
-              stripe_onboarding_complete: result.account.detailsSubmitted,
-              stripe_payouts_enabled: result.account.payoutsEnabled,
-              stripe_requirements_due: result.account.requirementsDue,
-            }));
-            setMessage("Stripe account status refreshed.");
-          } else if (stripeAction === "refresh") {
-            setMessage("We couldn't reopen Stripe setup. Please try again.");
-          }
+          setMessage("We couldn't reopen Stripe setup. Please try again.");
         } finally {
           window.history.replaceState({}, "", "/settings");
         }
       }
+      if (nextProfile.stripe_account_id) {
+        try {
+          const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
+            body: { action: "status" },
+            timeout: 30_000,
+          });
+          if (!error && result?.account) {
+            nextProfile = applyStripeStatus(nextProfile, result.account);
+            if (stripeAction === "return") setMessage("Payout status updated.");
+          } else if (stripeAction === "return") {
+            setMessage("We couldn't refresh your payout status. Please try again.");
+          }
+        } catch {
+          if (stripeAction === "return")
+            setMessage("We couldn't refresh your payout status. Please try again.");
+        } finally {
+          if (stripeAction === "return") window.history.replaceState({}, "", "/settings");
+        }
+      }
+      setProfile(nextProfile);
       setIsLoading(false);
     }
     void load();
@@ -145,7 +161,7 @@ function Settings() {
       })
       .eq("id", data.session.user.id)
       .select(
-        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_payouts_enabled, stripe_requirements_due",
+        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
       )
       .single();
     setIsSaving(false);
@@ -154,11 +170,11 @@ function Settings() {
       if (error?.code === "23514") return setMessage("That username or website is not allowed.");
       return setMessage("We couldn't save your changes. Please try again.");
     }
-    setProfile({
-      ...emptyProfile,
+    setProfile((current) => ({
+      ...current,
       ...savedProfile,
       email: savedProfile.email ?? data.session.user.email ?? "",
-    });
+    }));
     window.dispatchEvent(new Event("backed-profile-updated"));
     setMessage("Changes saved.");
   }
@@ -230,7 +246,7 @@ function Settings() {
     window.location.assign("/");
   }
 
-  async function connectStripe() {
+  async function connectStripe(action: "onboarding" | "dashboard") {
     if (!supabase) return;
     setIsConnectingStripe(true);
     setMessage(null);
@@ -238,7 +254,7 @@ function Settings() {
     if (!data.session) return window.location.assign("/auth?next=/settings");
     try {
       const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: profile.stripe_payouts_enabled ? "dashboard" : "onboarding" },
+        body: { action },
         timeout: 30_000,
       });
       if (error || !result?.onboardingUrl) {
@@ -259,6 +275,9 @@ function Settings() {
         Loading settings…
       </main>
     );
+
+  const payoutState = getPayoutState(profile);
+  const payout = payoutContent[payoutState];
 
   return (
     <main className="container-backed max-w-3xl py-14 sm:py-20">
@@ -340,37 +359,28 @@ function Settings() {
         </section>
 
         <section className="rounded-md border border-border p-6">
-          <h2 className="text-xl font-semibold">Creator payouts</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Backed uses Stripe Connect to send creator proceeds to your connected Stripe account.
-            Stripe then pays out to your bank on its payout schedule.
-          </p>
-          <p className="mt-4 text-sm font-semibold">
-            {profile.stripe_payouts_enabled
-              ? "Stripe payouts are ready."
-              : profile.stripe_account_id
-                ? "Stripe setup needs more information."
-                : "Connect Stripe before receiving creator proceeds."}
-          </p>
-          {profile.stripe_requirements_due.length > 0 && (
+          <h2 className="text-xl font-semibold">{payout.heading}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{payout.copy}</p>
+          {payoutState === "not_connected" ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Stripe still needs: {profile.stripe_requirements_due.join(", ")}.
+              Secure payments and payouts are handled by Stripe.
             </p>
-          )}
-          <Button
-            type="button"
-            className="mt-5"
-            onClick={connectStripe}
-            disabled={isConnectingStripe}
-          >
-            {isConnectingStripe
-              ? "Opening Stripe…"
-              : profile.stripe_payouts_enabled
-                ? "Manage Stripe account"
-                : profile.stripe_account_id
-                  ? "Resume Stripe setup"
-                  : "Connect with Stripe"}
-          </Button>
+          ) : payoutState === "ready" ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Backed sends creator proceeds to your connected Stripe account. Stripe then pays out
+              to your bank according to your Stripe payout schedule.
+            </p>
+          ) : null}
+          {payout.cta ? (
+            <Button
+              type="button"
+              className="mt-5"
+              onClick={() => void connectStripe(payout.action)}
+              disabled={isConnectingStripe}
+            >
+              {isConnectingStripe ? "Opening Stripe…" : payout.cta}
+            </Button>
+          ) : null}
         </section>
 
         <section className="rounded-md border border-border p-6">
