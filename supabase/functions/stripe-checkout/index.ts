@@ -85,6 +85,11 @@ Deno.serve(async (req) => {
     let checkoutSessionId: string | null = null;
     try {
       const stripe = getStripe();
+      const checkoutMetadata = {
+        reservation_id: reservationId ?? "",
+        reward_id: claimReward && reward ? reward.id : "",
+        project_id: project.id,
+      };
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         customer_email: user?.email ?? undefined,
@@ -107,20 +112,12 @@ Deno.serve(async (req) => {
             quantity: 1,
           },
         ],
-        success_url: `${origin}/projects/${project.slug}?checkout=success`,
+        success_url: `${origin}/projects/${project.slug}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/projects/${project.slug}?checkout=cancelled`,
         expires_at: Math.floor(checkoutExpiry / 1000),
-        metadata: {
-          reservation_id: reservationId ?? "",
-          reward_id: claimReward && reward ? reward.id : "",
-          project_id: project.id,
-        },
+        metadata: checkoutMetadata,
         payment_intent_data: {
-          metadata: {
-            reservation_id: reservationId,
-            reward_id: reward.id,
-            project_id: project.id,
-          },
+          metadata: checkoutMetadata,
         },
       });
       checkoutSessionId = session.id;

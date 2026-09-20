@@ -110,6 +110,10 @@ function ProjectPage() {
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
   const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
+  const [checkoutConfirmation, setCheckoutConfirmation] = useState<{
+    state: "idle" | "confirming" | "confirmed" | "delayed";
+    amount?: number;
+  }>({ state: "idle" });
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
   const creator = presentation?.creator;
   useEffect(() => {
@@ -139,11 +143,52 @@ function ProjectPage() {
     });
   }, [creator?.username]);
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("checkout") === "success") {
-      setCheckoutSucceeded(true);
-      setIsPosterOpen(true);
-    }
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") !== "success" || !supabase) return;
+    let cancelled = false;
+    const returnedSessionId = params.get("session_id");
+    setCheckoutConfirmation({ state: "confirming" });
+    const confirmBacking = async () => {
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth.session || !supabase) {
+        if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
+        return;
+      }
+      const { data: canonicalProject } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (!canonicalProject) {
+        if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
+        return;
+      }
+      for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
+        let query = supabase
+          .from("backings")
+          .select("gross_amount, stripe_checkout_session_id, paid_at")
+          .eq("project_id", canonicalProject.id)
+          .eq("backer_id", auth.session.user.id)
+          .eq("status", "paid")
+          .order("paid_at", { ascending: false })
+          .limit(1);
+        if (returnedSessionId) query = query.eq("stripe_checkout_session_id", returnedSessionId);
+        const { data: matchingBackings } = await query;
+        const backing = matchingBackings?.[0];
+        if (backing) {
+          setCheckoutSucceeded(true);
+          setCheckoutConfirmation({ state: "confirmed", amount: backing.gross_amount });
+          return;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+      }
+      if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
+    };
+    void confirmBacking();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
   if (!project)
     return (
       <main className="container-backed py-24 text-center text-muted-foreground">
@@ -174,6 +219,40 @@ function ProjectPage() {
             <Button className="mt-4" onClick={() => setIsPosterOpen(true)}>
               Share project
             </Button>
+          </div>
+        )}
+        {checkoutConfirmation.state !== "idle" && (
+          <div className="mb-8 rounded-md border border-primary/30 bg-primary/5 p-5">
+            {checkoutConfirmation.state === "confirmed" ? (
+              <>
+                <p className="text-xl font-semibold">You’re backing {project.title} 🎉</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {money((checkoutConfirmation.amount ?? 0) / 100)} backed
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button asChild>
+                    <a href="/dashboard?tab=backed">View your backed projects</a>
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsPosterOpen(true)}>
+                    Share project
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xl font-semibold">Confirming your backing…</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {checkoutConfirmation.state === "delayed"
+                    ? "This is taking longer than expected. Your dashboard will update as soon as confirmation completes."
+                    : "This usually takes only a few seconds."}
+                </p>
+                {checkoutConfirmation.state === "delayed" ? (
+                  <Button asChild variant="outline" className="mt-4">
+                    <a href="/dashboard?tab=backed">Check your backed projects</a>
+                  </Button>
+                ) : null}
+              </>
+            )}
           </div>
         )}
         <div className="mb-8 max-w-3xl">
@@ -329,7 +408,9 @@ function ProjectPage() {
             <h2 className="text-2xl font-semibold">{tab}</h2>
             <p className="mt-2 text-muted-foreground">
               {tab === "Backers"
-                ? "No backers yet. Be the first to help make this project happen."
+                ? project.successfulBackingCount > 0
+                  ? `${project.successfulBackingCount} ${project.successfulBackingCount === 1 ? "backer has" : "backers have"} helped make this project happen.`
+                  : "No backers yet. Be the first to help make this project happen."
                 : "No updates yet. Check back here for news from the creator."}
             </p>
           </div>

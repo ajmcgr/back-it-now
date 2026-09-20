@@ -4,7 +4,8 @@ import { renderBackedEmail, sendResendEmail } from "../_shared/backed-email.ts";
 
 const stripe = () => {
   const key = Deno.env.get("STRIPE_SECRET_KEY");
-  if (!key?.startsWith("sk_live_")) throw new Error("stripe_live_key_required");
+  if (!key?.startsWith("sk_live_") && !key?.startsWith("rk_live_"))
+    throw new Error("stripe_live_key_required");
   return new Stripe(key);
 };
 const adminClient = () =>
