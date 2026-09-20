@@ -14,7 +14,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { privateSeo } from "@/lib/seo";
 
-export const Route = createFileRoute("/projects/$slug/edit")({
+export const Route = createFileRoute("/projects_/$slug/edit")({
   head: () => privateSeo("Edit project — Backed"),
   component: EditProject,
 });
@@ -42,36 +42,47 @@ function EditProject() {
   });
   useEffect(() => {
     if (!supabase) return;
-    void supabase.functions
-      .invoke("project-owner", { body: { action: "get", slug } })
-      .then(({ data, error }) => {
-        if (error || !data?.project) {
-          setMessage("You do not have access to edit this project.");
-          setLoading(false);
-          return;
-        }
-        const project = data.project;
-        const reward = data.reward ?? {};
-        setRestricted(project.successful_backed_amount > 0 || project.successful_backer_count > 0);
-        setForm({
-          name: project.name,
-          summary: project.summary,
-          description: project.description,
-          category: project.category,
-          externalWebsite: project.external_website ?? "",
-          location: project.location ?? "",
-          projectDates: project.project_dates ?? "",
-          goal: String((project.funding_goal_amount ?? 0) / 100),
-          deadline: project.deadline_at ? project.deadline_at.slice(0, 10) : "",
-          coverUrl: project.image_url ?? "",
-          galleryUrls: urls(project.gallery_urls),
-          rewardName: reward.title ?? "",
-          rewardDescription: reward.description ?? "",
-          rewardPrice: String((reward.amount ?? 0) / 100),
-          rewardQuantity: String(reward.total_quantity ?? 1),
-        });
-        setLoading(false);
+    const client = supabase;
+    let active = true;
+    void client.auth.getSession().then(async ({ data: sessionData }) => {
+      if (!sessionData.session) {
+        window.location.assign(`/auth?next=${encodeURIComponent(`/projects/${slug}/edit`)}`);
+        return;
+      }
+      const { data, error } = await client.functions.invoke("project-owner", {
+        body: { action: "get", slug },
       });
+      if (!active) return;
+      if (error || !data?.project) {
+        setMessage("You do not have access to edit this project.");
+        setLoading(false);
+        return;
+      }
+      const project = data.project;
+      const reward = data.reward ?? {};
+      setRestricted(project.successful_backed_amount > 0 || project.successful_backer_count > 0);
+      setForm({
+        name: project.name,
+        summary: project.summary,
+        description: project.description,
+        category: project.category,
+        externalWebsite: project.external_website ?? "",
+        location: project.location ?? "",
+        projectDates: project.project_dates ?? "",
+        goal: String((project.funding_goal_amount ?? 0) / 100),
+        deadline: project.deadline_at ? project.deadline_at.slice(0, 10) : "",
+        coverUrl: project.image_url ?? "",
+        galleryUrls: urls(project.gallery_urls),
+        rewardName: reward.title ?? "",
+        rewardDescription: reward.description ?? "",
+        rewardPrice: String((reward.amount ?? 0) / 100),
+        rewardQuantity: String(reward.total_quantity ?? 1),
+      });
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [slug]);
   async function upload(files: FileList | null, role: "cover" | "gallery") {
     if (!files?.length || !supabase) return;
