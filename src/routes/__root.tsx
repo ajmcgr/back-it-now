@@ -470,34 +470,29 @@ function SiteFooter() {
             ]}
           />
           <FooterGroup
-            title="Company"
+            title="Support"
             links={[
               ["About", "/about"],
               ["FAQ", "/faq"],
               ["Contact", "/contact"],
-            ]}
-          />
-          <FooterGroup
-            title="Legal"
-            links={[
               ["Terms", "/terms"],
               ["Privacy", "/privacy"],
             ]}
           />
-        </div>
-        <div className="mt-10 border-t border-border pt-5 text-center text-sm text-muted-foreground sm:flex sm:items-center sm:justify-between sm:text-left">
-          <p>
-            © 2026 Backed ·{" "}
+          <nav aria-label="Connect">
+            <p className="mb-3 font-semibold text-foreground">Connect</p>
             <a
               href="https://x.com/backeditco"
               target="_blank"
-              rel="noreferrer"
-              className="hover:text-primary"
+              rel="noopener noreferrer"
+              className="w-fit hover:text-primary"
             >
               Follow us on X
             </a>
-          </p>
-          <p className="mt-2 sm:mt-0">
+          </nav>
+        </div>
+        <div className="mt-10 border-t border-border pt-5 text-center text-sm text-muted-foreground">
+          <p className="mx-auto max-w-3xl">
             Built with 🫶🏻 by{" "}
             <a
               href="https://x.com/alexmacgregor__"
