@@ -15,6 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
@@ -42,6 +49,9 @@ type StripeResetStatus = {
   reason: string | null;
   contactSupport: boolean;
 };
+
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+const countryName = (code: string) => regionNames.of(code) ?? code;
 
 const emptyProfile: Profile = {
   display_name: "",
@@ -77,9 +87,39 @@ function Settings() {
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
   const [isResettingStripe, setIsResettingStripe] = useState(false);
   const [stripeReset, setStripeReset] = useState<StripeResetStatus | null>(null);
+  const [stripeCountries, setStripeCountries] = useState<string[]>([]);
+  const [selectedStripeCountry, setSelectedStripeCountry] = useState("");
+  const [stripeAccountCountry, setStripeAccountCountry] = useState<string | null>(null);
+  const [isLoadingStripeCountries, setIsLoadingStripeCountries] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
+
+  async function loadStripeCountries() {
+    if (!supabase) return;
+    setIsLoadingStripeCountries(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "countries" },
+        timeout: 30_000,
+      });
+      const countries = Array.isArray(result?.countries)
+        ? result.countries.filter(
+            (country: unknown): country is string =>
+              typeof country === "string" && /^[A-Z]{2}$/.test(country),
+          )
+        : [];
+      if (error || countries.length === 0) {
+        setMessage("We couldn't load Stripe's supported countries. Please try again.");
+        return;
+      }
+      setStripeCountries(countries);
+    } catch {
+      setMessage("We couldn't load Stripe's supported countries. Please try again.");
+    } finally {
+      setIsLoadingStripeCountries(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -124,6 +164,9 @@ function Settings() {
           });
           if (!error && result?.account) {
             nextProfile = applyStripeStatus(nextProfile, result.account);
+            setStripeAccountCountry(
+              typeof result.account.country === "string" ? result.account.country : null,
+            );
             setStripeReset(result.reset ?? null);
             if (stripeAction === "return") setMessage("Payout status updated.");
           } else if (stripeAction === "return") {
@@ -135,6 +178,8 @@ function Settings() {
         } finally {
           if (stripeAction === "return") window.history.replaceState({}, "", "/settings");
         }
+      } else {
+        await loadStripeCountries();
       }
       setProfile(nextProfile);
       setIsLoading(false);
@@ -272,9 +317,17 @@ function Settings() {
     setMessage(null);
     const { data } = await supabase.auth.getSession();
     if (!data.session) return window.location.assign("/auth?next=/settings");
+    if (action === "onboarding" && !profile.stripe_account_id && !selectedStripeCountry) {
+      setIsConnectingStripe(false);
+      setMessage("Choose your Stripe account country before continuing.");
+      return;
+    }
     try {
       const { data: result, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action },
+        body: {
+          action,
+          ...(!profile.stripe_account_id ? { country: selectedStripeCountry } : {}),
+        },
         timeout: 30_000,
       });
       if (error || !result?.onboardingUrl) {
@@ -316,6 +369,9 @@ function Settings() {
         stripe_disabled_reason: null,
       }));
       setStripeReset(null);
+      setStripeAccountCountry(null);
+      setSelectedStripeCountry("");
+      await loadStripeCountries();
       setMessage("Your previous Stripe setup was removed. You can now set up payouts again.");
     } catch {
       setMessage(
@@ -419,13 +475,46 @@ function Settings() {
           <h2 className="text-xl font-semibold">{payout.heading}</h2>
           <p className="mt-2 text-sm text-muted-foreground">{payout.copy}</p>
           {payoutState === "not_connected" ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Secure payments and payouts are handled by Stripe.
-            </p>
+            <div className="mt-5 max-w-md space-y-2">
+              <Label htmlFor="stripe-country">Stripe account country</Label>
+              <Select
+                value={selectedStripeCountry}
+                onValueChange={setSelectedStripeCountry}
+                disabled={isLoadingStripeCountries || stripeCountries.length === 0}
+              >
+                <SelectTrigger id="stripe-country">
+                  <SelectValue
+                    placeholder={
+                      isLoadingStripeCountries ? "Loading countries…" : "Choose a country"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {stripeCountries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {countryName(country)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Choose where you or your business is legally established. Stripe uses this to
+                determine verification and payout requirements, and the country generally can't be
+                changed after the account is created.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Secure payments and payouts are handled by Stripe.
+              </p>
+            </div>
           ) : payoutState === "ready" ? (
             <p className="mt-3 text-sm text-muted-foreground">
               Backed sends creator proceeds to your connected Stripe account. Stripe then pays out
               to your bank according to your Stripe payout schedule.
+            </p>
+          ) : null}
+          {payoutState !== "not_connected" && stripeAccountCountry ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Stripe account country: {countryName(stripeAccountCountry)}.
             </p>
           ) : null}
           {payout.cta ? (
@@ -433,7 +522,11 @@ function Settings() {
               <Button
                 type="button"
                 onClick={() => void connectStripe(payout.action)}
-                disabled={isConnectingStripe || isResettingStripe}
+                disabled={
+                  isConnectingStripe ||
+                  isResettingStripe ||
+                  (payoutState === "not_connected" && !selectedStripeCountry)
+                }
               >
                 {isConnectingStripe ? "Opening Stripe…" : payout.cta}
               </Button>

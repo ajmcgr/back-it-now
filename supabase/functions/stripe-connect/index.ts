@@ -38,6 +38,11 @@ type ResetClaim = {
   recoverable?: boolean;
 };
 
+const normalizeCountry = (value: unknown) =>
+  typeof value === "string" && /^[A-Za-z]{2}$/.test(value.trim())
+    ? value.trim().toUpperCase()
+    : null;
+
 const isDeletedAccount = (
   account: Stripe.Account | Stripe.DeletedAccount,
 ): account is Stripe.DeletedAccount => "deleted" in account && account.deleted === true;
@@ -241,10 +246,14 @@ Deno.serve(async (req) => {
     );
     const { data: auth, error: authError } = await admin.auth.getUser(token);
     if (authError || !auth.user) return response({ error: "authentication_required" }, 401);
-    const { action = "onboarding", confirmation } = await req
+    const {
+      action = "onboarding",
+      confirmation,
+      country,
+    } = await req
       .json()
-      .catch(() => ({ action: "onboarding", confirmation: undefined }));
-    if (!["onboarding", "dashboard", "status", "reset"].includes(action))
+      .catch(() => ({ action: "onboarding", confirmation: undefined, country: undefined }));
+    if (!["onboarding", "dashboard", "status", "reset", "countries"].includes(action))
       return response({ error: "invalid_action" }, 400);
     if (action === "reset" && confirmation !== "START_OVER")
       return response({ error: "confirmation_required" }, 400);
@@ -256,6 +265,11 @@ Deno.serve(async (req) => {
       .single<Profile>();
     if (profileError || !profile) return response({ error: "profile_unavailable" }, 409);
     const api = stripe();
+
+    if (action === "countries") {
+      const specs = await api.countrySpecs.list({ limit: 100 }).autoPagingToArray({ limit: 200 });
+      return response({ countries: specs.map((spec) => spec.id).sort() });
+    }
 
     if (action === "reset") {
       if (!profile.stripe_account_id) return response({ reset: true, alreadyReset: true });
@@ -277,9 +291,17 @@ Deno.serve(async (req) => {
       return response({ error: "connect_account_unavailable" }, 409);
 
     if (!account) {
+      const accountCountry = normalizeCountry(country);
+      if (!accountCountry) return response({ error: "country_required" }, 400);
+      try {
+        await api.countrySpecs.retrieve(accountCountry);
+      } catch {
+        return response({ error: "country_not_supported" }, 400);
+      }
       const created = await api.accounts.create(
         {
           type: "express",
+          country: accountCountry,
           email: auth.user.email ?? undefined,
           capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
           metadata: { backed_profile_id: auth.user.id },
@@ -338,6 +360,7 @@ Deno.serve(async (req) => {
       const reset = await inspectReset(admin, api, auth.user.id, account);
       return response({
         account: {
+          country: account.country,
           detailsSubmitted: account.details_submitted,
           chargesEnabled: account.charges_enabled,
           payoutsEnabled: account.payouts_enabled,
