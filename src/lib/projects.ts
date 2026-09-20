@@ -1,3 +1,5 @@
+import type { ProjectMediaItem } from "@/lib/project-media";
+
 export type Reward = {
   name: string;
   description: string;
@@ -21,6 +23,7 @@ export type Project = {
   story: string[];
   coverImage: string;
   gallery: string[];
+  media?: ProjectMediaItem[];
   category: string;
   location: string;
   projectDates: string;

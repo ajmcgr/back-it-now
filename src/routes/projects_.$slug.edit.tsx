@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Trash2, Youtube } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,20 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { privateSeo } from "@/lib/seo";
+import {
+  normalizeYouTubeUrl,
+  projectMediaFromUnknown,
+  type ProjectMediaItem,
+  youtubeThumbnail,
+} from "@/lib/project-media";
 
 export const Route = createFileRoute("/projects_/$slug/edit")({
   head: () => privateSeo("Edit project — Backed"),
   component: EditProject,
 });
 const categories = ["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
-type Form = Record<string, string | string[]>;
+type Form = Record<string, string | ProjectMediaItem[]>;
 const text = (value: unknown) => (typeof value === "string" ? value : "");
-const urls = (value: unknown) =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
 function EditProject() {
   const { slug } = Route.useParams();
@@ -31,6 +35,7 @@ function EditProject() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
   const set = (key: string, value: Form[string]) =>
@@ -72,7 +77,7 @@ function EditProject() {
         goal: String((project.funding_goal_amount ?? 0) / 100),
         deadline: project.deadline_at ? project.deadline_at.slice(0, 10) : "",
         coverUrl: project.image_url ?? "",
-        galleryUrls: urls(project.gallery_urls),
+        galleryMedia: projectMediaFromUnknown(project.gallery_media),
         rewardName: reward.title ?? "",
         rewardDescription: reward.description ?? "",
         rewardPrice: String((reward.amount ?? 0) / 100),
@@ -86,10 +91,17 @@ function EditProject() {
   }, [slug]);
   async function upload(files: FileList | null, role: "cover" | "gallery") {
     if (!files?.length || !supabase) return;
+    if (
+      role === "gallery" &&
+      projectMediaFromUnknown(form.galleryMedia).length + files.length > 12
+    ) {
+      setMessage("A project gallery can include up to 12 images and videos.");
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
-      const results: string[] = [];
+      const results: { url: string; storagePath: string }[] = [];
       for (const file of Array.from(files)) {
         if (
           !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
@@ -101,13 +113,20 @@ function EditProject() {
         data.append("slug", slug);
         data.append("file", file);
         const response = await supabase.functions.invoke("project-media", { body: data });
-        if (response.error || !response.data?.url) throw new Error("Image upload failed.");
-        results.push(response.data.url);
+        if (response.error || !response.data?.url || !response.data?.path)
+          throw new Error("Image upload failed.");
+        results.push({ url: response.data.url, storagePath: response.data.path });
       }
       setForm((current) =>
         role === "cover"
-          ? { ...current, coverUrl: results[0] }
-          : { ...current, galleryUrls: [...urls(current.galleryUrls), ...results] },
+          ? { ...current, coverUrl: results[0].url }
+          : {
+              ...current,
+              galleryMedia: [
+                ...projectMediaFromUnknown(current.galleryMedia),
+                ...results.map((item) => ({ type: "image" as const, ...item })),
+              ],
+            },
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Image upload failed.");
@@ -116,6 +135,35 @@ function EditProject() {
       if (coverInput.current) coverInput.current.value = "";
       if (galleryInput.current) galleryInput.current.value = "";
     }
+  }
+  function addYouTube() {
+    if (projectMediaFromUnknown(form.galleryMedia).length >= 12) {
+      setMessage("A project gallery can include up to 12 images and videos.");
+      return;
+    }
+    const item = normalizeYouTubeUrl(youtubeUrl);
+    if (!item) {
+      setMessage("Enter a valid YouTube watch, share, or Shorts URL.");
+      return;
+    }
+    setMessage(null);
+    setForm((current) => ({
+      ...current,
+      galleryMedia: [...projectMediaFromUnknown(current.galleryMedia), item],
+    }));
+    setYoutubeUrl("");
+  }
+  function updateMedia(index: number, action: "up" | "down" | "remove") {
+    setForm((current) => {
+      const media = projectMediaFromUnknown(current.galleryMedia);
+      if (action === "remove") media.splice(index, 1);
+      else {
+        const nextIndex = action === "up" ? index - 1 : index + 1;
+        if (nextIndex < 0 || nextIndex >= media.length) return current;
+        [media[index], media[nextIndex]] = [media[nextIndex], media[index]];
+      }
+      return { ...current, galleryMedia: media };
+    });
   }
   async function save() {
     if (!supabase) return;
@@ -127,7 +175,7 @@ function EditProject() {
         slug,
         ...form,
         imageUrl: form.coverUrl,
-        galleryUrls: urls(form.galleryUrls),
+        galleryMedia: projectMediaFromUnknown(form.galleryMedia),
       },
     });
     setSaving(false);
@@ -158,7 +206,7 @@ function EditProject() {
         </Button>
       </main>
     );
-  const gallery = urls(form.galleryUrls);
+  const gallery = projectMediaFromUnknown(form.galleryMedia);
   return (
     <main className="container-backed max-w-3xl py-12 sm:py-16">
       <div className="flex items-center justify-between gap-4">
@@ -236,7 +284,7 @@ function EditProject() {
           )}
         </label>
         <label className="block">
-          <span className="mb-2 block text-sm font-semibold">Gallery</span>
+          <span className="mb-2 block text-sm font-semibold">Project gallery</span>
           <input
             ref={galleryInput}
             type="file"
@@ -249,24 +297,55 @@ function EditProject() {
             <ImagePlus />
             Add images
           </Button>
+          <div className="mt-3 flex gap-2">
+            <Input
+              type="url"
+              value={youtubeUrl}
+              onChange={(event) => setYoutubeUrl(event.target.value)}
+              placeholder="Paste a YouTube URL"
+              className="h-11"
+            />
+            <Button type="button" variant="outline" onClick={addYouTube}>
+              <Youtube />
+              Add video
+            </Button>
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            {gallery.map((url, index) => (
-              <div key={url} className="overflow-hidden rounded-md border">
+            {gallery.map((item, index) => (
+              <div
+                key={`${item.type === "image" ? item.url : item.videoId}-${index}`}
+                className="overflow-hidden rounded-md border"
+              >
                 <img
-                  src={url}
-                  alt={`Gallery ${index + 1}`}
+                  src={item.type === "image" ? item.url : youtubeThumbnail(item.videoId)}
+                  alt={item.type === "image" ? `Gallery ${index + 1}` : "YouTube thumbnail"}
                   className="aspect-[4/3] w-full object-cover"
                 />
-                <div className="flex justify-end p-2">
+                <div className="flex items-center justify-end gap-1 p-2">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={index === 0}
+                    aria-label="Move media earlier"
+                    onClick={() => updateMedia(index, "up")}
+                  >
+                    <ArrowUp />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={index === gallery.length - 1}
+                    aria-label="Move media later"
+                    onClick={() => updateMedia(index, "down")}
+                  >
+                    <ArrowDown />
+                  </Button>
                   <button
                     type="button"
                     className="text-xs font-semibold text-destructive"
-                    onClick={() =>
-                      set(
-                        "galleryUrls",
-                        gallery.filter((_, item) => item !== index),
-                      )
-                    }
+                    onClick={() => updateMedia(index, "remove")}
                   >
                     <Trash2 className="mr-1 inline size-3" />
                     Remove

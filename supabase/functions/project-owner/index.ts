@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { sanitizeGalleryMedia, storedGalleryMedia } from "../_shared/project-gallery.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "https://backedit.co",
@@ -40,7 +41,7 @@ Deno.serve(async (request) => {
     const { data: project, error } = await admin
       .from("projects")
       .select(
-        "id, slug, name, summary, description, image_url, gallery_urls, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at",
+        "id, slug, name, summary, description, image_url, gallery_media, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at",
       )
       .eq("slug", slug)
       .eq("creator_id", auth.user.id)
@@ -87,20 +88,20 @@ Deno.serve(async (request) => {
     const projectMediaPrefix = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/project-media/projects/${project.id}/`;
     const isOwnedMedia = (value: string) =>
       value.startsWith(projectMediaPrefix) || value.startsWith("https://backedit.co/");
-    const galleryUrls = Array.isArray(body.galleryUrls)
-      ? body.galleryUrls
-          .filter(
-            (value: unknown): value is string => typeof value === "string" && isOwnedMedia(value),
-          )
-          .slice(0, 8)
-      : [];
+    const storagePublicPrefix = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/project-media/`;
+    const galleryMedia = sanitizeGalleryMedia(body.galleryMedia, {
+      imagePathPrefix: `projects/${project.id}/`,
+      storagePublicPrefix,
+      allowBackedAssets: true,
+    });
     if (
       name.length < 3 ||
       summary.length < 3 ||
       !categories.has(category) ||
       !isHttpsUrl(externalWebsite) ||
       !imageUrl ||
-      !isOwnedMedia(imageUrl)
+      !isOwnedMedia(imageUrl) ||
+      galleryMedia === null
     )
       return reply(422, { error: "invalid_project_presentation" });
 
@@ -111,7 +112,7 @@ Deno.serve(async (request) => {
       category,
       external_website: externalWebsite || null,
       image_url: imageUrl || null,
-      gallery_urls: galleryUrls,
+      gallery_media: galleryMedia,
       location: bounded(body.location, 160) || null,
       project_dates: bounded(body.projectDates, 160) || null,
     };
@@ -157,6 +158,23 @@ Deno.serve(async (request) => {
       .eq("id", project.id)
       .eq("creator_id", auth.user.id);
     if (updateError) return reply(500, { error: "project_update_failed" });
+    const retainedPaths = new Set(
+      galleryMedia.flatMap((item) =>
+        item.type === "image" && item.storagePath ? [item.storagePath] : [],
+      ),
+    );
+    if (imageUrl.startsWith(storagePublicPrefix)) {
+      const coverPath = decodeURIComponent(imageUrl.slice(storagePublicPrefix.length));
+      if (coverPath.startsWith(`projects/${project.id}/`)) retainedPaths.add(coverPath);
+    }
+    const removedPaths = storedGalleryMedia(project.gallery_media).flatMap((item) =>
+      item.type === "image" &&
+      item.storagePath?.startsWith(`projects/${project.id}/`) &&
+      !retainedPaths.has(item.storagePath)
+        ? [item.storagePath]
+        : [],
+    );
+    if (removedPaths.length) await admin.storage.from("project-media").remove(removedPaths);
     return reply(200, { updated: true, restrictedEconomics: backed });
   } catch {
     return reply(400, { error: "invalid_project_request" });

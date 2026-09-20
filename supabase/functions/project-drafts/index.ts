@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sanitizeGalleryMedia } from "../_shared/project-gallery.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "https://backedit.co",
@@ -73,6 +74,28 @@ Deno.serve(async (request) => {
     if (authError || !auth.user) return respond({ error: "authentication_required" }, 401);
 
     if (body.action === "publish") {
+      const { data: pendingDraft } = await admin
+        .from("project_drafts")
+        .select("payload")
+        .eq("id", id)
+        .eq("secret_hash", secretHash)
+        .maybeSingle();
+      if (!pendingDraft) return respond({ error: "This draft is no longer available." }, 404);
+      const pendingPayload = (pendingDraft.payload ?? {}) as Record<string, unknown>;
+      const storagePublicPrefix = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/project-media/`;
+      const galleryMedia = sanitizeGalleryMedia(pendingPayload.galleryMedia ?? [], {
+        imagePathPrefix: `drafts/${id}/`,
+        storagePublicPrefix,
+      });
+      if (galleryMedia === null)
+        return respond({ error: "Check the project gallery and try again." }, 422);
+      const { error: sanitizeError } = await admin
+        .from("project_drafts")
+        .update({ payload: { ...pendingPayload, galleryMedia } })
+        .eq("id", id)
+        .eq("secret_hash", secretHash);
+      if (sanitizeError) return respond({ error: "Could not validate the project gallery." }, 422);
+
       const { data, error } = await admin.rpc("publish_project_draft", {
         p_draft_id: id,
         p_secret_hash: secretHash,
@@ -88,14 +111,23 @@ Deno.serve(async (request) => {
         .eq("owner_id", auth.user.id)
         .maybeSingle();
       const payload = (draft?.payload ?? {}) as Record<string, unknown>;
-      const paths = [
-        payload.coverPath,
-        ...(Array.isArray(payload.galleryPaths) ? payload.galleryPaths : []),
-      ].filter(
-        (path): path is string => typeof path === "string" && path.startsWith(`drafts/${id}/`),
-      );
-      const movedUrls: string[] = [];
-      for (const sourcePath of paths) {
+      const coverPath =
+        typeof payload.coverPath === "string" && payload.coverPath.startsWith(`drafts/${id}/`)
+          ? payload.coverPath
+          : null;
+      const orderedGallery =
+        sanitizeGalleryMedia(payload.galleryMedia ?? [], {
+          imagePathPrefix: `drafts/${id}/`,
+          storagePublicPrefix,
+        }) ?? [];
+      const sourcePaths = [
+        ...(coverPath ? [coverPath] : []),
+        ...orderedGallery.flatMap((item) =>
+          item.type === "image" && item.storagePath ? [item.storagePath] : [],
+        ),
+      ];
+      const moved = new Map<string, { path: string; url: string }>();
+      for (const sourcePath of sourcePaths) {
         const filename = sourcePath.split("/").pop();
         if (!filename) continue;
         const destinationPath = `projects/${project.project_id}/${filename}`;
@@ -106,12 +138,20 @@ Deno.serve(async (request) => {
         const { data: publicUrl } = admin.storage
           .from("project-media")
           .getPublicUrl(destinationPath);
-        movedUrls.push(publicUrl.publicUrl);
+        moved.set(sourcePath, { path: destinationPath, url: publicUrl.publicUrl });
       }
-      if (movedUrls.length) {
+      const movedCover = coverPath ? moved.get(coverPath) : null;
+      const publishedGallery = orderedGallery.flatMap((item) => {
+        if (item.type === "youtube") return [item];
+        const published = item.storagePath ? moved.get(item.storagePath) : null;
+        return published
+          ? [{ type: "image" as const, url: published.url, storagePath: published.path }]
+          : [];
+      });
+      if (movedCover) {
         await admin
           .from("projects")
-          .update({ image_url: movedUrls[0], gallery_urls: movedUrls.slice(1) })
+          .update({ image_url: movedCover.url, gallery_media: publishedGallery })
           .eq("id", project.project_id)
           .eq("creator_id", auth.user.id);
       }

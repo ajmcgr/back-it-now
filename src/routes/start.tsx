@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, ImagePlus, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ImagePlus,
+  Trash2,
+  Youtube,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +21,13 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { privateSeo } from "@/lib/seo";
+import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
+import {
+  normalizeYouTubeUrl,
+  projectMediaFromUnknown,
+  type ProjectMediaItem,
+  youtubeThumbnail,
+} from "@/lib/project-media";
 
 export const Route = createFileRoute("/start")({
   head: () => privateSeo("Start a project — Backed"),
@@ -20,9 +35,29 @@ export const Route = createFileRoute("/start")({
 });
 const steps = ["Project", "Funding", "What backers get", "Story", "Preview"];
 const categories = ["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
-type Draft = Record<string, string | string[]>;
+type Draft = Record<string, string | string[] | ProjectMediaItem[]>;
 type DraftRecord = { id: string; secret: string };
-const list = (value: Draft[string] | undefined) => (Array.isArray(value) ? value : []);
+const draftText = (value: Draft[string] | undefined) => (typeof value === "string" ? value : "");
+const normalizeDraft = (value: unknown): Draft => {
+  if (!value || typeof value !== "object") return {};
+  const draft = value as Draft;
+  if (projectMediaFromUnknown(draft.galleryMedia).length) return draft;
+  const legacyUrls = Array.isArray(draft.galleryUrls)
+    ? draft.galleryUrls.filter((item): item is string => typeof item === "string")
+    : [];
+  const legacyPaths = Array.isArray(draft.galleryPaths)
+    ? draft.galleryPaths.filter((item): item is string => typeof item === "string")
+    : [];
+  if (!legacyUrls.length) return draft;
+  return {
+    ...draft,
+    galleryMedia: legacyUrls.map((url, index) => ({
+      type: "image" as const,
+      url,
+      ...(legacyPaths[index] ? { storagePath: legacyPaths[index] } : {}),
+    })),
+  };
+};
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -38,6 +73,7 @@ function StartPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
   const [draftRecord, setDraftRecord] = useState<DraftRecord | null>(() => {
@@ -49,7 +85,7 @@ function StartPage() {
   });
   const [draft, setDraft] = useState<Draft>(() => {
     try {
-      return JSON.parse(localStorage.getItem("backed-project-draft") ?? "{}");
+      return normalizeDraft(JSON.parse(localStorage.getItem("backed-project-draft") ?? "{}"));
     } catch {
       return {};
     }
@@ -96,6 +132,10 @@ function StartPage() {
   }
   async function upload(files: FileList | null, role: "cover" | "gallery") {
     if (!files?.length || !supabase) return;
+    if (role === "gallery" && galleryMedia.length + files.length > 12) {
+      setMessage("A project gallery can include up to 12 images and videos.");
+      return;
+    }
     setMessage(null);
     setIsSaving(true);
     try {
@@ -122,8 +162,14 @@ function StartPage() {
           ? { ...current, coverPath: uploads[0].path, coverUrl: uploads[0].url }
           : {
               ...current,
-              galleryPaths: [...list(current.galleryPaths), ...uploads.map((item) => item.path)],
-              galleryUrls: [...list(current.galleryUrls), ...uploads.map((item) => item.url)],
+              galleryMedia: [
+                ...projectMediaFromUnknown(current.galleryMedia),
+                ...uploads.map((item) => ({
+                  type: "image" as const,
+                  url: item.url,
+                  storagePath: item.path,
+                })),
+              ],
             },
       );
     } catch (error) {
@@ -133,6 +179,35 @@ function StartPage() {
       if (coverInput.current) coverInput.current.value = "";
       if (galleryInput.current) galleryInput.current.value = "";
     }
+  }
+  function addYouTube() {
+    if (galleryMedia.length >= 12) {
+      setMessage("A project gallery can include up to 12 images and videos.");
+      return;
+    }
+    const item = normalizeYouTubeUrl(youtubeUrl);
+    if (!item) {
+      setMessage("Enter a valid YouTube watch, share, or Shorts URL.");
+      return;
+    }
+    setMessage(null);
+    setDraft((current) => ({
+      ...current,
+      galleryMedia: [...projectMediaFromUnknown(current.galleryMedia), item],
+    }));
+    setYoutubeUrl("");
+  }
+  function updateMedia(index: number, action: "up" | "down" | "remove") {
+    setDraft((current) => {
+      const media = projectMediaFromUnknown(current.galleryMedia);
+      if (action === "remove") media.splice(index, 1);
+      else {
+        const nextIndex = action === "up" ? index - 1 : index + 1;
+        if (nextIndex < 0 || nextIndex >= media.length) return current;
+        [media[index], media[nextIndex]] = [media[nextIndex], media[index]];
+      }
+      return { ...current, galleryMedia: media };
+    });
   }
   async function publish() {
     setMessage(null);
@@ -156,8 +231,7 @@ function StartPage() {
       setIsSaving(false);
     }
   }
-  const galleryUrls = list(draft.galleryUrls);
-  const galleryPaths = list(draft.galleryPaths);
+  const galleryMedia = projectMediaFromUnknown(draft.galleryMedia);
   return (
     <main className="container-backed py-12 sm:py-16">
       <div className="grid min-w-0 gap-10 lg:grid-cols-[220px_minmax(0,680px)]">
@@ -348,7 +422,7 @@ function StartPage() {
                     {...field("externalWebsite")}
                   />
                 </Field>
-                <Field label="Additional images">
+                <Field label="Project gallery">
                   <input
                     ref={galleryInput}
                     type="file"
@@ -364,28 +438,62 @@ function StartPage() {
                   >
                     <span className="flex flex-col items-center gap-2">
                       <ImagePlus className="size-6" />
-                      Add story images
+                      Add images
                     </span>
                   </button>
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={(event) => setYoutubeUrl(event.target.value)}
+                      placeholder="Paste a YouTube URL"
+                      className="h-11"
+                    />
+                    <Button type="button" variant="outline" onClick={addYouTube}>
+                      <Youtube />
+                      Add video
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Add images or a YouTube watch, share, or Shorts URL. Drag-free ordering controls
+                    keep the sequence accessible.
+                  </p>
                   <div className="mt-3 grid grid-cols-2 gap-3">
-                    {galleryUrls.map((url, index) => (
-                      <div key={url} className="overflow-hidden rounded-md border">
+                    {galleryMedia.map((item, index) => (
+                      <div
+                        key={`${item.type === "image" ? item.url : item.videoId}-${index}`}
+                        className="overflow-hidden rounded-md border"
+                      >
                         <img
-                          src={url}
-                          alt={`Gallery ${index + 1}`}
+                          src={item.type === "image" ? item.url : youtubeThumbnail(item.videoId)}
+                          alt={item.type === "image" ? `Gallery ${index + 1}` : "YouTube thumbnail"}
                           className="aspect-[4/3] w-full object-cover"
                         />
-                        <div className="flex justify-end p-2">
+                        <div className="flex items-center justify-end gap-1 p-2">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            disabled={index === 0}
+                            aria-label="Move media earlier"
+                            onClick={() => updateMedia(index, "up")}
+                          >
+                            <ArrowUp />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            disabled={index === galleryMedia.length - 1}
+                            aria-label="Move media later"
+                            onClick={() => updateMedia(index, "down")}
+                          >
+                            <ArrowDown />
+                          </Button>
                           <button
                             type="button"
                             className="text-xs font-semibold text-destructive"
-                            onClick={() =>
-                              setDraft((current) => ({
-                                ...current,
-                                galleryUrls: galleryUrls.filter((_, item) => item !== index),
-                                galleryPaths: galleryPaths.filter((_, item) => item !== index),
-                              }))
-                            }
+                            onClick={() => updateMedia(index, "remove")}
                           >
                             Remove
                           </button>
@@ -407,52 +515,40 @@ function StartPage() {
                   </Button>
                 </div>
                 <article className="overflow-hidden rounded-md border bg-card">
-                  <div className="aspect-[16/10] bg-muted">
-                    {typeof draft.coverUrl === "string" && draft.coverUrl ? (
-                      <img
-                        src={draft.coverUrl}
-                        alt="Project preview"
-                        className="size-full object-cover"
-                      />
-                    ) : null}
-                  </div>
+                  <ProjectMediaGallery
+                    coverUrl={typeof draft.coverUrl === "string" ? draft.coverUrl : null}
+                    media={galleryMedia}
+                    projectTitle={typeof draft.name === "string" ? draft.name : "Project preview"}
+                  />
                   <div className="space-y-3 p-5">
                     <p className="text-sm font-semibold text-primary">
-                      {draft.category || "Category"}
+                      {draftText(draft.category) || "Category"}
                     </p>
-                    <h3 className="text-3xl font-semibold">{draft.name || "Your project title"}</h3>
+                    <h3 className="text-3xl font-semibold">
+                      {draftText(draft.name) || "Your project title"}
+                    </h3>
                     <p className="text-lg font-semibold">
-                      {draft.summary || "Your project tagline"}
+                      {draftText(draft.summary) || "Your project tagline"}
                     </p>
                     <p className="text-muted-foreground">
-                      {draft.story || "Your story will appear here."}
+                      {draftText(draft.story) || "Your story will appear here."}
                     </p>
                     <div className="grid grid-cols-2 gap-4 border-y py-4">
                       <div>
                         <strong className="block text-xl">
-                          ${Number(draft.goal || 0).toLocaleString()}
+                          ${Number(draftText(draft.goal) || 0).toLocaleString()}
                         </strong>
                         <span className="text-xs text-muted-foreground">funding goal</span>
                       </div>
                       <div>
-                        <strong className="block text-xl">${draft.rewardPrice || "0"}+</strong>
+                        <strong className="block text-xl">
+                          ${draftText(draft.rewardPrice) || "0"}+
+                        </strong>
                         <span className="text-xs text-muted-foreground">
-                          {draft.rewardName || "Reward"}
+                          {draftText(draft.rewardName) || "Reward"}
                         </span>
                       </div>
                     </div>
-                    {galleryUrls.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {galleryUrls.map((url) => (
-                          <img
-                            key={url}
-                            src={url}
-                            alt="Project gallery preview"
-                            className="aspect-[4/3] w-full rounded-md object-cover"
-                          />
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </article>
               </div>

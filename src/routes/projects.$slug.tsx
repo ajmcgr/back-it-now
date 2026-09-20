@@ -3,6 +3,7 @@ import { ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
+import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
 import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
@@ -218,32 +219,11 @@ function ProjectPage() {
         </div>
 
         <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div>
-            {coverImage ? (
-              <img
-                src={coverImage}
-                alt={project.title}
-                width={720}
-                height={480}
-                className="aspect-[16/10] w-full rounded-md object-cover"
-              />
-            ) : (
-              <div className="aspect-[16/10] rounded-md bg-secondary" />
-            )}
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {project.gallery.slice(1).map((image, index) => (
-                <img
-                  key={image}
-                  src={image}
-                  alt={`${project.title} gallery image ${index + 2}`}
-                  loading="lazy"
-                  width={720}
-                  height={480}
-                  className="aspect-[4/3] w-full rounded-md object-cover"
-                />
-              ))}
-            </div>
-          </div>
+          <ProjectMediaGallery
+            coverUrl={coverImage}
+            media={project.media ?? project.gallery.slice(1).map((url) => ({ type: "image", url }))}
+            projectTitle={project.title}
+          />
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <p className="text-4xl font-semibold">{money(amountBacked(project))}</p>

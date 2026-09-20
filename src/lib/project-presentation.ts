@@ -1,4 +1,5 @@
 import { projects, type Project } from "@/lib/projects";
+import { projectMediaFromUnknown, type ProjectMediaItem } from "@/lib/project-media";
 import { publicSupabase } from "@/lib/supabase";
 
 export type CanonicalProjectCreator = {
@@ -10,7 +11,7 @@ export type CanonicalProjectCreator = {
 export type CanonicalProjectPresentation = {
   creator: CanonicalProjectCreator;
   imageUrl: string | null;
-  galleryUrls: string[];
+  galleryMedia: ProjectMediaItem[];
   name: string;
   summary: string;
   description: string;
@@ -63,7 +64,7 @@ export async function loadCanonicalProjectPresentation(slug: string) {
   const { data, error } = await publicSupabase
     .from("public_profile_projects")
     .select(
-      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_urls, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
+      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -100,9 +101,11 @@ export function presentationAsProject(
       presentation.summary,
     story: presentation.description ? presentation.description.split(/\n{2,}/).filter(Boolean) : [],
     coverImage: presentation.imageUrl ?? "",
-    gallery: [presentation.imageUrl, ...presentation.galleryUrls].filter((value): value is string =>
-      Boolean(value),
-    ),
+    gallery: [
+      presentation.imageUrl,
+      ...presentation.galleryMedia.flatMap((item) => (item.type === "image" ? [item.url] : [])),
+    ].filter((value): value is string => Boolean(value)),
+    media: presentation.galleryMedia,
     category: presentation.category,
     location: presentation.location ?? "",
     projectDates: presentation.projectDates ?? "",
@@ -138,9 +141,7 @@ export function presentationFromPublicRow(
       avatarUrl: typeof data["creator_avatar_url"] === "string" ? data["creator_avatar_url"] : null,
     },
     imageUrl: typeof data["image_url"] === "string" ? data["image_url"] : null,
-    galleryUrls: Array.isArray(data["gallery_urls"])
-      ? data["gallery_urls"].filter((value): value is string => typeof value === "string")
-      : [],
+    galleryMedia: projectMediaFromUnknown(data["gallery_media"]),
     name: typeof data["name"] === "string" ? data["name"] : "Untitled project",
     summary: typeof data["summary"] === "string" ? data["summary"] : "",
     description: typeof data["description"] === "string" ? data["description"] : "",
