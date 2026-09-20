@@ -476,7 +476,7 @@ function Settings() {
           <p className="mt-2 text-sm text-muted-foreground">{payout.copy}</p>
           {payoutState === "not_connected" ? (
             <div className="mt-5 max-w-md space-y-2">
-              <Label htmlFor="stripe-country">Stripe account country</Label>
+              <Label htmlFor="stripe-country">Where are you based?</Label>
               <Select
                 value={selectedStripeCountry}
                 onValueChange={setSelectedStripeCountry}
@@ -498,12 +498,7 @@ function Settings() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Choose where you or your business is legally established. Stripe uses this to
-                determine verification and payout requirements, and the country generally can't be
-                changed after the account is created.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Secure payments and payouts are handled by Stripe.
+                Stripe uses this to set up your payout account.
               </p>
             </div>
           ) : payoutState === "ready" ? (

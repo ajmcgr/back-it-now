@@ -79,7 +79,7 @@ export const payoutContent: Record<PayoutState, PayoutContent> = {
   not_connected: {
     heading: "Set up payouts",
     copy: "Connect with Stripe to receive money from projects you create on Backed.",
-    cta: "Set up payouts",
+    cta: "Continue with Stripe",
     action: "onboarding",
   },
   incomplete: {
