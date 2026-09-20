@@ -16,8 +16,8 @@ export const Route = createFileRoute("/about")({
 function AboutPage() {
   return (
     <main className="container-backed py-16 sm:py-24">
-      <article className="max-w-3xl">
-        <h1 className="text-5xl font-semibold sm:text-6xl">About Backed</h1>
+      <article className="mx-auto max-w-3xl rounded-lg border border-border bg-card p-7 sm:p-12">
+        <h1 className="text-center text-5xl font-semibold sm:text-6xl">About Backed</h1>
         <p className="mt-7 text-xl leading-8 text-muted-foreground">
           Backed is a crowdfunding marketplace for things people want to exist.
         </p>
