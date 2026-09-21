@@ -29,6 +29,8 @@ export type CanonicalProjectPresentation = {
   rewardAmount: number | null;
   rewardTotalQuantity: number | null;
   rewardAvailableQuantity: number | null;
+  createdAt: string | null;
+  latestBackedAt: string | null;
 };
 
 type CoverSource = {
@@ -75,6 +77,19 @@ export async function loadCanonicalProjectPresentation(slug: string) {
 export async function loadCanonicalProjects() {
   if (!publicSupabase) return [];
   const { data, error } = await publicSupabase.from("public_profile_projects").select("*");
+  if (error || !data) return [];
+  return data.flatMap((row) => {
+    const presentation = presentationFromPublicRow(row as Record<string, unknown>);
+    return presentation && typeof row.slug === "string" ? [{ slug: row.slug, presentation }] : [];
+  });
+}
+
+export async function loadSimilarCanonicalProjects(slug: string) {
+  if (!publicSupabase) return [];
+  const { data, error } = await publicSupabase.rpc("get_similar_projects", {
+    p_slug: slug,
+    p_limit: 3,
+  });
   if (error || !data) return [];
   return data.flatMap((row) => {
     const presentation = presentationFromPublicRow(row as Record<string, unknown>);
@@ -168,5 +183,7 @@ export function presentationFromPublicRow(
       typeof data["reward_available_quantity"] === "number"
         ? data["reward_available_quantity"]
         : null,
+    createdAt: typeof data["created_at"] === "string" ? data["created_at"] : null,
+    latestBackedAt: typeof data["latest_backed_at"] === "string" ? data["latest_backed_at"] : null,
   };
 }

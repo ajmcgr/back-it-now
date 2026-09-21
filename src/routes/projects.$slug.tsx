@@ -1,10 +1,11 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { ExternalLink, MapPin } from "lucide-react";
+import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
 import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
 import { ProjectBackers } from "@/components/backed/project-backers";
+import { ProjectGrid } from "@/components/backed/project-card";
 import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProjectUpdates } from "@/components/backed/project-updates";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
@@ -13,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   presentationAsProject,
   loadCanonicalProjectPresentation,
+  loadSimilarCanonicalProjects,
   resolveProjectCover,
 } from "@/lib/project-presentation";
 import { type ShareContext } from "@/lib/project-share";
@@ -29,10 +31,19 @@ import {
 
 export const Route = createFileRoute("/projects/$slug")({
   loader: async ({ params }) => {
-    const presentation = await loadCanonicalProjectPresentation(params.slug);
+    const [presentation, similarPresentations] = await Promise.all([
+      loadCanonicalProjectPresentation(params.slug),
+      loadSimilarCanonicalProjects(params.slug),
+    ]);
     const fallback = projects.find((item) => item.slug === params.slug && item.status === "live");
     if (!presentation && !fallback) throw notFound();
-    return { slug: params.slug, presentation };
+    return {
+      slug: params.slug,
+      presentation,
+      similarProjects: similarPresentations.map(({ slug, presentation: similar }) =>
+        presentationAsProject(slug, similar),
+      ),
+    };
   },
   head: ({ loaderData }) => {
     const slug = loaderData?.slug ?? "project";
@@ -104,7 +115,7 @@ export const Route = createFileRoute("/projects/$slug")({
 });
 
 function ProjectPage() {
-  const { slug, presentation } = Route.useLoaderData();
+  const { slug, presentation, similarProjects } = Route.useLoaderData();
   const fallback = projects.find((item) => item.slug === slug && item.status === "live");
   const [tab, setTab] = useState("Story");
   const [isOwner, setIsOwner] = useState(false);
@@ -432,6 +443,31 @@ function ProjectPage() {
           />
         )}
       </div>
+
+      {similarProjects.length > 0 ? (
+        <section className="border-t border-border py-16 sm:py-20">
+          <div className="container-backed">
+            <div className="mb-8 flex items-end justify-between gap-4">
+              <h2 className="text-3xl font-semibold">Similar projects</h2>
+              <Link
+                to="/discover"
+                search={{}}
+                className="hidden items-center gap-1 text-sm font-semibold transition-colors hover:text-primary sm:inline-flex"
+              >
+                Explore more projects <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
+            <ProjectGrid items={similarProjects} />
+            <Link
+              to="/discover"
+              search={{}}
+              className="mt-8 inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:text-primary sm:hidden"
+            >
+              Explore more projects <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background px-3 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] lg:hidden">
         {ownershipResolved ? (
