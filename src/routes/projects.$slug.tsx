@@ -3,6 +3,7 @@ import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
+import { ProjectComments } from "@/components/backed/project-comments";
 import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
 import { ProjectBackers } from "@/components/backed/project-backers";
 import { ProjectGrid } from "@/components/backed/project-card";
@@ -18,6 +19,7 @@ import {
   resolveProjectCover,
 } from "@/lib/project-presentation";
 import { type ShareContext } from "@/lib/project-share";
+import { loadProjectComments } from "@/lib/project-comments";
 import {
   absoluteUrl,
   privateSeo,
@@ -135,6 +137,7 @@ function ProjectPage() {
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
   const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
+  const [commentCount, setCommentCount] = useState<number | null>(null);
   const [checkoutConfirmation, setCheckoutConfirmation] = useState<{
     state: "idle" | "confirming" | "confirmed" | "delayed";
     amount?: number;
@@ -143,13 +146,28 @@ function ProjectPage() {
   const creator = presentation?.creator;
   useEffect(() => {
     const selectLinkedTab = () => {
-      if (window.location.hash === "#updates") setTab("Updates");
-      if (window.location.hash === "#backers") setTab("Backers");
+      const linkedTab = {
+        "#updates": "Updates",
+        "#backers": "Backers",
+        "#comments": "Comments",
+      }[window.location.hash];
+      setTab(linkedTab ?? "Story");
     };
     selectLinkedTab();
     window.addEventListener("hashchange", selectLinkedTab);
     return () => window.removeEventListener("hashchange", selectLinkedTab);
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void loadProjectComments(slug)
+      .then((comments) => {
+        if (!cancelled) setCommentCount(comments.length);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
   useEffect(() => {
     if (!supabase || !creator?.username) {
       setOwnershipResolved(true);
@@ -184,12 +202,12 @@ function ProjectPage() {
     const returnedSessionId = params.get("session_id");
     setCheckoutConfirmation({ state: "confirming" });
     const confirmBacking = async () => {
-       const { data: auth } = await client.auth.getSession();
-       if (!auth.session) {
+      const { data: auth } = await client.auth.getSession();
+      if (!auth.session) {
         if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
         return;
       }
-       const { data: canonicalProject } = await client
+      const { data: canonicalProject } = await client
         .from("projects")
         .select("id")
         .eq("slug", slug)
@@ -199,7 +217,7 @@ function ProjectPage() {
         return;
       }
       for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
-         let query = client
+        let query = client
           .from("backings")
           .select("gross_amount, stripe_checkout_session_id, paid_at")
           .eq("project_id", canonicalProject.id)
@@ -411,16 +429,24 @@ function ProjectPage() {
           role="tablist"
           aria-label="Project details"
         >
-          {["Story", "Updates", "Backers"].map((item) => (
+          {(["Story", "Updates", "Backers", "Comments"] as const).map((item) => (
             <button
               key={item}
               type="button"
               role="tab"
               aria-selected={tab === item}
-              onClick={() => setTab(item)}
-               className={`shrink-0 border-b-2 py-5 text-sm font-semibold ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}
+              onClick={() => {
+                setTab(item);
+                const hash = item === "Story" ? "" : `#${item.toLowerCase()}`;
+                window.history.replaceState(
+                  null,
+                  "",
+                  `${window.location.pathname}${window.location.search}${hash}`,
+                );
+              }}
+              className={`shrink-0 border-b-2 py-5 text-sm font-semibold ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}
             >
-              {item}
+              {item === "Comments" && commentCount !== null ? `Comments (${commentCount})` : item}
             </button>
           ))}
         </div>
@@ -447,12 +473,14 @@ function ProjectPage() {
           </article>
         ) : tab === "Updates" ? (
           <ProjectUpdates slug={project.slug} projectName={project.title} isOwner={isOwner} />
-        ) : (
+        ) : tab === "Backers" ? (
           <ProjectBackers
             slug={project.slug}
             backingCount={project.successfulBackingCount}
             isOwner={isOwner}
           />
+        ) : (
+          <ProjectComments slug={project.slug} onCountChange={setCommentCount} />
         )}
       </div>
 
