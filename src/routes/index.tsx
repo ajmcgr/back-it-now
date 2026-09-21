@@ -62,18 +62,18 @@ function Index() {
 
   return (
     <main>
-      <section className="container-backed pb-16 pt-20 text-center sm:pb-24 sm:pt-28">
+      <section className="container-backed pb-14 pt-14 text-center sm:pb-24 sm:pt-28">
         <div className="mx-auto max-w-4xl">
           <nav
             aria-label="Project categories"
-            className="mb-7 flex flex-wrap justify-center gap-x-4 gap-y-2"
+            className="mb-7 flex gap-5 overflow-x-auto pb-2 text-left sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
           >
             {categories.map((category) => (
               <Link
                 key={category}
                 to="/discover"
                 search={category === "All" ? {} : { category }}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
               >
                 {category}
               </Link>
@@ -86,7 +86,7 @@ function Index() {
             Reward and preorder crowdfunding for independent products and creative projects.
             Discover something worth backing—or launch your own.
           </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <div className="mt-9 grid gap-3 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap sm:justify-center">
             <Button asChild size="lg">
               <Link to="/discover" search={{}}>
                 Explore projects
@@ -102,7 +102,7 @@ function Index() {
         </div>
       </section>
 
-      <section className="container-backed pb-24">
+      <section className="container-backed pb-20 sm:pb-24">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <h2 className="text-3xl font-semibold">Projects worth backing</h2>
           <Link

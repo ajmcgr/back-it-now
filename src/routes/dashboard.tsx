@@ -181,8 +181,8 @@ function Dashboard() {
 
   return (
     <main className="container-backed py-14 sm:py-20">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-4xl font-semibold sm:text-5xl">Dashboard</h1>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-4">
+        <h1 className="min-w-0 text-3xl font-semibold sm:text-5xl">Dashboard</h1>
         <Button asChild>
           <Link to="/start">Start a project</Link>
         </Button>
@@ -249,9 +249,9 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
         return (
           <div
             key={project.id}
-            className="grid items-center gap-4 border-b border-border p-5 last:border-b-0 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]"
+            className="grid grid-cols-2 items-start gap-4 border-b border-border p-5 last:border-b-0 md:grid-cols-[2fr_1fr_1fr_1fr_1fr] md:items-center"
           >
-            <div>
+            <div className="col-span-2 md:col-span-1">
               <strong className="block">{project.name}</strong>
               <span className="text-xs text-muted-foreground">{funded}% funded</span>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-primary">
@@ -279,12 +279,24 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
                 </a>
               </div>
             </div>
-            <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold capitalize">
-              {project.status}
-            </span>
-            <span className="font-semibold">{money(backed / 100)}</span>
-            <span>{project.successful_backer_count}</span>
-            <span>{days}</span>
+            <div>
+              <span className="mb-1 block text-xs text-muted-foreground md:hidden">Status</span>
+              <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold capitalize">
+                {project.status}
+              </span>
+            </div>
+            <div>
+              <span className="mb-1 block text-xs text-muted-foreground md:hidden">Amount backed</span>
+              <span className="font-semibold">{money(backed / 100)}</span>
+            </div>
+            <div>
+              <span className="mb-1 block text-xs text-muted-foreground md:hidden">Backers</span>
+              <span>{project.successful_backer_count}</span>
+            </div>
+            <div>
+              <span className="mb-1 block text-xs text-muted-foreground md:hidden">Days remaining</span>
+              <span>{days}</span>
+            </div>
           </div>
         );
       })}

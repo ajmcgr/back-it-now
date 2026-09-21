@@ -25,7 +25,12 @@ export const Route = createFileRoute("/projects_/$slug/edit")({
   component: EditProject,
 });
 const categories = ["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
-type Form = Record<string, string | ProjectMediaItem[]>;
+type Form = {
+  [key: string]: string | ProjectMediaItem[] | undefined;
+  galleryMedia?: ProjectMediaItem[];
+  coverUrl?: string;
+  category?: string;
+};
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 function EditProject() {
@@ -119,7 +124,9 @@ function EditProject() {
       }
       setForm((current) =>
         role === "cover"
-          ? { ...current, coverUrl: results[0].url }
+          ? results[0]
+            ? { ...current, coverUrl: results[0].url }
+            : current
           : {
               ...current,
               galleryMedia: [
@@ -160,7 +167,11 @@ function EditProject() {
       else {
         const nextIndex = action === "up" ? index - 1 : index + 1;
         if (nextIndex < 0 || nextIndex >= media.length) return current;
-        [media[index], media[nextIndex]] = [media[nextIndex], media[index]];
+        const currentItem = media[index];
+        const nextItem = media[nextIndex];
+        if (!currentItem || !nextItem) return current;
+        media[index] = nextItem;
+        media[nextIndex] = currentItem;
       }
       return { ...current, galleryMedia: media };
     });

@@ -145,16 +145,17 @@ function ProjectPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") !== "success" || !supabase) return;
+    const client = supabase;
     let cancelled = false;
     const returnedSessionId = params.get("session_id");
     setCheckoutConfirmation({ state: "confirming" });
     const confirmBacking = async () => {
-      const { data: auth } = await supabase.auth.getSession();
-      if (!auth.session || !supabase) {
+       const { data: auth } = await client.auth.getSession();
+       if (!auth.session) {
         if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
         return;
       }
-      const { data: canonicalProject } = await supabase
+       const { data: canonicalProject } = await client
         .from("projects")
         .select("id")
         .eq("slug", slug)
@@ -164,7 +165,7 @@ function ProjectPage() {
         return;
       }
       for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
-        let query = supabase
+         let query = client
           .from("backings")
           .select("gross_amount, stripe_checkout_session_id, paid_at")
           .eq("project_id", canonicalProject.id)
@@ -210,8 +211,8 @@ function ProjectPage() {
       : `${presentation.rewardAvailableQuantity} available`;
   const locationDetails = [project.location, project.projectDates].filter(Boolean).join(" · ");
   return (
-    <main className="pb-24">
-      <div className="container-backed pt-10 sm:pt-16">
+    <main className="pb-28 lg:pb-24">
+      <div className="container-backed pt-8 sm:pt-16">
         {publishedNotice && (
           <div className="mb-8 rounded-md border border-primary/30 bg-primary/5 p-5">
             <p className="text-xl font-semibold">Your project is live 🎉</p>
@@ -256,7 +257,7 @@ function ProjectPage() {
           </div>
         )}
         <div className="mb-8 max-w-3xl">
-          <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
+          <nav aria-label="Breadcrumb" className="mb-4 truncate text-sm text-muted-foreground">
             <Link
               to="/discover"
               search={{ category: project.category }}
@@ -269,7 +270,7 @@ function ProjectPage() {
           </nav>
           <span className="text-sm font-semibold text-primary">{project.category}</span>
           <h1 className="mt-3 text-4xl font-semibold sm:text-6xl">{project.title}</h1>
-          <p className="mt-4 text-xl font-semibold text-foreground sm:text-2xl">
+          <p className="mt-4 text-xl font-semibold leading-7 text-foreground sm:text-2xl">
             {project.tagline}
           </p>
           <p className="mt-3 text-lg text-muted-foreground">{project.description}</p>
@@ -371,12 +372,12 @@ function ProjectPage() {
       </div>
 
       <div className="mt-14 border-y border-border">
-        <div className="container-backed flex gap-8">
+         <div className="container-backed flex gap-7 overflow-x-auto [scrollbar-width:none]">
           {["Story", "Updates", "Backers"].map((item) => (
             <button
               key={item}
               onClick={() => setTab(item)}
-              className={`border-b-2 py-5 text-sm font-semibold ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}
+               className={`shrink-0 border-b-2 py-5 text-sm font-semibold ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}
             >
               {item}
             </button>
@@ -417,7 +418,7 @@ function ProjectPage() {
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-3 lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background px-3 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] lg:hidden">
         {ownershipResolved ? (
           isOwner ? (
             <Button className="w-full" onClick={() => setIsPosterOpen(true)}>

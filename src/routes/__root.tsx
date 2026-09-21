@@ -254,7 +254,7 @@ function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
-      <div className="container-backed grid h-[4.5rem] grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="container-backed grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:h-[4.5rem] sm:gap-3 md:grid-cols-[1fr_auto_1fr]">
         <Link
           to="/"
           aria-label="Backed home"
@@ -265,7 +265,7 @@ function SiteHeader() {
             alt="Backed"
             width={3654}
             height={1291}
-            className="h-12 w-auto sm:h-14"
+            className="h-10 max-w-full object-contain object-left sm:h-14"
           />
         </Link>
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
@@ -285,7 +285,7 @@ function SiteHeader() {
             Start a project
           </Link>
         </nav>
-        <div className="flex items-center justify-end gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
           <nav className="hidden items-center gap-1 md:flex" aria-label="Supporting navigation">
             <Link
               to="/pricing"
@@ -302,7 +302,9 @@ function SiteHeader() {
               FAQ
             </Link>
           </nav>
-          <ThemeToggle />
+          <div className="max-[359px]:hidden">
+            <ThemeToggle />
+          </div>
           {account ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -347,7 +349,7 @@ function SiteHeader() {
           ) : (
             <Link
               to="/auth"
-              className="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+               className="whitespace-nowrap rounded-md bg-black px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Sign in
             </Link>
@@ -362,7 +364,7 @@ function SiteHeader() {
                 <Menu className="size-5" />
               </button>
             </SheetTrigger>
-            <SheetContent className="flex flex-col">
+             <SheetContent className="flex w-[min(88vw,22rem)] flex-col overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
@@ -454,8 +456,8 @@ function SiteFooter() {
   return (
     <footer className="border-t border-border py-10 sm:py-12">
       <div className="container-backed">
-        <div className="grid gap-8 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(3,1fr)]">
-          <div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(3,1fr)]">
+          <div className="col-span-2 sm:col-span-1">
             <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-10 w-auto" />
             <p className="mt-3 max-w-xs leading-6">Back things you want to exist.</p>
           </div>
