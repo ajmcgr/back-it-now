@@ -27,6 +27,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
 import { Route as ProjectsSlugEditRouteImport } from './routes/projects_.$slug.edit'
+import { Route as ProjectsSlugUpdatesUpdateIdRouteImport } from './routes/projects.$slug.updates.$updateId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -118,6 +119,12 @@ const ProjectsSlugEditRoute = ProjectsSlugEditRouteImport.update({
   path: '/projects/$slug/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsSlugUpdatesUpdateIdRoute =
+  ProjectsSlugUpdatesUpdateIdRouteImport.update({
+    id: '/updates/$updateId',
+    path: '/updates/$updateId',
+    getParentRoute: () => ProjectsSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,9 +142,10 @@ export interface FileRoutesByFullPath {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/projects/$slug': typeof ProjectsSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
+  '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -155,9 +163,10 @@ export interface FileRoutesByTo {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/projects/$slug': typeof ProjectsSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
+  '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -176,9 +185,10 @@ export interface FileRoutesById {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/projects/$slug': typeof ProjectsSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/projects_/$slug/edit': typeof ProjectsSlugEditRoute
+  '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/projects/$slug'
     | '/auth/'
     | '/projects/$slug/edit'
+    | '/projects/$slug/updates/$updateId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/projects/$slug'
     | '/auth'
     | '/projects/$slug/edit'
+    | '/projects/$slug/updates/$updateId'
   id:
     | '__root__'
     | '/'
@@ -241,6 +253,7 @@ export interface FileRouteTypes {
     | '/projects/$slug'
     | '/auth/'
     | '/projects_/$slug/edit'
+    | '/projects/$slug/updates/$updateId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -259,7 +272,7 @@ export interface RootRouteChildren {
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  ProjectsSlugRoute: typeof ProjectsSlugRoute
+  ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
   ProjectsSlugEditRoute: typeof ProjectsSlugEditRoute
 }
@@ -392,8 +405,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsSlugEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$slug/updates/$updateId': {
+      id: '/projects/$slug/updates/$updateId'
+      path: '/updates/$updateId'
+      fullPath: '/projects/$slug/updates/$updateId'
+      preLoaderRoute: typeof ProjectsSlugUpdatesUpdateIdRouteImport
+      parentRoute: typeof ProjectsSlugRoute
+    }
   }
 }
+
+interface ProjectsSlugRouteChildren {
+  ProjectsSlugUpdatesUpdateIdRoute: typeof ProjectsSlugUpdatesUpdateIdRoute
+}
+
+const ProjectsSlugRouteChildren: ProjectsSlugRouteChildren = {
+  ProjectsSlugUpdatesUpdateIdRoute: ProjectsSlugUpdatesUpdateIdRoute,
+}
+
+const ProjectsSlugRouteWithChildren = ProjectsSlugRoute._addFileChildren(
+  ProjectsSlugRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -411,7 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  ProjectsSlugRoute: ProjectsSlugRoute,
+  ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
   ProjectsSlugEditRoute: ProjectsSlugEditRoute,
 }

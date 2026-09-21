@@ -47,7 +47,7 @@ Deno.serve(async (request) => {
         .maybeSingle();
       if (!draft) return reply(403, { error: "draft_not_available" });
       prefix = `drafts/${draft.id}`;
-    } else if (scope === "project") {
+    } else if (scope === "project" || scope === "project-update") {
       const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
       const slug = form.get("slug");
       if (!token || typeof slug !== "string")
@@ -61,7 +61,8 @@ Deno.serve(async (request) => {
         .eq("creator_id", auth.user.id)
         .maybeSingle();
       if (!project) return reply(403, { error: "project_access_denied" });
-      prefix = `projects/${project.id}`;
+      prefix =
+        scope === "project-update" ? `projects/${project.id}/updates` : `projects/${project.id}`;
     } else {
       return reply(400, { error: "invalid_upload_scope" });
     }

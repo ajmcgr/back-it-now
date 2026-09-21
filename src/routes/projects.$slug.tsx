@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
 import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
 import { ProjectPosterDialog } from "@/components/backed/project-poster";
+import { ProjectUpdates } from "@/components/backed/project-updates";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -116,6 +117,9 @@ function ProjectPage() {
   }>({ state: "idle" });
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
   const creator = presentation?.creator;
+  useEffect(() => {
+    if (window.location.hash === "#updates") setTab("Updates");
+  }, []);
   useEffect(() => {
     if (!supabase || !creator?.username) {
       setOwnershipResolved(true);
@@ -372,10 +376,17 @@ function ProjectPage() {
       </div>
 
       <div className="mt-14 border-y border-border">
-         <div className="container-backed flex gap-7 overflow-x-auto [scrollbar-width:none]">
+        <div
+          className="container-backed flex gap-7 overflow-x-auto [scrollbar-width:none]"
+          role="tablist"
+          aria-label="Project details"
+        >
           {["Story", "Updates", "Backers"].map((item) => (
             <button
               key={item}
+              type="button"
+              role="tab"
+              aria-selected={tab === item}
               onClick={() => setTab(item)}
                className={`shrink-0 border-b-2 py-5 text-sm font-semibold ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}
             >
@@ -404,15 +415,15 @@ function ProjectPage() {
               </a>
             ) : null}
           </article>
+        ) : tab === "Updates" ? (
+          <ProjectUpdates slug={project.slug} projectName={project.title} isOwner={isOwner} />
         ) : (
           <div id={tab === "Backers" ? "backers" : undefined} className="py-16">
             <h2 className="text-2xl font-semibold">{tab}</h2>
             <p className="mt-2 text-muted-foreground">
-              {tab === "Backers"
-                ? project.successfulBackingCount > 0
-                  ? `${project.successfulBackingCount} ${project.successfulBackingCount === 1 ? "backer has" : "backers have"} helped make this project happen.`
-                  : "No backers yet. Be the first to help make this project happen."
-                : "No updates yet. Check back here for news from the creator."}
+              {project.successfulBackingCount > 0
+                ? `${project.successfulBackingCount} ${project.successfulBackingCount === 1 ? "backer has" : "backers have"} helped make this project happen.`
+                : "No backers yet. Be the first to help make this project happen."}
             </p>
           </div>
         )}
