@@ -1,6 +1,8 @@
 export const SITE_NAME = "Backed";
 export const SITE_URL = "https://backedit.co";
-export const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/logo.png`;
+const SOCIAL_IMAGE_ENDPOINT =
+  "https://zlzaxgsyczfeepwidjii.supabase.co/functions/v1/project-social-image";
+export const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_ENDPOINT;
 
 type PublicSeoOptions = {
   title: string;
@@ -38,11 +40,16 @@ export function publicSeo({
       { property: "og:type", content: type },
       { property: "og:url", content: canonical },
       { property: "og:image", content: socialImage },
+      { property: "og:image:secure_url", content: socialImage },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { property: "og:image:alt", content: title },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
       { name: "twitter:image", content: socialImage },
+      { name: "twitter:image:alt", content: title },
     ],
     links: [{ rel: "canonical", href: canonical }],
     ...(jsonLd
@@ -56,6 +63,47 @@ export function publicSeo({
         }
       : {}),
   };
+}
+
+function fingerprint(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+type ProjectSocialImageOptions = {
+  slug: string;
+  name: string;
+  summary: string;
+  creator: string;
+  amountBacked: number;
+  goal: number;
+  backers: number;
+};
+
+export function projectSocialImageUrl(project: ProjectSocialImageOptions) {
+  const values = [
+    project.name,
+    project.summary,
+    project.creator,
+    project.amountBacked,
+    project.goal,
+    project.backers,
+  ];
+  const params = new URLSearchParams({
+    slug: project.slug,
+    name: project.name.slice(0, 90),
+    summary: project.summary.slice(0, 180),
+    creator: project.creator.slice(0, 70),
+    raised: String(Math.max(0, Math.round(project.amountBacked * 100))),
+    goal: String(Math.max(0, Math.round(project.goal * 100))),
+    backers: String(Math.max(0, Math.floor(project.backers))),
+    v: fingerprint(values.join("|")),
+  });
+  return `${SOCIAL_IMAGE_ENDPOINT}?${params.toString()}`;
 }
 
 export function privateSeo(title: string) {

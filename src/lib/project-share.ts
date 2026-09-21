@@ -27,15 +27,13 @@ export function shareCopy(project: ShareProject, context: ShareContext) {
 export function shareUrls(project: ShareProject, context: ShareContext) {
   const url = projectUrl(project.slug);
   const copy = shareCopy(project, context);
-  const withUtm = (source: string) =>
-    `${url}?utm_source=${encodeURIComponent(source)}&utm_medium=social&utm_campaign=project_share`;
   return {
     url,
     copy,
-    x: `https://x.com/intent/post?text=${encodeURIComponent(shareCopy(project, context).replace(url, withUtm("x")))}`,
-    reddit: `https://www.reddit.com/submit?url=${encodeURIComponent(withUtm("reddit"))}&title=${encodeURIComponent(`${project.name}: ${project.summary}`)}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(withUtm("linkedin"))}`,
-    whatsapp: `https://wa.me/?text=${encodeURIComponent(shareCopy(project, context).replace(url, withUtm("whatsapp")))}`,
+    x: `https://x.com/intent/post?text=${encodeURIComponent(copy)}`,
+    reddit: `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`${project.name}: ${project.summary}`)}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(copy)}`,
   };
 }
 

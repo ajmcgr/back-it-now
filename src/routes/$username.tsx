@@ -81,7 +81,6 @@ export const Route = createFileRoute("/$username")({
       title,
       description,
       path,
-      image: profile.avatar_url,
       jsonLd: {
         "@context": "https://schema.org",
         "@type": "ProfilePage",

@@ -18,7 +18,13 @@ import {
   resolveProjectCover,
 } from "@/lib/project-presentation";
 import { type ShareContext } from "@/lib/project-share";
-import { absoluteUrl, privateSeo, publicSeo, trimDescription } from "@/lib/seo";
+import {
+  absoluteUrl,
+  privateSeo,
+  projectSocialImageUrl,
+  publicSeo,
+  trimDescription,
+} from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 import {
   amountBacked,
@@ -52,12 +58,9 @@ export const Route = createFileRoute("/projects/$slug")({
     const project = presentation ? presentationAsProject(slug, presentation) : fallback;
     if (!project) return privateSeo("Project not found — Backed");
     const title = `${project.title} | Backed`;
-    const description = trimDescription(
-      `${project.description || project.tagline} Back ${project.title} on Backed.`,
-      `Back ${project.title} on Backed.`,
-    );
+    const description = trimDescription(project.tagline, `Back ${project.title} on Backed.`);
     const path = `/projects/${project.slug}`;
-    const image = absoluteUrl(
+    const coverImage = absoluteUrl(
       resolveProjectCover({
         slug: project.slug,
         imageUrl: presentation?.imageUrl ?? null,
@@ -65,13 +68,22 @@ export const Route = createFileRoute("/projects/$slug")({
         gallery: project.gallery,
       }) ?? "/logo.png",
     );
+    const image = projectSocialImageUrl({
+      slug: project.slug,
+      name: project.title,
+      summary: project.tagline,
+      creator: project.creator,
+      amountBacked: project.initialBackedAmount + project.successfulBackingAmount,
+      goal: project.goal,
+      backers: project.successfulBackingCount,
+    });
     const creatorName = presentation?.creator.displayName || presentation?.creator.username;
     return publicSeo({
       title,
       description,
       path,
       image,
-      type: "article",
+      type: "website",
       jsonLd: {
         "@context": "https://schema.org",
         "@graph": [
@@ -82,7 +94,7 @@ export const Route = createFileRoute("/projects/$slug")({
             name: project.title,
             headline: project.tagline,
             description: project.description || project.tagline,
-            image,
+            image: coverImage,
             genre: project.category,
             ...(creatorName && presentation
               ? {
