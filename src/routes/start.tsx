@@ -35,7 +35,20 @@ export const Route = createFileRoute("/start")({
 });
 const steps = ["Project", "Funding", "What backers get", "Story", "Preview"];
 const categories = ["Technology", "Design", "Fashion", "Games", "Publishing", "Food", "Other"];
-type Draft = Record<string, string | string[] | ProjectMediaItem[]>;
+type Draft = {
+  [key: string]: string | string[] | ProjectMediaItem[] | undefined;
+  galleryMedia?: ProjectMediaItem[];
+  galleryUrls?: string[];
+  galleryPaths?: string[];
+  category?: string;
+  coverUrl?: string;
+  name?: string;
+  summary?: string;
+  story?: string;
+  goal?: string;
+  rewardPrice?: string;
+  rewardName?: string;
+};
 type DraftRecord = { id: string; secret: string };
 const draftText = (value: Draft[string] | undefined) => (typeof value === "string" ? value : "");
 const normalizeDraft = (value: unknown): Draft => {
@@ -159,7 +172,9 @@ function StartPage() {
       }
       setDraft((current) =>
         role === "cover"
-          ? { ...current, coverPath: uploads[0].path, coverUrl: uploads[0].url }
+          ? uploads[0]
+            ? { ...current, coverPath: uploads[0].path, coverUrl: uploads[0].url }
+            : current
           : {
               ...current,
               galleryMedia: [
@@ -204,7 +219,11 @@ function StartPage() {
       else {
         const nextIndex = action === "up" ? index - 1 : index + 1;
         if (nextIndex < 0 || nextIndex >= media.length) return current;
-        [media[index], media[nextIndex]] = [media[nextIndex], media[index]];
+        const currentItem = media[index];
+        const nextItem = media[nextIndex];
+        if (!currentItem || !nextItem) return current;
+        media[index] = nextItem;
+        media[nextIndex] = currentItem;
       }
       return { ...current, galleryMedia: media };
     });

@@ -194,9 +194,9 @@ function Settings() {
     event.preventDefault();
     if (!supabase) return;
     setMessage(null);
-    const displayName = profile.display_name.trim();
-    const username = profile.username.trim().toLowerCase();
-    let website = profile.website.trim();
+    const displayName = profile.display_name?.trim() ?? "";
+    const username = profile.username?.trim().toLowerCase() ?? "";
+    let website = profile.website?.trim() ?? "";
     if (username && !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
       return setMessage(
         "Username must be 3–30 characters: lowercase letters, numbers, hyphens, or underscores.",

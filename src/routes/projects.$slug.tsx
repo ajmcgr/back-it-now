@@ -145,16 +145,17 @@ function ProjectPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") !== "success" || !supabase) return;
+    const client = supabase;
     let cancelled = false;
     const returnedSessionId = params.get("session_id");
     setCheckoutConfirmation({ state: "confirming" });
     const confirmBacking = async () => {
-      const { data: auth } = await supabase.auth.getSession();
-      if (!auth.session || !supabase) {
+       const { data: auth } = await client.auth.getSession();
+       if (!auth.session) {
         if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
         return;
       }
-      const { data: canonicalProject } = await supabase
+       const { data: canonicalProject } = await client
         .from("projects")
         .select("id")
         .eq("slug", slug)
@@ -164,7 +165,7 @@ function ProjectPage() {
         return;
       }
       for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
-        let query = supabase
+         let query = client
           .from("backings")
           .select("gross_amount, stripe_checkout_session_id, paid_at")
           .eq("project_id", canonicalProject.id)

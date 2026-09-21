@@ -23,7 +23,7 @@ export function normalizeYouTubeUrl(value: string): ProjectYouTubeMedia | null {
       if (url.pathname === "/watch") videoId = url.searchParams.get("v") ?? "";
       else {
         const [kind, id] = url.pathname.split("/").filter(Boolean);
-        if (["shorts", "embed", "live"].includes(kind)) videoId = id ?? "";
+        if (kind && ["shorts", "embed", "live"].includes(kind)) videoId = id ?? "";
       }
     }
     return youtubeIdPattern.test(videoId) ? { type: "youtube", videoId } : null;
@@ -34,29 +34,29 @@ export function normalizeYouTubeUrl(value: string): ProjectYouTubeMedia | null {
 
 export function projectMediaFromUnknown(value: unknown): ProjectMediaItem[] {
   if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
+  const result: ProjectMediaItem[] = [];
+  for (const item of value) {
     if (!item || typeof item !== "object") return [];
     const media = item as Record<string, unknown>;
-    if (media.type === "image" && typeof media.url === "string" && media.url.trim()) {
-      return [
-        {
-          type: "image" as const,
-          url: media.url,
-          ...(typeof media.storagePath === "string" && media.storagePath
-            ? { storagePath: media.storagePath }
-            : {}),
-        },
-      ];
+    if (media["type"] === "image" && typeof media["url"] === "string" && media["url"].trim()) {
+      result.push({
+        type: "image",
+        url: media["url"],
+        ...(typeof media["storagePath"] === "string" && media["storagePath"]
+          ? { storagePath: media["storagePath"] }
+          : {}),
+      });
+      continue;
     }
     if (
-      media.type === "youtube" &&
-      typeof media.videoId === "string" &&
-      youtubeIdPattern.test(media.videoId)
+      media["type"] === "youtube" &&
+      typeof media["videoId"] === "string" &&
+      youtubeIdPattern.test(media["videoId"])
     ) {
-      return [{ type: "youtube" as const, videoId: media.videoId }];
+      result.push({ type: "youtube", videoId: media["videoId"] });
     }
-    return [];
-  });
+  }
+  return result;
 }
 
 export function youtubeThumbnail(videoId: string) {
