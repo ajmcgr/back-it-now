@@ -38,7 +38,7 @@ function AboutPage() {
           </p>
         </div>
 
-        <div className="mt-12 border-t border-border pt-8">
+        <div className="mt-12">
           <img
             src="/alex-macgregor.png"
             alt="Alex MacGregor"
