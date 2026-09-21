@@ -58,8 +58,8 @@ function Discover() {
     [canonicalProjects, category, query],
   );
   return (
-    <main className="container-backed py-14 sm:py-20">
-      <h1 className="text-5xl font-semibold sm:text-6xl">Discover</h1>
+    <main className="container-backed py-10 sm:py-20">
+      <h1 className="text-4xl font-semibold sm:text-6xl">Discover</h1>
       <div className="mt-9 flex max-w-xl items-center gap-2 rounded-md border border-input bg-background px-3">
         <Search className="size-5 text-muted-foreground" />
         <Input
@@ -69,13 +69,14 @@ function Discover() {
           className="h-12 border-0 px-0 shadow-none focus-visible:ring-0"
         />
       </div>
-      <div className="my-8 flex gap-2 overflow-x-auto pb-2">
+      <div className="-mx-4 my-7 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:my-8 sm:px-0">
         {categories.map((c) => (
           <Button
             key={c}
             size="sm"
             variant={category === c ? "default" : "outline"}
             onClick={() => setCategory(c)}
+            className="shrink-0"
           >
             {c}
           </Button>

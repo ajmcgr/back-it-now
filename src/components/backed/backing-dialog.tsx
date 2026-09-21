@@ -58,7 +58,7 @@ export function BackingCheckoutButton({
             <DialogTitle>Back {project.title}</DialogTitle>
             <DialogDescription>Choose your backing. Rewards are optional.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
             {[25, 50, 100, 250].map((value) => (
               <Button
                 key={value}
@@ -89,12 +89,12 @@ export function BackingCheckoutButton({
             />
           </label>
           <div className="space-y-2 rounded-md border p-3 text-sm">
-            <label className="flex gap-2">
+            <label className="flex items-start gap-2 leading-5">
               <input type="radio" checked={!claimReward} onChange={() => setClaimReward(false)} />{" "}
               No reward — just back this project.
             </label>
             <label
-              className={`flex gap-2 ${amount < rewardMinimum ? "text-muted-foreground" : ""}`}
+               className={`flex items-start gap-2 leading-5 ${amount < rewardMinimum ? "text-muted-foreground" : ""}`}
             >
               <input
                 type="radio"

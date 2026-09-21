@@ -233,11 +233,11 @@ function StartPage() {
   }
   const galleryMedia = projectMediaFromUnknown(draft.galleryMedia);
   return (
-    <main className="container-backed py-12 sm:py-16">
+    <main className="container-backed py-10 sm:py-16">
       <div className="grid min-w-0 gap-10 lg:grid-cols-[220px_minmax(0,680px)]">
         <aside className="min-w-0">
           <h1 className="text-3xl font-semibold">Start a project</h1>
-          <ol className="mt-7 flex max-w-full gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1">
+          <ol className="-mx-4 mt-7 flex max-w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:mx-0 lg:block lg:max-w-full lg:space-y-1 lg:px-0">
             {steps.map((name, index) => (
               <li key={name}>
                 <button
@@ -255,7 +255,7 @@ function StartPage() {
         </aside>
         <section className="min-w-0">
           <p className="text-sm font-semibold text-primary">Step {step + 1} of 5</p>
-          <h2 className="mt-2 text-4xl font-semibold">{steps[step]}</h2>
+          <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{steps[step]}</h2>
           <div className="mt-8 space-y-6">
             {step === 0 && (
               <>
@@ -441,7 +441,7 @@ function StartPage() {
                       Add images
                     </span>
                   </button>
-                  <div className="mt-3 flex gap-2">
+                   <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                     <Input
                       type="url"
                       value={youtubeUrl}
@@ -506,7 +506,7 @@ function StartPage() {
             )}
             {step === 4 && (
               <div>
-                <div className="mb-5 flex items-center justify-between">
+                 <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <p className="text-sm text-muted-foreground">
                     Preview only — your project is not public until you publish it.
                   </p>
@@ -554,7 +554,7 @@ function StartPage() {
               </div>
             )}
           </div>
-          <div className="mt-10 flex items-center justify-between border-t border-border pt-6">
+          <div className="mt-10 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-border pt-6 [&>button:last-child]:justify-self-end">
             <Button
               variant="ghost"
               disabled={step === 0 || isSaving}
