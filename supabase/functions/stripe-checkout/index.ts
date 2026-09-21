@@ -28,12 +28,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const { projectSlug, amount, claimReward } = await req.json();
+    const { projectSlug, amount, claimReward, isPrivate: requestedPrivacy } = await req.json();
     if (typeof projectSlug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectSlug))
       return json({ error: "project_unavailable" }, 400);
     if (!Number.isSafeInteger(amount) || amount < 500)
       return json({ error: "minimum_backing_is_5_usd" }, 400);
     if (typeof claimReward !== "boolean") return json({ error: "invalid_reward_selection" }, 400);
+    if (requestedPrivacy !== undefined && typeof requestedPrivacy !== "boolean")
+      return json({ error: "invalid_privacy_selection" }, 400);
+    // Keep the deployed pre-privacy client compatible until the matching
+    // frontend release is published. Historical/omitted intent is public.
+    const isPrivate = requestedPrivacy === true;
 
     let user: { id: string; email?: string | null } | null = null;
     if (token) {
@@ -139,6 +144,7 @@ Deno.serve(async (req) => {
         amount,
         currency: project.currency,
         expires_at: expiresAt,
+        is_private: isPrivate,
       });
       if (intentError) throw intentError;
       return json({ checkoutUrl: session.url });

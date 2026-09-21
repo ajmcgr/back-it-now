@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { type Project } from "@/lib/projects";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +22,7 @@ export function BackingCheckoutButton({
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(25);
   const [claimReward, setClaimReward] = useState(false);
+  const [backPrivately, setBackPrivately] = useState(false);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const rewardMinimum = project.reward.minimumAmount ?? project.goal;
@@ -31,7 +33,12 @@ export function BackingCheckoutButton({
     setIsStartingCheckout(true);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-checkout", {
-        body: { projectSlug: project.slug, amount: Math.round(amount * 100), claimReward },
+        body: {
+          projectSlug: project.slug,
+          amount: Math.round(amount * 100),
+          claimReward,
+          isPrivate: backPrivately,
+        },
         timeout: 30_000,
       });
       if (error || !data?.checkoutUrl)
@@ -111,6 +118,23 @@ export function BackingCheckoutButton({
               </p>
             )}
           </div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-md px-1 py-1 text-sm">
+            <Checkbox
+              checked={backPrivately}
+              onCheckedChange={(checked) => setBackPrivately(checked === true)}
+              aria-describedby="back-privately-description"
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block font-semibold">Back privately</span>
+              <span
+                id="back-privately-description"
+                className="mt-0.5 block text-xs leading-5 text-muted-foreground"
+              >
+                Your name won’t appear publicly on the project.
+              </span>
+            </span>
+          </label>
           {checkoutError && <p className="text-sm text-destructive">{checkoutError}</p>}
           <Button
             size="lg"

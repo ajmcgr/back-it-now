@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
 import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
+import { ProjectBackers } from "@/components/backed/project-backers";
 import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProjectUpdates } from "@/components/backed/project-updates";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
@@ -118,7 +119,13 @@ function ProjectPage() {
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
   const creator = presentation?.creator;
   useEffect(() => {
-    if (window.location.hash === "#updates") setTab("Updates");
+    const selectLinkedTab = () => {
+      if (window.location.hash === "#updates") setTab("Updates");
+      if (window.location.hash === "#backers") setTab("Backers");
+    };
+    selectLinkedTab();
+    window.addEventListener("hashchange", selectLinkedTab);
+    return () => window.removeEventListener("hashchange", selectLinkedTab);
   }, []);
   useEffect(() => {
     if (!supabase || !creator?.username) {
@@ -418,14 +425,11 @@ function ProjectPage() {
         ) : tab === "Updates" ? (
           <ProjectUpdates slug={project.slug} projectName={project.title} isOwner={isOwner} />
         ) : (
-          <div id={tab === "Backers" ? "backers" : undefined} className="py-16">
-            <h2 className="text-2xl font-semibold">{tab}</h2>
-            <p className="mt-2 text-muted-foreground">
-              {project.successfulBackingCount > 0
-                ? `${project.successfulBackingCount} ${project.successfulBackingCount === 1 ? "backer has" : "backers have"} helped make this project happen.`
-                : "No backers yet. Be the first to help make this project happen."}
-            </p>
-          </div>
+          <ProjectBackers
+            slug={project.slug}
+            backingCount={project.successfulBackingCount}
+            isOwner={isOwner}
+          />
         )}
       </div>
 

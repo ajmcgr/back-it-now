@@ -29,6 +29,7 @@ type BackingRecord = {
   refund_amount: number;
   paid_at: string | null;
   created_at: string;
+  is_private: boolean;
 };
 type BackedProject = {
   id: string;
@@ -61,6 +62,8 @@ function Dashboard() {
   const [rewardTitles, setRewardTitles] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [privacyUpdateId, setPrivacyUpdateId] = useState<string | null>(null);
+  const [privacyError, setPrivacyError] = useState("");
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("tab") === "backed") setActiveTab("backed");
@@ -80,7 +83,7 @@ function Dashboard() {
           supabase
             .from("backings")
             .select(
-              "id, project_id, reward_id, gross_amount, currency, status, refund_status, refund_amount, paid_at, created_at",
+              "id, project_id, reward_id, gross_amount, currency, status, refund_status, refund_amount, paid_at, created_at, is_private",
             )
             .eq("backer_id", session.session.user.id)
             .order("paid_at", { ascending: false }),
@@ -179,6 +182,26 @@ function Dashboard() {
     return [...grouped.values()];
   }, [backedProjectRows, backings, rewardTitles]);
 
+  const setBackingPrivacy = async (backingId: string, isPrivate: boolean) => {
+    if (!supabase || privacyUpdateId) return;
+    setPrivacyError("");
+    setPrivacyUpdateId(backingId);
+    const { data, error } = await supabase.rpc("set_backing_privacy", {
+      p_backing_id: backingId,
+      p_is_private: isPrivate,
+    });
+    if (error || data !== true) {
+      setPrivacyError("We couldn’t update that backing’s privacy. Please try again.");
+    } else {
+      setBackings((current) =>
+        current.map((backing) =>
+          backing.id === backingId ? { ...backing, is_private: isPrivate } : backing,
+        ),
+      );
+    }
+    setPrivacyUpdateId(null);
+  };
+
   return (
     <main className="container-backed py-14 sm:py-20">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-4">
@@ -212,7 +235,12 @@ function Dashboard() {
       ) : activeTab === "created" ? (
         <CreatedProjects projects={projects} />
       ) : (
-        <BackedProjects projects={backedProjects} />
+        <BackedProjects
+          projects={backedProjects}
+          privacyUpdateId={privacyUpdateId}
+          privacyError={privacyError}
+          onPrivacyChange={setBackingPrivacy}
+        />
       )}
     </main>
   );
@@ -304,7 +332,17 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
   );
 }
 
-function BackedProjects({ projects }: { projects: BackedProject[] }) {
+function BackedProjects({
+  projects,
+  privacyUpdateId,
+  privacyError,
+  onPrivacyChange,
+}: {
+  projects: BackedProject[];
+  privacyUpdateId: string | null;
+  privacyError: string;
+  onPrivacyChange: (backingId: string, isPrivate: boolean) => Promise<void>;
+}) {
   if (!projects.length)
     return (
       <div className="mt-8 rounded-md border border-border p-8 text-center">
@@ -318,6 +356,11 @@ function BackedProjects({ projects }: { projects: BackedProject[] }) {
     );
   return (
     <div className="mt-8 grid gap-4">
+      {privacyError ? (
+        <p className="rounded-md border border-destructive/30 p-4 text-sm" role="alert">
+          {privacyError}
+        </p>
+      ) : null}
       {projects.map((project) => (
         <article
           key={project.id}
@@ -346,7 +389,7 @@ function BackedProjects({ projects }: { projects: BackedProject[] }) {
                 {project.backings.map((backing) => (
                   <div
                     key={backing.id}
-                    className="grid gap-1 border-l-2 border-border pl-3 sm:grid-cols-4 sm:gap-3"
+                    className="grid gap-1 border-l-2 border-border pl-3 sm:grid-cols-[0.8fr_1fr_1fr_0.8fr_auto] sm:items-center sm:gap-3"
                   >
                     <span>{money(backing.gross_amount / 100)}</span>
                     <span>
@@ -354,6 +397,20 @@ function BackedProjects({ projects }: { projects: BackedProject[] }) {
                     </span>
                     <span>{backing.rewardTitle ?? "No reward"}</span>
                     <span>{backingStatus(backing)}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-1 w-fit px-2 sm:mt-0"
+                      disabled={privacyUpdateId === backing.id}
+                      onClick={() => void onPrivacyChange(backing.id, !backing.is_private)}
+                    >
+                      {privacyUpdateId === backing.id
+                        ? "Saving…"
+                        : backing.is_private
+                          ? "Backed privately · Make public"
+                          : "Public · Make private"}
+                    </Button>
                   </div>
                 ))}
               </div>
