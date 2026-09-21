@@ -36,7 +36,7 @@ export function projectMediaFromUnknown(value: unknown): ProjectMediaItem[] {
   if (!Array.isArray(value)) return [];
   const result: ProjectMediaItem[] = [];
   for (const item of value) {
-    if (!item || typeof item !== "object") return [];
+    if (!item || typeof item !== "object") continue;
     const media = item as Record<string, unknown>;
     if (media["type"] === "image" && typeof media["url"] === "string" && media["url"].trim()) {
       result.push({
