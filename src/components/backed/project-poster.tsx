@@ -1,6 +1,7 @@
 import { Download, Instagram, Linkedin, Link2, MessageCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { resolveProjectCover } from "@/lib/project-presentation";
 import { shareUrls, trackShare, type ShareContext } from "@/lib/project-share";
 import {
   Dialog,
@@ -27,6 +28,127 @@ const money = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount / 100);
 
+const POSTER_WIDTH = 1200;
+const POSTER_HEIGHT = 630;
+const POSTER_IMAGE_WIDTH = 660;
+const POSTER_CACHE_TTL = 60_000;
+const posterCache = new Map<string, { createdAt: number; dataUrl: string }>();
+
+type TextBlock = {
+  lines: string[];
+  fontSize: number;
+  lineHeight: number;
+};
+
+function posterCacheKey(project: PosterProject) {
+  return JSON.stringify(project);
+}
+
+function shortenLine(context: CanvasRenderingContext2D, line: string, maxWidth: number) {
+  let shortened = line.trim();
+  while (shortened && context.measureText(`${shortened}…`).width > maxWidth) {
+    shortened = shortened.slice(0, -1).trimEnd();
+  }
+  return shortened ? `${shortened}…` : "…";
+}
+
+function wrapAtCurrentFont(context: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (!line || context.measureText(candidate).width <= maxWidth) {
+      line = candidate;
+      continue;
+    }
+    lines.push(line);
+    line = word;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function fitTextBlock(
+  context: CanvasRenderingContext2D,
+  text: string,
+  {
+    maxWidth,
+    maxLines,
+    preferredSize,
+    minimumSize,
+    weight,
+    lineHeightRatio,
+  }: {
+    maxWidth: number;
+    maxLines: number;
+    preferredSize: number;
+    minimumSize: number;
+    weight: number;
+    lineHeightRatio: number;
+  },
+): TextBlock {
+  const normalized = text.trim().replace(/\s+/g, " ");
+  if (!normalized) return { lines: [], fontSize: preferredSize, lineHeight: 0 };
+
+  for (let fontSize = preferredSize; fontSize >= minimumSize; fontSize -= 1) {
+    context.font = `${weight} ${fontSize}px Inter, Arial, sans-serif`;
+    const lines = wrapAtCurrentFont(context, normalized, maxWidth);
+    if (
+      lines.length <= maxLines &&
+      lines.every((line) => context.measureText(line).width <= maxWidth)
+    ) {
+      return { lines, fontSize, lineHeight: Math.round(fontSize * lineHeightRatio) };
+    }
+  }
+
+  context.font = `${weight} ${minimumSize}px Inter, Arial, sans-serif`;
+  const lines = wrapAtCurrentFont(context, normalized, maxWidth).slice(0, maxLines);
+  const consumed = lines.join(" ");
+  if (consumed !== normalized && lines.length) {
+    lines[lines.length - 1] = shortenLine(context, lines[lines.length - 1], maxWidth);
+  }
+  return {
+    lines,
+    fontSize: minimumSize,
+    lineHeight: Math.round(minimumSize * lineHeightRatio),
+  };
+}
+
+function drawTextBlock(
+  context: CanvasRenderingContext2D,
+  block: TextBlock,
+  x: number,
+  y: number,
+  weight: number,
+) {
+  context.font = `${weight} ${block.fontSize}px Inter, Arial, sans-serif`;
+  block.lines.forEach((line, index) => {
+    context.fillText(line, x, y + index * block.lineHeight);
+  });
+  return y + block.lines.length * block.lineHeight;
+}
+
+function drawCoverImage(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const scale = Math.max(width / image.width, height / image.height);
+  const renderedWidth = image.width * scale;
+  const renderedHeight = image.height * scale;
+  context.drawImage(
+    image,
+    x + (width - renderedWidth) / 2,
+    y + (height - renderedHeight) / 2,
+    renderedWidth,
+    renderedHeight,
+  );
+}
+
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -37,68 +159,132 @@ function loadImage(source: string) {
   });
 }
 
-async function renderPoster(project: PosterProject) {
+async function renderProjectPoster(project: PosterProject) {
+  for (const [key, value] of posterCache) {
+    if (Date.now() - value.createdAt >= POSTER_CACHE_TTL) posterCache.delete(key);
+  }
+  const cacheKey = posterCacheKey(project);
+  const cached = posterCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < POSTER_CACHE_TTL) return cached.dataUrl;
+
+  await document.fonts?.ready;
   const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 630;
+  canvas.width = POSTER_WIDTH;
+  canvas.height = POSTER_HEIGHT;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Poster rendering is unavailable.");
-  context.fillStyle = "#f7f7f6";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.fillStyle = "#ffffff";
-  context.fillRect(45, 45, 1110, 540);
-  context.strokeStyle = "#e5e5e5";
-  context.lineWidth = 2;
-  context.strokeRect(45, 45, 1110, 540);
+  context.textBaseline = "top";
+  context.fillStyle = "#fafaf9";
+  context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
 
   try {
-    const image = await loadImage(project.coverImage || "/logo.png");
-    const scale = Math.max(510 / image.width, 360 / image.height);
-    const width = image.width * scale;
-    const height = image.height * scale;
-    context.drawImage(image, 65 + (510 - width) / 2, 115 + (360 - height) / 2, width, height);
+    const coverImage = resolveProjectCover({
+      slug: project.slug,
+      coverImage: project.coverImage,
+    });
+    if (!coverImage) throw new Error("Missing project cover.");
+    const image = await loadImage(coverImage);
+    drawCoverImage(context, image, 0, 0, POSTER_IMAGE_WIDTH, POSTER_HEIGHT);
   } catch {
     context.fillStyle = "#5171ff";
-    context.fillRect(65, 115, 510, 360);
+    context.fillRect(0, 0, POSTER_IMAGE_WIDTH, POSTER_HEIGHT);
+    try {
+      const mark = await loadImage("/favicon.png");
+      context.globalAlpha = 0.22;
+      drawCoverImage(context, mark, 210, 195, 240, 240);
+      context.globalAlpha = 1;
+    } catch {
+      // The brand-color field remains a useful, intentional fallback.
+    }
   }
+
+  context.fillStyle = "#5171ff";
+  context.fillRect(POSTER_IMAGE_WIDTH, 0, 8, POSTER_HEIGHT);
+
+  const contentX = 712;
+  const contentWidth = 436;
 
   try {
     const logo = await loadImage("/logo.png");
-    const width = 188;
-    const height = (logo.height / logo.width) * width;
-    context.drawImage(logo, 65, 65, width, height);
+    const width = 180;
+    context.drawImage(logo, contentX, 38, width, (logo.height / logo.width) * width);
   } catch {
     context.fillStyle = "#5171ff";
-    context.font = "700 38px Inter, Arial, sans-serif";
-    context.fillText("backed", 65, 90);
+    context.font = "700 34px Inter, Arial, sans-serif";
+    context.fillText("Backed", contentX, 42);
   }
+
   context.fillStyle = "#111111";
-  context.font = "700 54px Inter, Arial, sans-serif";
-  const title = project.name.slice(0, 42);
-  context.fillText(title, 625, 185);
+  const title = fitTextBlock(context, project.name, {
+    maxWidth: contentWidth,
+    maxLines: 2,
+    preferredSize: 50,
+    minimumSize: 36,
+    weight: 700,
+    lineHeightRatio: 1.05,
+  });
+  const titleBottom = drawTextBlock(context, title, contentX, 128, 700);
+
   context.fillStyle = "#5f6368";
-  context.font = "500 27px Inter, Arial, sans-serif";
-  const summary = project.summary.slice(0, 100);
-  context.fillText(summary, 625, 235);
+  const summary = fitTextBlock(context, project.summary, {
+    maxWidth: contentWidth,
+    maxLines: 3,
+    preferredSize: 27,
+    minimumSize: 22,
+    weight: 500,
+    lineHeightRatio: 1.24,
+  });
+  const summaryBottom = drawTextBlock(context, summary, contentX, titleBottom + 16, 500);
+  const fundingTop = Math.min(390, Math.max(310, summaryBottom + 42));
+
   context.fillStyle = "#111111";
-  context.font = "700 44px Inter, Arial, sans-serif";
-  context.fillText(`${money(project.amountBacked)} backed`, 625, 355);
+  const backingAmount = fitTextBlock(context, `${money(project.amountBacked)} backed`, {
+    maxWidth: contentWidth,
+    maxLines: 1,
+    preferredSize: 41,
+    minimumSize: 30,
+    weight: 700,
+    lineHeightRatio: 1.05,
+  });
+  drawTextBlock(context, backingAmount, contentX, fundingTop, 700);
   context.fillStyle = "#5f6368";
-  context.font = "500 23px Inter, Arial, sans-serif";
   const funded = project.goal ? Math.round((project.amountBacked / project.goal) * 100) : 0;
-  context.fillText(`${funded}% of ${money(project.goal)} goal`, 625, 395);
-  context.fillStyle = "#e7e7e7";
-  context.fillRect(625, 430, 470, 16);
+  const fundingProgress = fitTextBlock(context, `${funded}% of ${money(project.goal)} goal`, {
+    maxWidth: contentWidth,
+    maxLines: 1,
+    preferredSize: 21,
+    minimumSize: 16,
+    weight: 500,
+    lineHeightRatio: 1.1,
+  });
+  drawTextBlock(context, fundingProgress, contentX, fundingTop + 51, 500);
+  context.fillStyle = "#e1e1df";
+  context.fillRect(contentX, fundingTop + 90, contentWidth, 14);
   context.fillStyle = "#5171ff";
-  context.fillRect(625, 430, Math.min(470, 470 * (funded / 100)), 16);
+  context.fillRect(
+    contentX,
+    fundingTop + 90,
+    Math.min(contentWidth, Math.max(0, contentWidth * (funded / 100))),
+    14,
+  );
+
   context.fillStyle = "#111111";
-  context.font = "600 24px Inter, Arial, sans-serif";
-  context.fillText(project.creatorName, 625, 515);
-  context.fillStyle = "#5f6368";
-  context.font = "500 21px Inter, Arial, sans-serif";
-  context.fillText("backedit.co", 955, 550);
-  return canvas.toDataURL("image/png");
+  const creator = fitTextBlock(context, `by ${project.creatorName}`, {
+    maxWidth: contentWidth,
+    maxLines: 1,
+    preferredSize: 21,
+    minimumSize: 17,
+    weight: 600,
+    lineHeightRatio: 1.1,
+  });
+  drawTextBlock(context, creator, contentX, fundingTop + 136, 600);
+  context.fillStyle = "#5171ff";
+  context.font = "700 25px Inter, Arial, sans-serif";
+  context.fillText("backedit.co", contentX, fundingTop + 184);
+
+  const dataUrl = canvas.toDataURL("image/png");
+  posterCache.set(cacheKey, { createdAt: Date.now(), dataUrl });
+  return dataUrl;
 }
 
 export function ProjectPosterDialog({
@@ -118,7 +304,7 @@ export function ProjectPosterDialog({
   useEffect(() => {
     if (!open) return;
     trackShare(project.slug, "share_opened", context);
-    void renderPoster(project)
+    void renderProjectPoster(project)
       .then(setPoster)
       .catch(() => setPoster(null));
   }, [context, open, project]);
@@ -130,7 +316,7 @@ export function ProjectPosterDialog({
     if (!poster) return;
     const anchor = document.createElement("a");
     anchor.href = poster;
-    anchor.download = `${project.slug}-backed-poster.png`;
+    anchor.download = `backed-${project.slug}.png`;
     anchor.click();
     trackShare(project.slug, "share_poster_download", context);
   };
@@ -138,7 +324,7 @@ export function ProjectPosterDialog({
     trackShare(project.slug, "share_instagram", context);
     if (poster && navigator.canShare && navigator.share) {
       const blob = await fetch(poster).then((response) => response.blob());
-      const file = new File([blob], `${project.slug}-backed-poster.png`, { type: "image/png" });
+      const file = new File([blob], `backed-${project.slug}.png`, { type: "image/png" });
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
