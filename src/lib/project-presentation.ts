@@ -80,7 +80,9 @@ export async function loadCanonicalProjects() {
   if (error || !data) return [];
   return (data as Array<Record<string, unknown>>).flatMap((row) => {
     const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-    return presentation && typeof row.slug === "string" ? [{ slug: row.slug, presentation }] : [];
+    return presentation && typeof row["slug"] === "string"
+      ? [{ slug: row["slug"], presentation }]
+      : [];
   });
 }
 
@@ -93,7 +95,9 @@ export async function loadSimilarCanonicalProjects(slug: string) {
   if (error || !data) return [];
   return (data as Array<Record<string, unknown>>).flatMap((row) => {
     const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-    return presentation && typeof row.slug === "string" ? [{ slug: row.slug, presentation }] : [];
+    return presentation && typeof row["slug"] === "string"
+      ? [{ slug: row["slug"], presentation }]
+      : [];
   });
 }
 
