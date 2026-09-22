@@ -104,7 +104,7 @@ function UpdateShareDialog({
         </DialogHeader>
         {links ? (
           <div className="grid grid-cols-2 gap-3">
-            {[
+            {([
               ["X", links.x, "share_x"],
               ["LinkedIn", links.linkedin, "share_linkedin"],
               ["Reddit", links.reddit, "share_reddit"],
