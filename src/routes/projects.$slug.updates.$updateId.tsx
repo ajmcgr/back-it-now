@@ -114,7 +114,7 @@ function ProjectUpdatePage() {
               ["LinkedIn", links.linkedin, "share_linkedin"],
               ["Reddit", links.reddit, "share_reddit"],
               ["WhatsApp", links.whatsapp, "share_whatsapp"],
-            ].map(([label, href, event]) => (
+            ].map(([label, href, event]: [string, string, string]) => (
               <Button key={label} asChild variant="outline" size="sm">
                 <a
                   href={href}
