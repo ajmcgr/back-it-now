@@ -106,7 +106,8 @@ function fitTextBlock(
   const lines = wrapAtCurrentFont(context, normalized, maxWidth).slice(0, maxLines);
   const consumed = lines.join(" ");
   if (consumed !== normalized && lines.length) {
-    lines[lines.length - 1] = shortenLine(context, lines[lines.length - 1], maxWidth);
+    const lastLine = lines.at(-1);
+    if (lastLine) lines[lines.length - 1] = shortenLine(context, lastLine, maxWidth);
   }
   return {
     lines,

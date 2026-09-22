@@ -48,8 +48,10 @@ export const Route = createFileRoute("/projects/$slug")({
     return {
       slug: params.slug,
       presentation,
-      similarProjects: similarPresentations.map(({ slug, presentation: similar }) =>
-        presentationAsProject(slug, similar),
+      similarProjects: similarPresentations.map(
+        ({ slug, presentation: similar }: Awaited<
+          ReturnType<typeof loadSimilarCanonicalProjects>
+        >[number]) => presentationAsProject(slug, similar),
       ),
     };
   },

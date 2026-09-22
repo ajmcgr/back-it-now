@@ -78,9 +78,11 @@ export async function loadCanonicalProjects() {
   if (!publicSupabase) return [];
   const { data, error } = await publicSupabase.from("public_profile_projects").select("*");
   if (error || !data) return [];
-  return data.flatMap((row) => {
+  return (data as Array<Record<string, unknown>>).flatMap((row) => {
     const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-    return presentation && typeof row.slug === "string" ? [{ slug: row.slug, presentation }] : [];
+    return presentation && typeof row["slug"] === "string"
+      ? [{ slug: row["slug"], presentation }]
+      : [];
   });
 }
 
@@ -91,9 +93,11 @@ export async function loadSimilarCanonicalProjects(slug: string) {
     p_limit: 3,
   });
   if (error || !data) return [];
-  return data.flatMap((row) => {
+  return (data as Array<Record<string, unknown>>).flatMap((row) => {
     const presentation = presentationFromPublicRow(row as Record<string, unknown>);
-    return presentation && typeof row.slug === "string" ? [{ slug: row.slug, presentation }] : [];
+    return presentation && typeof row["slug"] === "string"
+      ? [{ slug: row["slug"], presentation }]
+      : [];
   });
 }
 
