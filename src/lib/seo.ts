@@ -1,8 +1,10 @@
+import socialCardAsset from "@/assets/backed-social-card.png.asset.json";
+
 export const SITE_NAME = "Backed";
 export const SITE_URL = "https://backedit.co";
 const SOCIAL_IMAGE_ENDPOINT =
   "https://zlzaxgsyczfeepwidjii.supabase.co/functions/v1/project-social-image";
-export const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_ENDPOINT;
+export const DEFAULT_SOCIAL_IMAGE = socialCardAsset.url;
 
 type PublicSeoOptions = {
   title: string;
@@ -28,6 +30,7 @@ export function publicSeo({
 }: PublicSeoOptions) {
   const canonical = absoluteUrl(path);
   const socialImage = image ? absoluteUrl(image) : DEFAULT_SOCIAL_IMAGE;
+  const usesDefaultSocialImage = socialImage === absoluteUrl(DEFAULT_SOCIAL_IMAGE);
 
   return {
     meta: [
@@ -41,9 +44,9 @@ export function publicSeo({
       { property: "og:url", content: canonical },
       { property: "og:image", content: socialImage },
       { property: "og:image:secure_url", content: socialImage },
-      { property: "og:image:type", content: "image/png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:type", content: usesDefaultSocialImage ? "image/webp" : "image/png" },
+      { property: "og:image:width", content: usesDefaultSocialImage ? "1920" : "1200" },
+      { property: "og:image:height", content: usesDefaultSocialImage ? "1089" : "630" },
       { property: "og:image:alt", content: title },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: title },
