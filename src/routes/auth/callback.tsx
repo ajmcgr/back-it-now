@@ -54,6 +54,12 @@ function AuthCallback() {
           };
           const { error: insertError } = await supabase.from("profiles").insert(candidate);
           if (insertError) await supabase.from("profiles").insert({ id: user.id });
+          // New Backed accounts join the Beehiiv subscriber list. Best effort only:
+          // the newsletter must never block or break an authenticated session.
+          void fetch("/api/beehiiv-subscribe", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${session.session.access_token}` },
+          }).catch(() => {});
         }
       } catch {
         // Authentication remains valid if non-critical profile bookkeeping is unavailable.
