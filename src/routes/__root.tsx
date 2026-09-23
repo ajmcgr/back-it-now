@@ -224,7 +224,8 @@ function showNewsletterSignup(pathname: string) {
   if (/^\/projects\/[^/]+(?:\/updates\/[^/]+)?$/.test(normalized)) return true;
 
   const segments = normalized.split("/").filter(Boolean);
-  return segments.length === 1 && !privateRootSegments.has(segments[0]);
+  const rootSegment = segments[0];
+  return rootSegment !== undefined && segments.length === 1 && !privateRootSegments.has(rootSegment);
 }
 
 function SiteHeader() {

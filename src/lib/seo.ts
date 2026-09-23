@@ -30,7 +30,6 @@ export function publicSeo({
 }: PublicSeoOptions) {
   const canonical = absoluteUrl(path);
   const socialImage = image ? absoluteUrl(image) : DEFAULT_SOCIAL_IMAGE;
-  const usesDefaultSocialImage = socialImage === absoluteUrl(DEFAULT_SOCIAL_IMAGE);
 
   return {
     meta: [
