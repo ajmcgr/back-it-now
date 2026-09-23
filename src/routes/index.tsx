@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { ProjectGrid } from "@/components/backed/project-card";
+import { PublicAnalyticsCounter } from "@/components/backed/public-analytics-counter";
 import { Button } from "@/components/ui/button";
 import { projects, type Project } from "@/lib/projects";
 import { loadCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
@@ -124,6 +125,12 @@ function Index() {
           </div>
         </section>
       )}
+
+      <section className="border-t border-border py-8">
+        <div className="container-backed">
+          <PublicAnalyticsCounter />
+        </div>
+      </section>
 
       <section className="container-backed py-20 text-center sm:py-28">
         <h2 className="mx-auto max-w-2xl text-4xl font-semibold sm:text-5xl">
