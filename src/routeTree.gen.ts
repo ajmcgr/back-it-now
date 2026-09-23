@@ -23,6 +23,9 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminCommentsRouteImport } from './routes/admin_.comments'
+import { Route as AdminProjectsRouteImport } from './routes/admin_.projects'
+import { Route as AdminUsersRouteImport } from './routes/admin_.users'
 import { Route as ApiBeehiivSubscribeRouteImport } from './routes/api/beehiiv-subscribe'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
@@ -100,6 +103,21 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCommentsRoute = AdminCommentsRouteImport.update({
+  id: '/admin_/comments',
+  path: '/admin/comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminProjectsRoute = AdminProjectsRouteImport.update({
+  id: '/admin_/projects',
+  path: '/admin/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin_/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBeehiivSubscribeRoute = ApiBeehiivSubscribeRouteImport.update({
   id: '/api/beehiiv-subscribe',
   path: '/api/beehiiv-subscribe',
@@ -147,6 +165,9 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
+  '/admin/comments': typeof AdminCommentsRoute
+  '/admin/projects': typeof AdminProjectsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
@@ -169,6 +190,9 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
+  '/admin/comments': typeof AdminCommentsRoute
+  '/admin/projects': typeof AdminProjectsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
@@ -192,6 +216,9 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
+  '/admin_/comments': typeof AdminCommentsRoute
+  '/admin_/projects': typeof AdminProjectsRoute
+  '/admin_/users': typeof AdminUsersRoute
   '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
@@ -216,6 +243,9 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/start'
     | '/terms'
+    | '/admin/comments'
+    | '/admin/projects'
+    | '/admin/users'
     | '/api/beehiiv-subscribe'
     | '/auth/callback'
     | '/projects/$slug'
@@ -238,6 +268,9 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/start'
     | '/terms'
+    | '/admin/comments'
+    | '/admin/projects'
+    | '/admin/users'
     | '/api/beehiiv-subscribe'
     | '/auth/callback'
     | '/projects/$slug'
@@ -260,6 +293,9 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/start'
     | '/terms'
+    | '/admin_/comments'
+    | '/admin_/projects'
+    | '/admin_/users'
     | '/api/beehiiv-subscribe'
     | '/auth/callback'
     | '/projects/$slug'
@@ -283,6 +319,9 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
+  AdminCommentsRoute: typeof AdminCommentsRoute
+  AdminProjectsRoute: typeof AdminProjectsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   ApiBeehiivSubscribeRoute: typeof ApiBeehiivSubscribeRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
@@ -390,6 +429,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/comments': {
+      id: '/admin_/comments'
+      path: '/admin/comments'
+      fullPath: '/admin/comments'
+      preLoaderRoute: typeof AdminCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin_/projects': {
+      id: '/admin_/projects'
+      path: '/admin/projects'
+      fullPath: '/admin/projects'
+      preLoaderRoute: typeof AdminProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin_/users': {
+      id: '/admin_/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/beehiiv-subscribe': {
       id: '/api/beehiiv-subscribe'
       path: '/api/beehiiv-subscribe'
@@ -462,6 +522,9 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
+  AdminCommentsRoute: AdminCommentsRoute,
+  AdminProjectsRoute: AdminProjectsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   ApiBeehiivSubscribeRoute: ApiBeehiivSubscribeRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
