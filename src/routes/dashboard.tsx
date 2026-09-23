@@ -74,7 +74,7 @@ function Dashboard() {
     const load = async () => {
       if (!supabase) return setIsLoading(false);
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) return setIsLoading(false);
+      if (!session.session) return window.location.assign("/auth?next=/dashboard");
       try {
         const [createdResult, backingResult, favoriteResult] = await Promise.all([
           supabase
