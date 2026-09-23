@@ -46,7 +46,17 @@ async function listAuthUsers(admin: SupabaseClient) {
 }
 
 async function loadOverview(admin: SupabaseClient) {
-  const [profilesResult, projectsResult, commentsResult, backingsResult] = await Promise.all([
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const [
+    profilesResult,
+    projectsResult,
+    commentsResult,
+    backingsResult,
+    recentProfilesResult,
+    recentProjectsResult,
+    recentCommentsResult,
+    recentBackingsResult,
+  ] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
     admin
       .from("projects")
@@ -58,19 +68,59 @@ async function loadOverview(admin: SupabaseClient) {
       .eq("moderation_status", "visible")
       .is("deleted_at", null),
     admin.from("backings").select("gross_amount").eq("status", "paid"),
+    admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .gte("created_at", sevenDaysAgo),
+    admin
+      .from("projects")
+      .select("id", { count: "exact", head: true })
+      .is("admin_archived_at", null)
+      .gte("created_at", sevenDaysAgo),
+    admin
+      .from("project_comments")
+      .select("id", { count: "exact", head: true })
+      .eq("moderation_status", "visible")
+      .is("deleted_at", null)
+      .gte("created_at", sevenDaysAgo),
+    admin
+      .from("backings")
+      .select("gross_amount")
+      .eq("status", "paid")
+      .gte("created_at", sevenDaysAgo),
   ]);
 
-  for (const result of [profilesResult, projectsResult, commentsResult, backingsResult]) {
+  for (const result of [
+    profilesResult,
+    projectsResult,
+    commentsResult,
+    backingsResult,
+    recentProfilesResult,
+    recentProjectsResult,
+    recentCommentsResult,
+    recentBackingsResult,
+  ]) {
     if (result.error) throw result.error;
   }
 
   const paidBackings = backingsResult.data ?? [];
+  const recentPaidBackings = recentBackingsResult.data ?? [];
   return {
-    users: profilesResult.count ?? 0,
-    projects: projectsResult.count ?? 0,
-    amountBacked: paidBackings.reduce((sum, backing) => sum + backing.gross_amount, 0),
-    backers: paidBackings.length,
-    comments: commentsResult.count ?? 0,
+    totals: {
+      users: profilesResult.count ?? 0,
+      projects: projectsResult.count ?? 0,
+      amountBacked: paidBackings.reduce((sum, backing) => sum + backing.gross_amount, 0),
+      backers: paidBackings.length,
+      comments: commentsResult.count ?? 0,
+    },
+    pastSevenDays: {
+      users: recentProfilesResult.count ?? 0,
+      projects: recentProjectsResult.count ?? 0,
+      amountBacked: recentPaidBackings.reduce((sum, backing) => sum + backing.gross_amount, 0),
+      backers: recentPaidBackings.length,
+      comments: recentCommentsResult.count ?? 0,
+    },
   };
 }
 
@@ -235,7 +285,7 @@ Deno.serve(async (request) => {
 
   try {
     if (action === "status") return json({ isAdmin: true });
-    if (action === "overview") return json({ totals: await loadOverview(actor.admin) });
+    if (action === "overview") return json(await loadOverview(actor.admin));
     if (action === "list_projects" || action === "list")
       return json({ projects: await loadProjects(actor.admin) });
     if (action === "list_users") return json({ users: await loadUsers(actor.admin) });

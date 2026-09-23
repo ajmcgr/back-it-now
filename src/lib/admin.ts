@@ -8,6 +8,11 @@ export type AdminTotals = {
   comments: number;
 };
 
+export type AdminOverview = {
+  totals: AdminTotals;
+  pastSevenDays: AdminTotals;
+};
+
 export type AdminProject = {
   id: string;
   slug: string;
