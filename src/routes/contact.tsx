@@ -54,28 +54,6 @@ function ContactPage() {
             </p>
           </form>
         </section>
-
-        <section className="mt-16 border-t border-border pt-10" aria-labelledby="media-kit-heading">
-          <h2 id="media-kit-heading" className="text-2xl font-semibold">
-            Media kit
-          </h2>
-          <p className="mt-2 text-muted-foreground">Download official Backed brand assets.</p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            <BrandAsset
-              image="/favicon.png"
-              alt="Backed icon preview"
-              title="Backed icon"
-              download="/favicon.png"
-            />
-            <BrandAsset
-              image="/logo.png"
-              alt="Backed logo preview"
-              title="Backed logo"
-              download="/logo.png"
-              contain
-            />
-          </div>
-        </section>
       </div>
     </main>
   );
@@ -97,37 +75,5 @@ function ContactField({
       <span className="mb-2 block text-sm font-semibold">{label}</span>
       <Input name={name} type={type} required={required} className="h-11" />
     </label>
-  );
-}
-
-function BrandAsset({
-  image,
-  alt,
-  title,
-  download,
-  contain = false,
-}: {
-  image: string;
-  alt: string;
-  title: string;
-  download: string;
-  contain?: boolean;
-}) {
-  return (
-    <article className="overflow-hidden rounded-md border border-border">
-      <div className="grid h-44 place-items-center bg-muted/50 p-6">
-        <img
-          src={image}
-          alt={alt}
-          className={contain ? "max-h-24 max-w-full object-contain" : "size-24 object-contain"}
-        />
-      </div>
-      <div className="flex items-center justify-between gap-4 p-4">
-        <h3 className="font-semibold">{title}</h3>
-        <a href={download} download className="text-sm font-semibold text-primary hover:underline">
-          Download PNG
-        </a>
-      </div>
-    </article>
   );
 }
