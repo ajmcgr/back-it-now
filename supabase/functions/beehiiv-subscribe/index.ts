@@ -1,15 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const PUBLICATION_ID = "pub_b92dabcc-1263-44de-a248-69ea4b8fc02f";
-const BEEHIIV_BASE = `https://api.beehiiv.com/v2/publications/${PUBLICATION_ID}/subscriptions`;
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
 const attempts = new Map<string, number[]>();
 
 const productionOrigins = new Set([
-  "https://alexmacgregor.com",
-  "https://www.alexmacgregor.com",
   "https://backedit.co",
   "https://www.backedit.co",
 ]);
@@ -48,12 +44,9 @@ function safePath(value: unknown) {
 }
 
 function acquisition(request: Request, path: string) {
-  const origin = request.headers.get("origin");
-  const personalSite =
-    origin === "https://alexmacgregor.com" || origin === "https://www.alexmacgregor.com";
   return {
-    referringSite: `${personalSite && origin ? origin : "https://backedit.co"}${path}`,
-    source: personalSite ? "alexmacgregor.com" : "Backed website",
+    referringSite: `https://backedit.co${path}`,
+    source: "Backed website",
   };
 }
 
@@ -89,8 +82,14 @@ Deno.serve(async (request) => {
   if (length > 2_048) return json(request, { status: "invalid" }, 400);
   if (rateLimited(request)) return json(request, { status: "rate_limited" }, 429);
 
-  const apiKey = Deno.env.get("BEEHIIV_API_KEY");
-  if (!apiKey) return json(request, { status: "unavailable" }, 503);
+  const apiKey = Deno.env.get("BACKED_BEEHIIV_API_KEY");
+  const publicationId = Deno.env.get("BACKED_BEEHIIV_PUBLICATION_ID");
+  if (!apiKey || !publicationId || !/^pub_[A-Za-z0-9_-]+$/.test(publicationId)) {
+    console.error("backed_beehiiv_configuration_invalid");
+    return json(request, { status: "unavailable" }, 503);
+  }
+  const beehiivBase =
+    `https://api.beehiiv.com/v2/publications/${encodeURIComponent(publicationId)}/subscriptions`;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return json(request, { status: "invalid" }, 400);
@@ -113,7 +112,7 @@ Deno.serve(async (request) => {
   };
 
   try {
-    const existing = await fetch(`${BEEHIIV_BASE}/by_email/${encodeURIComponent(email)}`, {
+    const existing = await fetch(`${beehiivBase}/by_email/${encodeURIComponent(email)}`, {
       headers,
     });
     if (existing.ok) {
@@ -131,7 +130,7 @@ Deno.serve(async (request) => {
 
     const path = safePath((body as { path?: unknown }).path);
     const { referringSite, source } = acquisition(request, path);
-    const created = await fetch(BEEHIIV_BASE, {
+    const created = await fetch(beehiivBase, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({

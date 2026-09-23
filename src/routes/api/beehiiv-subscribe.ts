@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const SUPABASE_URL_FALLBACK = "https://zlzaxgsyczfeepwidjii.supabase.co";
 const SUPABASE_PUBLISHABLE_FALLBACK = "sb_publishable_xS6SYY2eNA8LIWhjFBUDyg__JTDgnhh";
+const NEWSLETTER_ENDPOINT = `${SUPABASE_URL_FALLBACK}/functions/v1/beehiiv-subscribe`;
 
 const reply = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
@@ -33,27 +34,24 @@ export const Route = createFileRoute("/api/beehiiv-subscribe")({
         const email = typeof user.email === "string" && user.email ? user.email : null;
         if (!email) return reply(200, { subscribed: false, reason: "no_email" });
 
-        const key = process.env["BEEHIIV_API_KEY"];
-        const publicationId = process.env["BEEHIIV_PUBLICATION_ID"];
-        if (!key || !publicationId)
-          return reply(200, { subscribed: false, reason: "not_configured" });
-
         try {
-          const beehiiv = await fetch(
-            `https://api.beehiiv.com/v2/publications/${publicationId}/subscriptions`,
-            {
-              method: "POST",
-              headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email,
-                reactivate_existing: true,
-                send_welcome_email: true,
-                utm_source: "backedit.co",
-                utm_medium: "signup",
-              }),
-            },
-          );
-          if (!beehiiv.ok) return reply(200, { subscribed: false, reason: "provider_error" });
+          // Route authenticated auto-enrollment through Backed's single newsletter
+          // function so Beehiiv credentials and publication selection stay isolated
+          // in Supabase Edge Function secrets.
+          const newsletter = await fetch(NEWSLETTER_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, path: "/auth/callback" }),
+          });
+          const payload = (await newsletter.json().catch(() => null)) as {
+            status?: string;
+          } | null;
+          if (
+            !newsletter.ok ||
+            (payload?.status !== "subscribed" && payload?.status !== "already_subscribed")
+          ) {
+            return reply(200, { subscribed: false, reason: "provider_error" });
+          }
           return reply(200, { subscribed: true });
         } catch {
           // Newsletter enrollment must never break sign-in.
