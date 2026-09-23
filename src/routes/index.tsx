@@ -5,7 +5,6 @@ import { ProjectDiscoveryControls } from "@/components/backed/project-discovery-
 import { PublicAnalyticsCounter } from "@/components/backed/public-analytics-counter";
 import { Button } from "@/components/ui/button";
 import {
-  DEFAULT_PROJECT_SORT,
   DEFAULT_PROJECT_VIEW,
   mergeDiscoveryProjects,
   parseProjectSort,
@@ -20,6 +19,14 @@ import { projects, type Project } from "@/lib/projects";
 import { loadRankedCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
 import { absoluteUrl, publicSeo } from "@/lib/seo";
 
+const HOME_DEFAULT_PROJECT_SORT: ProjectSort = "popular";
+
+function parseHomeProjectSort(value: unknown): ProjectSort {
+  return projectSorts.includes(value as ProjectSort)
+    ? (value as ProjectSort)
+    : HOME_DEFAULT_PROJECT_SORT;
+}
+
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
     ...(projectSorts.includes(search["sort"] as ProjectSort)
@@ -29,7 +36,7 @@ export const Route = createFileRoute("/")({
       ? { view: search["view"] as ProjectView }
       : {}),
   }),
-  loaderDeps: ({ search }) => ({ sort: parseProjectSort(search.sort) }),
+  loaderDeps: ({ search }) => ({ sort: parseHomeProjectSort(search.sort) }),
   loader: async ({ deps }) =>
     (await loadRankedCanonicalProjects(deps.sort, 6)).map(({ slug, presentation }) =>
       presentationAsProject(slug, presentation),
@@ -68,7 +75,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { sort: sortSearch, view: viewSearch } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const sort = parseProjectSort(sortSearch);
+  const sort = parseHomeProjectSort(sortSearch);
   const view = parseProjectView(viewSearch);
   const canonicalProjects = Route.useLoaderData() as Project[];
   const discoveryProjects = sortDiscoveryProjects(
@@ -89,7 +96,7 @@ function Index() {
   function setDiscoveryState(nextSort: ProjectSort, nextView: ProjectView) {
     void navigate({
       search: {
-        ...(nextSort === DEFAULT_PROJECT_SORT ? {} : { sort: nextSort }),
+        ...(nextSort === HOME_DEFAULT_PROJECT_SORT ? {} : { sort: nextSort }),
         ...(nextView === DEFAULT_PROJECT_VIEW ? {} : { view: nextView }),
       },
     });
