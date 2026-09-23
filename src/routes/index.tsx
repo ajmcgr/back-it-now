@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   DEFAULT_PROJECT_VIEW,
   mergeDiscoveryProjects,
-  parseProjectSort,
   parseProjectView,
   projectSorts,
   projectViews,
