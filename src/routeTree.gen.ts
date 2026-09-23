@@ -24,6 +24,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminCommentsRouteImport } from './routes/admin_.comments'
+import { Route as AdminNewsletterRouteImport } from './routes/admin_.newsletter'
 import { Route as AdminProjectsRouteImport } from './routes/admin_.projects'
 import { Route as AdminUsersRouteImport } from './routes/admin_.users'
 import { Route as ApiBeehiivSubscribeRouteImport } from './routes/api/beehiiv-subscribe'
@@ -108,6 +109,11 @@ const AdminCommentsRoute = AdminCommentsRouteImport.update({
   path: '/admin/comments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminNewsletterRoute = AdminNewsletterRouteImport.update({
+  id: '/admin_/newsletter',
+  path: '/admin/newsletter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminProjectsRoute = AdminProjectsRouteImport.update({
   id: '/admin_/projects',
   path: '/admin/projects',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/admin/comments': typeof AdminCommentsRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/projects': typeof AdminProjectsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
@@ -191,6 +198,7 @@ export interface FileRoutesByTo {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/admin/comments': typeof AdminCommentsRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/projects': typeof AdminProjectsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
   '/admin_/comments': typeof AdminCommentsRoute
+  '/admin_/newsletter': typeof AdminNewsletterRoute
   '/admin_/projects': typeof AdminProjectsRoute
   '/admin_/users': typeof AdminUsersRoute
   '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/start'
     | '/terms'
     | '/admin/comments'
+    | '/admin/newsletter'
     | '/admin/projects'
     | '/admin/users'
     | '/api/beehiiv-subscribe'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/start'
     | '/terms'
     | '/admin/comments'
+    | '/admin/newsletter'
     | '/admin/projects'
     | '/admin/users'
     | '/api/beehiiv-subscribe'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/start'
     | '/terms'
     | '/admin_/comments'
+    | '/admin_/newsletter'
     | '/admin_/projects'
     | '/admin_/users'
     | '/api/beehiiv-subscribe'
@@ -320,6 +332,7 @@ export interface RootRouteChildren {
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
+  AdminNewsletterRoute: typeof AdminNewsletterRoute
   AdminProjectsRoute: typeof AdminProjectsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   ApiBeehiivSubscribeRoute: typeof ApiBeehiivSubscribeRoute
@@ -436,6 +449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/newsletter': {
+      id: '/admin_/newsletter'
+      path: '/admin/newsletter'
+      fullPath: '/admin/newsletter'
+      preLoaderRoute: typeof AdminNewsletterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin_/projects': {
       id: '/admin_/projects'
       path: '/admin/projects'
@@ -523,6 +543,7 @@ const rootRouteChildren: RootRouteChildren = {
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
   AdminCommentsRoute: AdminCommentsRoute,
+  AdminNewsletterRoute: AdminNewsletterRoute,
   AdminProjectsRoute: AdminProjectsRoute,
   AdminUsersRoute: AdminUsersRoute,
   ApiBeehiivSubscribeRoute: ApiBeehiivSubscribeRoute,

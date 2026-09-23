@@ -171,6 +171,199 @@ async function loadComments(admin: SupabaseClient) {
   return data ?? [];
 }
 
+type NewsletterPeriod = "week" | "month" | "all";
+type NewsletterProject = {
+  slug: string;
+  name: string;
+  summary: string;
+  description: string;
+  image_url: string | null;
+  category: string;
+  creator_name: string;
+  backed_amount: number;
+  backer_count: number;
+  favorite_count: number;
+  comment_count: number;
+  status: "prelaunch" | "live";
+  url: string;
+  created_at: string;
+  latest_backed_at: string | null;
+  period_backed_amount: number;
+  period_backer_count: number;
+  period_favorite_count: number;
+  period_comment_count: number;
+};
+
+const timestamp = (value: unknown) =>
+  typeof value === "string" && Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
+const numeric = (value: unknown) => (typeof value === "number" ? value : 0);
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+
+async function loadNewsletter(admin: SupabaseClient, period: NewsletterPeriod) {
+  const cutoff =
+    period === "week"
+      ? Date.now() - 7 * 24 * 60 * 60 * 1000
+      : period === "month"
+        ? Date.now() - 30 * 24 * 60 * 60 * 1000
+        : 0;
+  const [publicProjectsResult, projectIdsResult, backingsResult, favoritesResult, commentsResult] =
+    await Promise.all([
+      admin.from("public_profile_projects").select("*"),
+      admin.from("projects").select("id, slug"),
+      admin
+        .from("backings")
+        .select("project_id, gross_amount, refund_amount, paid_at, created_at")
+        .eq("status", "paid"),
+      admin.from("project_favorites").select("project_id, created_at"),
+      admin
+        .from("project_comments")
+        .select("project_id, created_at")
+        .eq("moderation_status", "visible")
+        .is("deleted_at", null),
+    ]);
+
+  for (const result of [
+    publicProjectsResult,
+    projectIdsResult,
+    backingsResult,
+    favoritesResult,
+    commentsResult,
+  ]) {
+    if (result.error) throw result.error;
+  }
+
+  const idBySlug = new Map(
+    (projectIdsResult.data ?? []).map((project) => [project.slug, project.id] as const),
+  );
+  const inPeriod = (value: unknown) => period === "all" || timestamp(value) >= cutoff;
+
+  const projects: NewsletterProject[] = (publicProjectsResult.data ?? []).map((project) => {
+    const projectId = idBySlug.get(project.slug);
+    const periodBackings = (backingsResult.data ?? []).filter(
+      (backing) =>
+        backing.project_id === projectId &&
+        numeric(backing.refund_amount) < numeric(backing.gross_amount) &&
+        inPeriod(backing.paid_at ?? backing.created_at),
+    );
+    const periodFavorites = (favoritesResult.data ?? []).filter(
+      (favorite) => favorite.project_id === projectId && inPeriod(favorite.created_at),
+    );
+    const periodComments = (commentsResult.data ?? []).filter(
+      (comment) => comment.project_id === projectId && inPeriod(comment.created_at),
+    );
+    const status = project.status === "prelaunch" ? "prelaunch" : "live";
+    return {
+      slug: text(project.slug),
+      name: text(project.name),
+      summary: text(project.summary),
+      description: text(project.description),
+      image_url: typeof project.image_url === "string" ? project.image_url : null,
+      category: text(project.category) || "Other",
+      creator_name: text(project.creator_display_name) || text(project.creator_username),
+      backed_amount:
+        numeric(project.initial_backed_amount) + numeric(project.successful_backed_amount),
+      backer_count: numeric(project.successful_backer_count),
+      favorite_count: numeric(project.favorite_count),
+      comment_count: numeric(project.comment_count),
+      status,
+      url: `https://backedit.co/projects/${encodeURIComponent(text(project.slug))}`,
+      created_at: text(project.created_at),
+      latest_backed_at:
+        typeof project.latest_backed_at === "string" ? project.latest_backed_at : null,
+      period_backed_amount: periodBackings.reduce(
+        (sum, backing) => sum + numeric(backing.gross_amount) - numeric(backing.refund_amount),
+        0,
+      ),
+      period_backer_count: periodBackings.length,
+      period_favorite_count: periodFavorites.length,
+      period_comment_count: periodComments.length,
+    };
+  });
+
+  const recent = (project: NewsletterProject) =>
+    period === "all" ||
+    timestamp(project.latest_backed_at) >= cutoff ||
+    timestamp(project.created_at) >= cutoff;
+  const newest = [...projects]
+    .filter((project) => period === "all" || timestamp(project.created_at) >= cutoff)
+    .sort((a, b) => timestamp(b.created_at) - timestamp(a.created_at));
+  const trending = [...projects]
+    .filter(recent)
+    .sort(
+      (a, b) =>
+        timestamp(b.latest_backed_at ?? b.created_at) -
+          timestamp(a.latest_backed_at ?? a.created_at) ||
+        (period === "all"
+          ? b.backer_count - a.backer_count
+          : b.period_backer_count - a.period_backer_count) ||
+        (period === "all"
+          ? b.backed_amount - a.backed_amount
+          : b.period_backed_amount - a.period_backed_amount) ||
+        timestamp(b.created_at) - timestamp(a.created_at),
+    );
+  const mostBacked = [...projects]
+    .filter((project) => period === "all" || project.period_backed_amount > 0)
+    .sort(
+      (a, b) =>
+        (period === "all"
+          ? b.backed_amount - a.backed_amount
+          : b.period_backed_amount - a.period_backed_amount) ||
+        timestamp(b.created_at) - timestamp(a.created_at),
+    );
+  const mostFavorited = [...projects]
+    .filter((project) =>
+      period === "all" ? project.favorite_count > 0 : project.period_favorite_count > 0,
+    )
+    .sort(
+      (a, b) =>
+        (period === "all"
+          ? b.favorite_count - a.favorite_count
+          : b.period_favorite_count - a.period_favorite_count) ||
+        timestamp(b.created_at) - timestamp(a.created_at),
+    );
+  const mostDiscussed = [...projects]
+    .filter((project) =>
+      period === "all" ? project.comment_count > 0 : project.period_comment_count > 0,
+    )
+    .sort(
+      (a, b) =>
+        (period === "all"
+          ? b.comment_count - a.comment_count
+          : b.period_comment_count - a.period_comment_count) ||
+        timestamp(b.created_at) - timestamp(a.created_at),
+    );
+
+  const claimed = new Set<string>();
+  const takeUnique = (ranked: NewsletterProject[]) =>
+    ranked
+      .filter((project) => !claimed.has(project.slug))
+      .slice(0, 3)
+      .map((project) => {
+        claimed.add(project.slug);
+        const {
+          created_at: _createdAt,
+          latest_backed_at: _latestBackedAt,
+          period_backed_amount: _periodBackedAmount,
+          period_backer_count: _periodBackerCount,
+          period_favorite_count: _periodFavoriteCount,
+          period_comment_count: _periodCommentCount,
+          ...publicProject
+        } = project;
+        return publicProject;
+      });
+
+  return {
+    period,
+    sections: {
+      trending: takeUnique(trending),
+      latest: takeUnique(newest),
+      mostBacked: takeUnique(mostBacked),
+      mostFavorited: takeUnique(mostFavorited),
+      mostDiscussed: takeUnique(mostDiscussed),
+    },
+  };
+}
+
 async function deleteProject(admin: SupabaseClient, projectId: string) {
   const { data: project, error: projectError } = await admin
     .from("projects")
@@ -290,6 +483,11 @@ Deno.serve(async (request) => {
       return json({ projects: await loadProjects(actor.admin) });
     if (action === "list_users") return json({ users: await loadUsers(actor.admin) });
     if (action === "list_comments") return json({ comments: await loadComments(actor.admin) });
+    if (action === "newsletter_projects") {
+      const period =
+        payload.period === "month" || payload.period === "all" ? payload.period : "week";
+      return json(await loadNewsletter(actor.admin, period));
+    }
 
     if (action === "delete_project" || action === "delete") {
       const projectId = stringId(payload.projectId);

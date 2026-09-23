@@ -52,6 +52,37 @@ export type AdminComment = {
   projects: { id: string; slug: string; name: string };
 };
 
+export type AdminNewsletterPeriod = "week" | "month" | "all";
+
+export type AdminNewsletterProject = {
+  slug: string;
+  name: string;
+  summary: string;
+  description: string;
+  image_url: string | null;
+  category: string;
+  creator_name: string;
+  backed_amount: number;
+  backer_count: number;
+  favorite_count: number;
+  comment_count: number;
+  status: "prelaunch" | "live";
+  url: string;
+};
+
+export type AdminNewsletterSections = {
+  trending: AdminNewsletterProject[];
+  latest: AdminNewsletterProject[];
+  mostBacked: AdminNewsletterProject[];
+  mostFavorited: AdminNewsletterProject[];
+  mostDiscussed: AdminNewsletterProject[];
+};
+
+export type AdminNewsletterResponse = {
+  period: AdminNewsletterPeriod;
+  sections: AdminNewsletterSections;
+};
+
 export async function invokeAdmin<T>(action: string, payload: Record<string, unknown> = {}) {
   if (!supabase) throw new Error("admin_unavailable");
   const { data, error } = await supabase.functions.invoke("admin-projects", {

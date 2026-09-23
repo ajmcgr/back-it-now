@@ -2,13 +2,14 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type AdminSection = "overview" | "projects" | "users" | "comments";
+type AdminSection = "overview" | "projects" | "users" | "comments" | "newsletter";
 
 const navigation = [
   { id: "overview", label: "Overview", to: "/admin" },
   { id: "projects", label: "Projects", to: "/admin/projects" },
   { id: "users", label: "Users", to: "/admin/users" },
   { id: "comments", label: "Comments", to: "/admin/comments" },
+  { id: "newsletter", label: "Newsletter", to: "/admin/newsletter" },
 ] as const;
 
 export function AdminShell({
