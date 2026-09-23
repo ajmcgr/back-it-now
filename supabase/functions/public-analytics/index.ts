@@ -1,16 +1,26 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const UMAMI_API_BASE = "https://api.umami.is/v1";
-// The website ID is already public in Umami's browser tracking tag. The API
-// key remains an Edge Function secret and is never returned to the browser.
+const UMAMI_API_BASE = "https://gateway-us.umami.is/api";
+const UMAMI_SHARE_SLUG = "5kuMEhyajDtCHMB6";
+// The website ID and public share token are intentionally exposed by Umami's
+// anonymous, read-only share page. No account or private API credential is used.
 const UMAMI_WEBSITE_ID = "1e0eeedd-f47c-45fd-bdd7-966a0f1baada";
 const TOTAL_CACHE_MS = 5 * 60 * 1000;
 const ONLINE_CACHE_MS = 30 * 1000;
+const SHARE_CACHE_MS = 5 * 60 * 1000;
 
-type CachedMetric = { value: number; expiresAt: number };
+type CachedTotal = { value: number; expiresAt: number };
+type CachedShare = { value: VerifiedShare; expiresAt: number };
+type VerifiedShare = { token: string; realtimeEnabled: boolean };
+type UmamiShare = {
+  websiteId?: unknown;
+  token?: unknown;
+  parameters?: { realtime?: unknown };
+};
 
-let totalCache: CachedMetric | null = null;
-let onlineCache: CachedMetric | null = null;
+let totalCache: CachedTotal | null = null;
+let onlineCache: CachedTotal | null = null;
+let shareCache: CachedShare | null = null;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,64 +42,90 @@ function response(body: Record<string, unknown>, status = 200) {
 }
 
 function nonNegativeInteger(value: unknown) {
-  const candidate =
-    typeof value === "number"
-      ? value
-      : typeof value === "object" && value !== null && "value" in value
-        ? (value as { value?: unknown }).value
-        : null;
-  return typeof candidate === "number" && Number.isFinite(candidate)
-    ? Math.max(0, Math.round(candidate))
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.round(value))
     : null;
 }
 
-async function umamiGet(path: string, apiKey: string) {
-  const request = await fetch(`${UMAMI_API_BASE}${path}`, {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+async function publicShare(now: number) {
+  if (shareCache && shareCache.expiresAt > now) return shareCache.value;
+
+  const request = await fetch(`${UMAMI_API_BASE}/share/${UMAMI_SHARE_SLUG}`, {
+    headers: { Accept: "application/json" },
   });
-  if (!request.ok) throw new Error(`umami_${request.status}`);
-  return (await request.json()) as Record<string, unknown>;
+  if (!request.ok) throw new Error(`umami_share_${request.status}`);
+
+  const share = (await request.json()) as UmamiShare;
+  if (share.websiteId !== UMAMI_WEBSITE_ID || typeof share.token !== "string" || !share.token) {
+    throw new Error("umami_invalid_share");
+  }
+  const verified = {
+    token: share.token,
+    realtimeEnabled: share.parameters?.realtime === true,
+  };
+  shareCache = { value: verified, expiresAt: now + SHARE_CACHE_MS };
+  return verified;
 }
 
-async function totalVisitors(apiKey: string, now: number) {
+async function totalVisitors(token: string, now: number) {
   if (totalCache && totalCache.expiresAt > now) return totalCache.value;
+
   const query = new URLSearchParams({ startAt: "0", endAt: String(now) });
-  const stats = await umamiGet(`/websites/${UMAMI_WEBSITE_ID}/stats?${query}`, apiKey);
+  const request = await fetch(`${UMAMI_API_BASE}/websites/${UMAMI_WEBSITE_ID}/stats?${query}`, {
+    headers: {
+      Accept: "application/json",
+      "x-umami-share-context": "1",
+      "x-umami-share-token": token,
+    },
+  });
+  if (!request.ok) throw new Error(`umami_stats_${request.status}`);
+
+  const stats = (await request.json()) as { visitors?: unknown };
   const visitors = nonNegativeInteger(stats.visitors);
   if (visitors === null) throw new Error("umami_invalid_total");
+
   totalCache = { value: visitors, expiresAt: now + TOTAL_CACHE_MS };
   return visitors;
 }
 
-async function onlineVisitors(apiKey: string, now: number) {
+async function onlineVisitors(token: string, now: number) {
   if (onlineCache && onlineCache.expiresAt > now) return onlineCache.value;
-  const active = await umamiGet(`/websites/${UMAMI_WEBSITE_ID}/active`, apiKey);
+
+  const request = await fetch(`${UMAMI_API_BASE}/websites/${UMAMI_WEBSITE_ID}/active`, {
+    headers: {
+      Accept: "application/json",
+      "x-umami-share-context": "1",
+      "x-umami-share-token": token,
+    },
+  });
+  if (!request.ok) throw new Error(`umami_active_${request.status}`);
+
+  const active = (await request.json()) as { visitors?: unknown };
   const visitors = nonNegativeInteger(active.visitors);
   if (visitors === null) throw new Error("umami_invalid_active");
+
   onlineCache = { value: visitors, expiresAt: now + ONLINE_CACHE_MS };
   return visitors;
 }
 
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS")
+  if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    return new Response(null, { status: 405, headers: { ...corsHeaders, Allow: "GET, HEAD" } });
   }
-
-  const apiKey = Deno.env.get("UMAMI_API_KEY");
-  if (!apiKey) return response({ available: false }, 503);
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response(null, {
+      status: 405,
+      headers: { ...corsHeaders, Allow: "GET, HEAD" },
+    });
+  }
 
   try {
     const now = Date.now();
-    const [totalVisitorsValue, onlineVisitorsValue] = await Promise.all([
-      totalVisitors(apiKey, now),
-      onlineVisitors(apiKey, now),
-    ]);
-    const body = { totalVisitors: totalVisitorsValue, onlineVisitors: onlineVisitorsValue };
+    const share = await publicShare(now);
+    const totalVisitorsValue = await totalVisitors(share.token, now);
+    const onlineVisitorsValue = share.realtimeEnabled
+      ? await onlineVisitors(share.token, now).catch(() => null)
+      : null;
     if (request.method === "HEAD") {
       return new Response(null, {
         status: 200,
@@ -101,10 +137,19 @@ Deno.serve(async (request) => {
         },
       });
     }
-    return response(body);
+    return response({
+      totalVisitors: totalVisitorsValue,
+      onlineVisitors: onlineVisitorsValue,
+    });
   } catch {
-    // Analytics must never affect the public page. Keep provider details and
-    // credentials out of the response while the UI quietly omits the counter.
+    // Keep serving the last safely cached aggregate during a temporary provider
+    // outage. With no cached value, the public UI quietly hides the counter.
+    if (totalCache) {
+      return response({
+        totalVisitors: totalCache.value,
+        onlineVisitors: onlineCache?.value ?? null,
+      });
+    }
     return response({ available: false }, 503);
   }
 });
