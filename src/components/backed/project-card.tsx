@@ -15,7 +15,7 @@ export function CreatorIdentity({ creator }: { creator: CanonicalProjectCreator 
         className="size-7"
       />
       <span className="text-xs font-semibold text-muted-foreground">
-        {creator?.displayName || creator?.username || "Creator"}
+        {creator?.username ? `@${creator.username}` : "Creator"}
       </span>
     </>
   );
@@ -141,10 +141,10 @@ function plural(value: number, singular: string, pluralValue = `${singular}s`) {
   return `${value} ${value === 1 ? singular : pluralValue}`;
 }
 
-export function ProjectList({ items }: { items: Project[] }) {
+export function ProjectList({ items, numbered = false }: { items: Project[]; numbered?: boolean }) {
   return (
     <div className="divide-y divide-border border-y border-border">
-      {items.map((project) => {
+      {items.map((project, index) => {
         const isPrelaunch = project.status === "prelaunch";
         const coverImage = resolveProjectCover({
           slug: project.slug,
@@ -157,8 +157,20 @@ export function ProjectList({ items }: { items: Project[] }) {
             <Link
               to="/projects/$slug"
               params={{ slug: project.slug }}
-              className="group grid min-w-0 grid-cols-[88px_minmax(0,1fr)] gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:items-center sm:gap-5"
+              className={`group grid min-w-0 gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 sm:items-center sm:gap-5 ${
+                numbered
+                  ? "grid-cols-[24px_80px_minmax(0,1fr)] sm:grid-cols-[28px_128px_minmax(0,1fr)_auto]"
+                  : "grid-cols-[88px_minmax(0,1fr)] sm:grid-cols-[128px_minmax(0,1fr)_auto]"
+              }`}
             >
+              {numbered ? (
+                <span
+                  className="self-start pt-1 text-sm font-semibold tabular-nums text-muted-foreground sm:self-center sm:pt-0"
+                  aria-label={`Rank ${index + 1}`}
+                >
+                  {index + 1}
+                </span>
+              ) : null}
               <div className="overflow-hidden rounded-md bg-muted">
                 {coverImage ? (
                   <img
@@ -180,7 +192,7 @@ export function ProjectList({ items }: { items: Project[] }) {
                     {project.title}
                   </h3>
                   <span className="hidden truncate text-xs text-muted-foreground md:inline">
-                    by {project.creator}
+                    by {project.creatorUsername ? `@${project.creatorUsername}` : project.creator}
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
@@ -223,6 +235,18 @@ export function ProjectList({ items }: { items: Project[] }) {
   );
 }
 
-export function ProjectResults({ items, view }: { items: Project[]; view: "list" | "cards" }) {
-  return view === "list" ? <ProjectList items={items} /> : <ProjectGrid items={items} />;
+export function ProjectResults({
+  items,
+  view,
+  numbered = false,
+}: {
+  items: Project[];
+  view: "list" | "cards";
+  numbered?: boolean;
+}) {
+  return view === "list" ? (
+    <ProjectList items={items} numbered={numbered} />
+  ) : (
+    <ProjectGrid items={items} />
+  );
 }

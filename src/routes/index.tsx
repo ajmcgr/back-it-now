@@ -169,7 +169,7 @@ function Index() {
           />
         </div>
         {discoveryProjects.length ? (
-          <ProjectResults items={discoveryProjects} view={view} />
+          <ProjectResults items={discoveryProjects} view={view} numbered />
         ) : (
           <div className="border-y border-border py-16 text-center">
             <h3 className="text-xl font-semibold">No projects to show yet</h3>
