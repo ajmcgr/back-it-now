@@ -2,8 +2,10 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import { ProjectGrid } from "@/components/backed/project-card";
 import { Button } from "@/components/ui/button";
-import { resolveProjectCover } from "@/lib/project-presentation";
+import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
+import type { Project } from "@/lib/projects";
 import { absoluteUrl, privateSeo, publicSeo, trimDescription } from "@/lib/seo";
 import { publicSupabase, supabase } from "@/lib/supabase";
 
@@ -13,20 +15,7 @@ type PublicProfile = {
   avatar_url: string | null;
   bio: string | null;
   website: string | null;
-};
-
-type PublicProject = {
-  slug: string;
-  name: string;
-  summary: string;
-  description: string;
-  image_url: string | null;
-  currency: string;
-  funding_goal_amount: number;
-  initial_backed_amount: number;
-  successful_backed_amount: number;
-  successful_backer_count: number;
-  deadline_at: string | null;
+  show_public_favorites: boolean;
 };
 
 export const Route = createFileRoute("/$username")({
@@ -35,24 +24,38 @@ export const Route = createFileRoute("/$username")({
     if (!publicSupabase || !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
       throw notFound();
     }
-    const [{ data: profile, error: profileError }, { data: projects, error: projectsError }] =
-      await Promise.all([
-        publicSupabase
-          .from("public_profiles")
-          .select("username, display_name, avatar_url, bio, website")
-          .eq("username", username)
-          .maybeSingle(),
-        publicSupabase
-          .from("public_profile_projects")
-          .select(
-            "slug, name, summary, description, image_url, currency, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
-          )
-          .eq("creator_username", username)
-          .order("deadline_at", { ascending: true }),
-      ]);
-    if (profileError || projectsError) throw new Error("Public profile data is unavailable.");
+    const [
+      { data: profile, error: profileError },
+      { data: projectRows, error: projectsError },
+      { data: favoriteRows, error: favoritesError },
+    ] = await Promise.all([
+      publicSupabase
+        .from("public_profiles")
+        .select("username, display_name, avatar_url, bio, website, show_public_favorites")
+        .eq("username", username)
+        .maybeSingle(),
+      publicSupabase
+        .from("public_profile_projects")
+        .select("*")
+        .eq("creator_username", username)
+        .order("deadline_at", { ascending: true }),
+      publicSupabase.rpc("list_public_profile_favorites", { p_username: username }),
+    ]);
+    if (profileError || projectsError || favoritesError)
+      throw new Error("Public profile data is unavailable.");
     if (!profile) throw notFound();
-    return { profile: profile as PublicProfile, projects: (projects ?? []) as PublicProject[] };
+    const toProjects = (rows: Array<Record<string, unknown>>): Project[] =>
+      rows.flatMap((row) => {
+        const presentation = presentationFromPublicRow(row);
+        return presentation && typeof row["slug"] === "string"
+          ? [presentationAsProject(row["slug"], presentation)]
+          : [];
+      });
+    return {
+      profile: profile as PublicProfile,
+      projects: toProjects((projectRows ?? []) as Array<Record<string, unknown>>),
+      favorites: toProjects((favoriteRows ?? []) as Array<Record<string, unknown>>),
+    };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return privateSeo("Creator not found — Backed");
@@ -110,16 +113,8 @@ function safeWebsite(value: string | null) {
   }
 }
 
-function formatMoney(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
 function PublicProfilePage() {
-  const { profile, projects } = Route.useLoaderData();
+  const { profile, projects, favorites } = Route.useLoaderData();
   const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
@@ -176,50 +171,8 @@ function PublicProfilePage() {
       <section className="mx-auto mt-16 max-w-5xl">
         <h2 className="text-3xl font-semibold">Projects</h2>
         {projects.length ? (
-          <div className="mt-7 grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => {
-              const backed = project.initial_backed_amount + project.successful_backed_amount;
-              const funded = project.funding_goal_amount
-                ? Math.round((backed / project.funding_goal_amount) * 100)
-                : 0;
-              const coverImage = resolveProjectCover({
-                slug: project.slug,
-                imageUrl: project.image_url,
-              });
-              return (
-                <article key={project.slug} className="min-w-0">
-                  <Link
-                    to="/projects/$slug"
-                    params={{ slug: project.slug }}
-                    className="block overflow-hidden rounded-md bg-muted"
-                  >
-                    {coverImage ? (
-                      <img
-                        src={coverImage}
-                        alt={project.name}
-                        className="aspect-[16/10] w-full object-cover"
-                      />
-                    ) : (
-                      <div className="aspect-[16/10] bg-secondary" />
-                    )}
-                  </Link>
-                  <Link to="/projects/$slug" params={{ slug: project.slug }}>
-                    <h3 className="mt-4 text-xl font-semibold hover:text-primary">
-                      {project.name}
-                    </h3>
-                  </Link>
-                  <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">
-                    {project.summary || project.description}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="font-semibold">
-                      {formatMoney(backed, project.currency)} backed
-                    </span>
-                    <span className="text-muted-foreground">{funded}% funded</span>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="mt-7">
+            <ProjectGrid items={projects} />
           </div>
         ) : (
           <div className="mt-7 rounded-md border border-border p-8 text-center">
@@ -232,6 +185,21 @@ function PublicProfilePage() {
           </div>
         )}
       </section>
+
+      {profile.show_public_favorites ? (
+        <section className="mx-auto mt-16 max-w-5xl">
+          <h2 className="text-3xl font-semibold">Favorites</h2>
+          {favorites.length ? (
+            <div className="mt-7">
+              <ProjectGrid items={favorites} />
+            </div>
+          ) : (
+            <div className="mt-7 rounded-md border border-border p-8 text-center">
+              <p className="text-muted-foreground">No public favorites yet.</p>
+            </div>
+          )}
+        </section>
+      ) : null}
     </main>
   );
 }

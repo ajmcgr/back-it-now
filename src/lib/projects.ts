@@ -33,6 +33,8 @@ export type Project = {
   initialBackedAmount: number;
   successfulBackingAmount: number;
   successfulBackingCount: number;
+  commentCount: number;
+  favoriteCount: number;
   goal: number;
   reward: Reward;
 };
@@ -69,6 +71,8 @@ export const projects: Project[] = [
     initialBackedAmount: 100,
     successfulBackingAmount: 0,
     successfulBackingCount: 0,
+    commentCount: 0,
+    favoriteCount: 0,
     goal: 1000,
     reward: {
       name: "Founding Guest",

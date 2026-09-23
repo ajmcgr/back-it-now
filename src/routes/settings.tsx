@@ -41,7 +41,9 @@ type Profile = CreatorPayoutProfile & {
   website: string | null;
   email: string | null;
   receive_project_updates: boolean;
+  receive_favorite_project_updates: boolean;
   receive_product_news: boolean;
+  show_public_favorites: boolean;
 };
 
 type StripeResetStatus = {
@@ -61,7 +63,9 @@ const emptyProfile: Profile = {
   website: "",
   email: "",
   receive_project_updates: true,
+  receive_favorite_project_updates: true,
   receive_product_news: false,
+  show_public_favorites: false,
   stripe_account_id: null,
   stripe_onboarding_complete: false,
   stripe_charges_enabled: false,
@@ -130,7 +134,7 @@ function Settings() {
       const { data: savedProfile } = await supabase
         .from("profiles")
         .select(
-          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
+          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_product_news, show_public_favorites, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -222,11 +226,13 @@ function Settings() {
         bio: profile.bio || null,
         website: website || null,
         receive_project_updates: profile.receive_project_updates,
+        receive_favorite_project_updates: profile.receive_favorite_project_updates,
         receive_product_news: profile.receive_product_news,
+        show_public_favorites: profile.show_public_favorites,
       })
       .eq("id", data.session.user.id)
       .select(
-        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
+        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_product_news, show_public_favorites, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
       )
       .single();
     setIsSaving(false);
@@ -468,6 +474,16 @@ function Settings() {
                 />
               </Field>
             </div>
+            <div className="sm:col-span-2 border-t border-border pt-5">
+              <Preference
+                label="Show my favorite projects on my public profile"
+                checked={profile.show_public_favorites}
+                onCheckedChange={(checked) => update("show_public_favorites", checked)}
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Off by default. Your private Favorites tab remains visible only to you.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -608,6 +624,12 @@ function Settings() {
               label="Project and backing updates"
               checked={profile.receive_project_updates}
               onCheckedChange={(checked) => update("receive_project_updates", checked)}
+              disabled={!profile.email}
+            />
+            <Preference
+              label="Updates from projects I’ve favorited"
+              checked={profile.receive_favorite_project_updates}
+              onCheckedChange={(checked) => update("receive_favorite_project_updates", checked)}
               disabled={!profile.email}
             />
             <Preference

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Heart, MessageCircle, Users } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { resolveProjectCover, type CanonicalProjectCreator } from "@/lib/project-presentation";
@@ -84,6 +85,26 @@ export function ProjectCard({ project }: { project: Project }) {
             <span className="text-muted-foreground">{funded}% funded</span>
           </div>
           <span className="pt-1 text-muted-foreground">{daysRemaining(project)} days left</span>
+        </div>
+        <div
+          className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
+          aria-label={`${project.successfulBackingCount} backers, ${project.commentCount} comments, ${project.favoriteCount} favorites`}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="size-3.5" aria-hidden="true" />
+            {project.successfulBackingCount}
+            <span className="sr-only"> backers</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MessageCircle className="size-3.5" aria-hidden="true" />
+            {project.commentCount}
+            <span className="sr-only"> comments</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Heart className="size-3.5" aria-hidden="true" />
+            {project.favoriteCount}
+            <span className="sr-only"> favorites</span>
+          </span>
         </div>
       </div>
     </article>

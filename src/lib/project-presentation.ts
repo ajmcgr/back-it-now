@@ -23,6 +23,8 @@ export type CanonicalProjectPresentation = {
   initialBackedAmount: number;
   successfulBackedAmount: number;
   successfulBackerCount: number;
+  commentCount: number;
+  favoriteCount: number;
   deadlineAt: string | null;
   rewardTitle: string | null;
   rewardDescription: string | null;
@@ -66,7 +68,7 @@ export async function loadCanonicalProjectPresentation(slug: string) {
   const { data, error } = await publicSupabase
     .from("public_profile_projects")
     .select(
-      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
+      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, comment_count, favorite_count, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -134,6 +136,8 @@ export function presentationAsProject(
     initialBackedAmount: presentation.initialBackedAmount / 100,
     successfulBackingAmount: presentation.successfulBackedAmount / 100,
     successfulBackingCount: presentation.successfulBackerCount,
+    commentCount: presentation.commentCount,
+    favoriteCount: presentation.favoriteCount,
     goal: presentation.fundingGoalAmount / 100,
     reward: {
       name: presentation.rewardTitle ?? "Support this project",
@@ -176,6 +180,8 @@ export function presentationFromPublicRow(
       typeof data["successful_backed_amount"] === "number" ? data["successful_backed_amount"] : 0,
     successfulBackerCount:
       typeof data["successful_backer_count"] === "number" ? data["successful_backer_count"] : 0,
+    commentCount: typeof data["comment_count"] === "number" ? data["comment_count"] : 0,
+    favoriteCount: typeof data["favorite_count"] === "number" ? data["favorite_count"] : 0,
     deadlineAt: typeof data["deadline_at"] === "string" ? data["deadline_at"] : null,
     rewardTitle: typeof data["reward_title"] === "string" ? data["reward_title"] : null,
     rewardDescription:

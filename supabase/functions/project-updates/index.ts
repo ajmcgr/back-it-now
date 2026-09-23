@@ -160,15 +160,15 @@ Deno.serve(async (request) => {
         try {
           const response = await sendResendEmail({
             to: delivery.recipient_email,
-            subject: `${project?.name ?? "A project you backed"} posted an update`,
+            subject: `${project?.name ?? "A project you follow"} posted an update`,
             email: renderBackedEmail({
-              title: `${project?.name ?? "A project you backed"} posted an update`,
+              title: `${project?.name ?? "A project you follow"} posted an update`,
               preheader: update.title,
               body: `${update.title}\n\n${excerpt(update.body)}`,
               ctaLabel: "Read the update",
               ctaUrl: `https://backedit.co/projects/${slug}/updates/${update.id}`,
               footer:
-                "You’re receiving this because you backed this project and enabled project updates.",
+                "You’re receiving this because you backed or favorited this project and enabled project updates.",
             }),
             idempotencyKey: delivery.dedupe_key,
           });

@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BackingCheckoutButton } from "@/components/backed/backing-dialog";
 import { ProjectComments } from "@/components/backed/project-comments";
+import { ProjectFavoriteButton } from "@/components/backed/project-favorite-button";
 import { ProjectMediaGallery } from "@/components/backed/project-media-gallery";
 import { ProjectBackers } from "@/components/backed/project-backers";
 import { ProjectGrid } from "@/components/backed/project-card";
@@ -139,7 +140,9 @@ function ProjectPage() {
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
   const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
-  const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [commentCount, setCommentCount] = useState<number | null>(
+    presentation?.commentCount ?? fallback?.commentCount ?? null,
+  );
   const [checkoutConfirmation, setCheckoutConfirmation] = useState<{
     state: "idle" | "confirming" | "confirmed" | "delayed";
     amount?: number;
@@ -410,6 +413,9 @@ function ProjectPage() {
             <Button variant="outline" className="mt-3 w-full" onClick={() => setIsPosterOpen(true)}>
               {isOwner ? "Share project" : "Share"}
             </Button>
+            <div className="mt-3">
+              <ProjectFavoriteButton slug={project.slug} initialCount={project.favoriteCount} />
+            </div>
             {isOwner && (
               <Button asChild variant="ghost" className="mt-1 w-full">
                 <Link to="/projects/$slug/edit" params={{ slug: project.slug }}>

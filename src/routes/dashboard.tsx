@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ProjectGrid } from "@/components/backed/project-card";
 import { resolveProjectCover } from "@/lib/project-presentation";
-import { money } from "@/lib/projects";
+import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
+import { money, type Project } from "@/lib/projects";
 import { privateSeo } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 
-type DashboardTab = "created" | "backed";
+type DashboardTab = "created" | "backed" | "favorites";
 type CreatorProject = {
   id: string;
   slug: string;
@@ -60,19 +62,21 @@ function Dashboard() {
     Record<string, Record<string, unknown>>
   >({});
   const [rewardTitles, setRewardTitles] = useState<Record<string, string>>({});
+  const [favoriteProjects, setFavoriteProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [privacyUpdateId, setPrivacyUpdateId] = useState<string | null>(null);
   const [privacyError, setPrivacyError] = useState("");
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("tab") === "backed") setActiveTab("backed");
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "backed" || requestedTab === "favorites") setActiveTab(requestedTab);
     const load = async () => {
       if (!supabase) return setIsLoading(false);
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return setIsLoading(false);
       try {
-        const [createdResult, backingResult] = await Promise.all([
+        const [createdResult, backingResult, favoriteResult] = await Promise.all([
           supabase
             .from("projects")
             .select(
@@ -87,12 +91,21 @@ function Dashboard() {
             )
             .eq("backer_id", session.session.user.id)
             .order("paid_at", { ascending: false }),
+          supabase.rpc("list_my_favorite_projects"),
         ]);
-        if (createdResult.error || backingResult.error)
+        if (createdResult.error || backingResult.error || favoriteResult.error)
           throw new Error("Your dashboard is temporarily unavailable.");
         const ownBackings = (backingResult.data ?? []) as BackingRecord[];
         setProjects((createdResult.data ?? []) as CreatorProject[]);
         setBackings(ownBackings);
+        setFavoriteProjects(
+          (favoriteResult.data ?? []).flatMap((row: Record<string, unknown>) => {
+            const presentation = presentationFromPublicRow(row);
+            return presentation && typeof row["slug"] === "string"
+              ? [presentationAsProject(row["slug"], presentation)]
+              : [];
+          }),
+        );
         if (!ownBackings.length) return;
 
         const projectIds = [...new Set(ownBackings.map((backing) => backing.project_id))];
@@ -211,7 +224,7 @@ function Dashboard() {
         </Button>
       </div>
       <div className="mt-8 flex gap-6 border-b border-border" role="tablist" aria-label="Dashboard">
-        {(["created", "backed"] as const).map((tab) => (
+        {(["created", "backed", "favorites"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -234,15 +247,39 @@ function Dashboard() {
         </div>
       ) : activeTab === "created" ? (
         <CreatedProjects projects={projects} />
-      ) : (
+      ) : activeTab === "backed" ? (
         <BackedProjects
           projects={backedProjects}
           privacyUpdateId={privacyUpdateId}
           privacyError={privacyError}
           onPrivacyChange={setBackingPrivacy}
         />
+      ) : (
+        <FavoriteProjects projects={favoriteProjects} />
       )}
     </main>
+  );
+}
+
+function FavoriteProjects({ projects }: { projects: Project[] }) {
+  if (!projects.length)
+    return (
+      <div className="mt-8 rounded-md border border-border p-8 text-center">
+        <h2 className="text-xl font-semibold">You haven’t favorited a project yet.</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Save projects to find them here and receive the updates you choose.
+        </p>
+        <Button asChild className="mt-5">
+          <Link to="/discover" search={{}}>
+            Discover projects
+          </Link>
+        </Button>
+      </div>
+    );
+  return (
+    <div className="mt-8">
+      <ProjectGrid items={projects} />
+    </div>
   );
 }
 
@@ -314,7 +351,9 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
               </span>
             </div>
             <div>
-              <span className="mb-1 block text-xs text-muted-foreground md:hidden">Amount backed</span>
+              <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                Amount backed
+              </span>
               <span className="font-semibold">{money(backed / 100)}</span>
             </div>
             <div>
@@ -322,7 +361,9 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
               <span>{project.successful_backer_count}</span>
             </div>
             <div>
-              <span className="mb-1 block text-xs text-muted-foreground md:hidden">Days remaining</span>
+              <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                Days remaining
+              </span>
               <span>{days}</span>
             </div>
           </div>
