@@ -90,6 +90,26 @@ export async function loadCanonicalProjects() {
   });
 }
 
+export async function loadRankedCanonicalProjects(
+  sort: "popular" | "latest" | "most-backed" | "ending-soon",
+  limit = 60,
+  offset = 0,
+) {
+  if (!publicSupabase) return [];
+  const { data, error } = await publicSupabase.rpc("get_public_discovery_projects", {
+    p_sort: sort,
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error || !data) return [];
+  return (data as Array<Record<string, unknown>>).flatMap((row) => {
+    const presentation = presentationFromPublicRow(row);
+    return presentation && typeof row["slug"] === "string"
+      ? [{ slug: row["slug"], presentation }]
+      : [];
+  });
+}
+
 export async function loadSimilarCanonicalProjects(slug: string) {
   if (!publicSupabase) return [];
   const { data, error } = await publicSupabase.rpc("get_similar_projects", {
@@ -135,6 +155,8 @@ export function presentationAsProject(
     externalWebsite: presentation.externalWebsite ?? "",
     status: presentation.status,
     plannedLaunchAt: presentation.plannedLaunchAt,
+    createdAt: presentation.createdAt,
+    latestBackedAt: presentation.latestBackedAt,
     deadline: presentation.deadlineAt ?? new Date().toISOString(),
     initialBackedAmount: presentation.initialBackedAmount / 100,
     successfulBackingAmount: presentation.successfulBackedAmount / 100,

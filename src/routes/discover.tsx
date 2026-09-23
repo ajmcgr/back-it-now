@@ -3,20 +3,40 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ProjectGrid } from "@/components/backed/project-card";
+import { ProjectResults } from "@/components/backed/project-card";
+import { ProjectDiscoveryControls } from "@/components/backed/project-discovery-controls";
+import {
+  DEFAULT_PROJECT_SORT,
+  DEFAULT_PROJECT_VIEW,
+  mergeDiscoveryProjects,
+  parseProjectSort,
+  parseProjectView,
+  projectSorts,
+  projectViews,
+  sortDiscoveryProjects,
+  type ProjectSort,
+  type ProjectView,
+} from "@/lib/project-discovery";
 import { projects, type Project } from "@/lib/projects";
-import { loadCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
+import { loadRankedCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
 import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/discover")({
-  loader: async () =>
-    (await loadCanonicalProjects()).map(({ slug, presentation }) =>
+  loaderDeps: ({ search }) => ({ sort: parseProjectSort(search.sort) }),
+  loader: async ({ deps }) =>
+    (await loadRankedCanonicalProjects(deps.sort, 100)).map(({ slug, presentation }) =>
       presentationAsProject(slug, presentation),
     ),
   validateSearch: (search: Record<string, unknown>) => ({
     ...(typeof search["q"] === "string" && search["q"] ? { q: search["q"] } : {}),
     ...(typeof search["category"] === "string" && search["category"] !== "All"
       ? { category: search["category"] }
+      : {}),
+    ...(projectSorts.includes(search["sort"] as ProjectSort)
+      ? { sort: search["sort"] as ProjectSort }
+      : {}),
+    ...(projectViews.includes(search["view"] as ProjectView)
+      ? { view: search["view"] as ProjectView }
       : {}),
   }),
   head: () =>
@@ -28,9 +48,17 @@ export const Route = createFileRoute("/discover")({
   component: Discover,
 });
 function Discover() {
-  const { q = "", category: categorySearch = "All" } = Route.useSearch();
+  const {
+    q = "",
+    category: categorySearch = "All",
+    sort: sortSearch,
+    view: viewSearch,
+  } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(categorySearch);
+  const sort = parseProjectSort(sortSearch);
+  const view = parseProjectView(viewSearch);
   const canonicalProjects = Route.useLoaderData() as Project[];
   const categories = [
     "All",
@@ -44,19 +72,24 @@ function Discover() {
   ];
   const filtered = useMemo(
     () =>
-      [
-        ...projects.filter(
-          (project) => !canonicalProjects.some((item) => item.slug === project.slug),
-        ),
-        ...canonicalProjects,
-      ].filter(
-        (p) =>
-          p.status === "live" &&
-          (category === "All" || p.category === category) &&
-          (p.title + p.description).toLowerCase().includes(query.toLowerCase()),
+      sortDiscoveryProjects(mergeDiscoveryProjects(canonicalProjects, projects), sort).filter(
+        (project) =>
+          (category === "All" || project.category === category) &&
+          (project.title + project.description).toLowerCase().includes(query.toLowerCase()),
       ),
-    [canonicalProjects, category, query],
+    [canonicalProjects, category, query, sort],
   );
+
+  function setDiscoveryState(nextSort: ProjectSort, nextView: ProjectView) {
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        sort: nextSort === DEFAULT_PROJECT_SORT ? undefined : nextSort,
+        view: nextView === DEFAULT_PROJECT_VIEW ? undefined : nextView,
+      }),
+    });
+  }
+
   return (
     <main className="container-backed py-10 sm:py-20">
       <h1 className="text-4xl font-semibold sm:text-6xl">Discover</h1>
@@ -82,8 +115,16 @@ function Discover() {
           </Button>
         ))}
       </div>
+      <div className="mb-7 sm:mb-8">
+        <ProjectDiscoveryControls
+          sort={sort}
+          view={view}
+          onSortChange={(nextSort) => setDiscoveryState(nextSort, view)}
+          onViewChange={(nextView) => setDiscoveryState(sort, nextView)}
+        />
+      </div>
       {filtered.length ? (
-        <ProjectGrid items={filtered} />
+        <ProjectResults items={filtered} view={view} />
       ) : (
         <div className="py-24 text-center">
           <h2 className="text-2xl font-semibold">No projects found</h2>

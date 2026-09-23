@@ -136,3 +136,93 @@ export function ProjectGrid({ items }: { items: Project[] }) {
     </div>
   );
 }
+
+function plural(value: number, singular: string, pluralValue = `${singular}s`) {
+  return `${value} ${value === 1 ? singular : pluralValue}`;
+}
+
+export function ProjectList({ items }: { items: Project[] }) {
+  return (
+    <div className="divide-y divide-border border-y border-border">
+      {items.map((project) => {
+        const isPrelaunch = project.status === "prelaunch";
+        const coverImage = resolveProjectCover({
+          slug: project.slug,
+          coverImage: project.coverImage,
+          gallery: project.gallery,
+        });
+
+        return (
+          <article key={project.slug}>
+            <Link
+              to="/projects/$slug"
+              params={{ slug: project.slug }}
+              className="group grid min-w-0 grid-cols-[88px_minmax(0,1fr)] gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:items-center sm:gap-5"
+            >
+              <div className="overflow-hidden rounded-md bg-muted">
+                {coverImage ? (
+                  <img
+                    src={coverImage}
+                    alt=""
+                    loading="lazy"
+                    width={256}
+                    height={160}
+                    className="aspect-[16/10] w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <div className="aspect-[16/10] bg-secondary" />
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-baseline gap-2">
+                  <h3 className="truncate text-base font-semibold text-foreground transition-colors group-hover:text-primary sm:text-lg">
+                    {project.title}
+                  </h3>
+                  <span className="hidden truncate text-xs text-muted-foreground md:inline">
+                    by {project.creator}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                  {project.tagline || project.description}
+                </p>
+                <p className="mt-2 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground tabular-nums">
+                  {isPrelaunch ? (
+                    <>
+                      <span>{plural(project.favoriteCount, "person", "people")} interested</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{plural(project.commentCount, "comment")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-foreground">
+                        {money(amountBacked(project))} backed
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span>{plural(project.successfulBackingCount, "backer")}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{plural(project.favoriteCount, "favorite")}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{plural(project.commentCount, "comment")}</span>
+                    </>
+                  )}
+                </p>
+                <p className="mt-2 text-xs font-semibold sm:hidden">
+                  {isPrelaunch ? "Coming soon" : `${daysRemaining(project)} days left`}
+                </p>
+              </div>
+
+              <p className="hidden whitespace-nowrap text-right text-sm font-semibold sm:block">
+                {isPrelaunch ? "Coming soon" : `${daysRemaining(project)} days left`}
+              </p>
+            </Link>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ProjectResults({ items, view }: { items: Project[]; view: "list" | "cards" }) {
+  return view === "list" ? <ProjectList items={items} /> : <ProjectGrid items={items} />;
+}

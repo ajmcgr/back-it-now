@@ -1,15 +1,37 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { ProjectGrid } from "@/components/backed/project-card";
+import { ProjectResults } from "@/components/backed/project-card";
+import { ProjectDiscoveryControls } from "@/components/backed/project-discovery-controls";
 import { PublicAnalyticsCounter } from "@/components/backed/public-analytics-counter";
 import { Button } from "@/components/ui/button";
+import {
+  DEFAULT_PROJECT_SORT,
+  DEFAULT_PROJECT_VIEW,
+  mergeDiscoveryProjects,
+  parseProjectSort,
+  parseProjectView,
+  projectSorts,
+  projectViews,
+  sortDiscoveryProjects,
+  type ProjectSort,
+  type ProjectView,
+} from "@/lib/project-discovery";
 import { projects, type Project } from "@/lib/projects";
-import { loadCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
+import { loadRankedCanonicalProjects, presentationAsProject } from "@/lib/project-presentation";
 import { absoluteUrl, publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
-  loader: async () =>
-    (await loadCanonicalProjects()).map(({ slug, presentation }) =>
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...(projectSorts.includes(search["sort"] as ProjectSort)
+      ? { sort: search["sort"] as ProjectSort }
+      : {}),
+    ...(projectViews.includes(search["view"] as ProjectView)
+      ? { view: search["view"] as ProjectView }
+      : {}),
+  }),
+  loaderDeps: ({ search }) => ({ sort: parseProjectSort(search.sort) }),
+  loader: async ({ deps }) =>
+    (await loadRankedCanonicalProjects(deps.sort, 6)).map(({ slug, presentation }) =>
       presentationAsProject(slug, presentation),
     ),
   head: () =>
@@ -44,12 +66,15 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { sort: sortSearch, view: viewSearch } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const sort = parseProjectSort(sortSearch);
+  const view = parseProjectView(viewSearch);
   const canonicalProjects = Route.useLoaderData() as Project[];
-  const liveProjects = [
-    ...projects.filter((project) => !canonicalProjects.some((item) => item.slug === project.slug)),
-    ...canonicalProjects,
-  ].filter((project) => project.status === "live");
-  const newAndNoteworthy = liveProjects.slice(3);
+  const discoveryProjects = sortDiscoveryProjects(
+    mergeDiscoveryProjects(canonicalProjects, projects),
+    sort,
+  ).slice(0, 6);
   const categories = [
     "All",
     "Technology",
@@ -60,6 +85,15 @@ function Index() {
     "Food",
     "Other",
   ];
+
+  function setDiscoveryState(nextSort: ProjectSort, nextView: ProjectView) {
+    void navigate({
+      search: {
+        sort: nextSort === DEFAULT_PROJECT_SORT ? undefined : nextSort,
+        view: nextView === DEFAULT_PROJECT_VIEW ? undefined : nextView,
+      },
+    });
+  }
 
   return (
     <main>
@@ -104,27 +138,40 @@ function Index() {
       </section>
 
       <section className="container-backed pb-20 sm:pb-24">
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+        <div className="mb-7 flex items-end justify-between gap-4">
           <h2 className="text-3xl font-semibold">Projects worth backing</h2>
           <Link
             to="/discover"
-            search={{}}
-            className="hidden items-center gap-1 text-sm font-semibold hover:text-primary sm:inline-flex"
+            search={{ sort, view }}
+            className="hidden shrink-0 items-center gap-1 text-sm font-semibold hover:text-primary sm:inline-flex"
           >
-            View all <ArrowRight className="size-4" />
+            View all projects <ArrowRight className="size-4" />
           </Link>
         </div>
-        <ProjectGrid items={liveProjects.slice(0, 3)} />
-      </section>
-
-      {newAndNoteworthy.length > 0 && (
-        <section className="border-t border-border bg-muted/40 py-20">
-          <div className="container-backed text-center">
-            <h2 className="mb-8 text-3xl font-semibold">New &amp; noteworthy</h2>
-            <ProjectGrid items={newAndNoteworthy} />
+        <div className="mb-7">
+          <ProjectDiscoveryControls
+            sort={sort}
+            view={view}
+            onSortChange={(nextSort) => setDiscoveryState(nextSort, view)}
+            onViewChange={(nextView) => setDiscoveryState(sort, nextView)}
+          />
+        </div>
+        {discoveryProjects.length ? (
+          <ProjectResults items={discoveryProjects} view={view} />
+        ) : (
+          <div className="border-y border-border py-16 text-center">
+            <h3 className="text-xl font-semibold">No projects to show yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Try another sort.</p>
           </div>
-        </section>
-      )}
+        )}
+        <Link
+          to="/discover"
+          search={{ sort, view }}
+          className="mt-7 inline-flex items-center gap-1 text-sm font-semibold hover:text-primary sm:hidden"
+        >
+          View all projects <ArrowRight className="size-4" />
+        </Link>
+      </section>
 
       <section className="border-t border-border py-8">
         <div className="container-backed">
