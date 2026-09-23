@@ -31,6 +31,7 @@ import {
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { NotificationBell } from "@/components/backed/notification-bell";
 import { NewsletterSignup } from "@/components/backed/newsletter-signup";
+import { DesktopSiteSearch, MobileSiteSearch } from "@/components/backed/site-search";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -290,20 +291,23 @@ function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-sm">
-      <div className="container-backed grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:h-[4.5rem] sm:gap-3 md:grid-cols-[1fr_auto_1fr]">
-        <Link
-          to="/"
-          aria-label="Backed home"
-          className="w-fit shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-        >
-          <img
-            src="/logo.png"
-            alt="Backed"
-            width={3654}
-            height={1291}
-            className="h-10 max-w-full object-contain object-left sm:h-14"
-          />
-        </Link>
+      <div className="container-backed grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:h-[4.5rem] sm:gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            to="/"
+            aria-label="Backed home"
+            className="w-fit shrink-0 rounded-sm p-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <img
+              src="/logo.png"
+              alt="Backed"
+              width={3654}
+              height={1291}
+              className="h-10 w-auto object-contain sm:h-14"
+            />
+          </Link>
+          <DesktopSiteSearch />
+        </div>
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
           <Link
             to="/discover"
@@ -338,6 +342,7 @@ function SiteHeader() {
               FAQ
             </Link>
           </nav>
+          <MobileSiteSearch />
           <div className="max-[359px]:hidden">
             <ThemeToggle />
           </div>
