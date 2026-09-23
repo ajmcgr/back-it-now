@@ -141,6 +141,10 @@ function drawCoverImage(
   const scale = Math.max(width / image.width, height / image.height);
   const renderedWidth = image.width * scale;
   const renderedHeight = image.height * scale;
+  context.save();
+  context.beginPath();
+  context.rect(x, y, width, height);
+  context.clip();
   context.drawImage(
     image,
     x + (width - renderedWidth) / 2,
@@ -148,6 +152,7 @@ function drawCoverImage(
     renderedWidth,
     renderedHeight,
   );
+  context.restore();
 }
 
 function loadImage(source: string) {
