@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { NotificationBell } from "@/components/backed/notification-bell";
+import { NewsletterSignup } from "@/components/backed/newsletter-signup";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -183,14 +185,46 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
     <QueryClientProvider client={queryClient}>
       <SiteHeader />
       <Outlet />
+      {showNewsletterSignup(pathname) ? <NewsletterSignup /> : null}
       <SiteFooter />
     </QueryClientProvider>
   );
+}
+
+const publicNewsletterPages = new Set([
+  "/",
+  "/about",
+  "/contact",
+  "/discover",
+  "/faq",
+  "/pricing",
+  "/privacy",
+  "/terms",
+]);
+
+const privateRootSegments = new Set([
+  "admin",
+  "api",
+  "auth",
+  "dashboard",
+  "settings",
+  "sitemap.xml",
+  "start",
+]);
+
+function showNewsletterSignup(pathname: string) {
+  const normalized = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+  if (publicNewsletterPages.has(normalized)) return true;
+  if (/^\/projects\/[^/]+(?:\/updates\/[^/]+)?$/.test(normalized)) return true;
+
+  const segments = normalized.split("/").filter(Boolean);
+  return segments.length === 1 && !privateRootSegments.has(segments[0]);
 }
 
 function SiteHeader() {
