@@ -130,12 +130,17 @@ function StartPage() {
   async function saveDraft() {
     if (!supabase) throw new Error("Project saving is temporarily unavailable.");
     const secret = draftRecord?.secret ?? `${crypto.randomUUID()}${crypto.randomUUID()}`;
+    const plannedLaunchInput = draftText(draft.plannedLaunchAt);
+    const payload = {
+      ...draft,
+      plannedLaunchAt: plannedLaunchInput ? new Date(plannedLaunchInput).toISOString() : "",
+    };
     const { data, error } = await supabase.functions.invoke("project-drafts", {
       body: {
         action: draftRecord ? "save" : "create",
         id: draftRecord?.id,
         secret,
-        payload: draft,
+        payload,
       },
     });
     if (error || !data?.id) throw new Error("Could not save your draft.");
@@ -243,7 +248,9 @@ function StartPage() {
       if (error || !data?.slug) throw new Error(data?.error || "Could not launch your project.");
       localStorage.removeItem("backed-project-draft");
       localStorage.removeItem("backed-project-draft-record");
-      location.assign(`/projects/${data.slug}?published=1&share=1`);
+      location.assign(
+        `/projects/${data.slug}?published=1${data.status === "prelaunch" ? "&prelaunch=1" : "&share=1"}`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not launch your project.");
     } finally {
@@ -460,7 +467,7 @@ function StartPage() {
                       Add images
                     </span>
                   </button>
-                   <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                     <Input
                       type="url"
                       value={youtubeUrl}
@@ -525,7 +532,7 @@ function StartPage() {
             )}
             {step === 4 && (
               <div>
-                 <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <p className="text-sm text-muted-foreground">
                     Preview only — your project is not public until you publish it.
                   </p>
@@ -570,6 +577,50 @@ function StartPage() {
                     </div>
                   </div>
                 </article>
+                <div className="mt-6 rounded-md border border-border p-5">
+                  <h3 className="font-semibold">How would you like to publish?</h3>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {[
+                      {
+                        value: "live",
+                        title: "Launch now",
+                        body: "Your project becomes live and can accept backings.",
+                      },
+                      {
+                        value: "prelaunch",
+                        title: "Start pre-launch",
+                        body: "Build interest first. You’ll launch payments manually later.",
+                      },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => update("launchMode", option.value)}
+                        className={`rounded-md border p-4 text-left transition-colors ${
+                          (draftText(draft.launchMode) || "live") === option.value
+                            ? "border-foreground bg-muted/50"
+                            : "border-border hover:border-foreground/40"
+                        }`}
+                      >
+                        <strong className="block">{option.title}</strong>
+                        <span className="mt-1 block text-sm text-muted-foreground">
+                          {option.body}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {(draftText(draft.launchMode) || "live") === "prelaunch" ? (
+                    <label className="mt-5 block">
+                      <span className="mb-2 block text-sm font-semibold">
+                        Planned launch date and time (optional)
+                      </span>
+                      <Input type="datetime-local" {...field("plannedLaunchAt")} />
+                      <span className="mt-2 block text-xs text-muted-foreground">
+                        Informational only. Your project will not launch automatically.
+                      </span>
+                    </label>
+                  ) : null}
+                </div>
               </div>
             )}
           </div>
@@ -595,7 +646,13 @@ function StartPage() {
               </Button>
             ) : (
               <Button disabled={isSaving} onClick={() => void publish()}>
-                {isSaving ? "Saving…" : isAuthenticated ? "Launch project" : "Sign in to launch"}
+                {isSaving
+                  ? "Saving…"
+                  : isAuthenticated
+                    ? (draftText(draft.launchMode) || "live") === "prelaunch"
+                      ? "Start pre-launch"
+                      : "Launch project"
+                    : "Sign in to publish"}
               </Button>
             )}
           </div>

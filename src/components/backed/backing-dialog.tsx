@@ -101,7 +101,7 @@ export function BackingCheckoutButton({
               No reward — just back this project.
             </label>
             <label
-               className={`flex items-start gap-2 leading-5 ${amount < rewardMinimum ? "text-muted-foreground" : ""}`}
+              className={`flex items-start gap-2 leading-5 ${amount < rewardMinimum ? "text-muted-foreground" : ""}`}
             >
               <input
                 type="radio"

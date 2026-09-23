@@ -34,6 +34,7 @@ export function CreatorIdentity({ creator }: { creator: CanonicalProjectCreator 
 
 export function ProjectCard({ project }: { project: Project }) {
   const funded = percent(project);
+  const isPrelaunch = project.status === "prelaunch";
   const creator = project.creatorUsername
     ? {
         username: project.creatorUsername,
@@ -76,21 +77,36 @@ export function ProjectCard({ project }: { project: Project }) {
         <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">
           {project.description}
         </p>
-        <Progress value={Math.min(funded, 100)} className="mt-4 h-1.5" />
-        <div className="mt-2 flex items-start justify-between gap-3 text-xs">
-          <div>
-            <strong className="block text-sm text-foreground">
-              {money(amountBacked(project))}
-            </strong>
-            <span className="text-muted-foreground">{funded}% funded</span>
+        {isPrelaunch ? (
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3 text-sm">
+            <strong>Coming soon</strong>
+            <span className="text-muted-foreground">
+              {project.favoriteCount} {project.favoriteCount === 1 ? "person" : "people"} interested
+            </span>
           </div>
-          <span className="pt-1 text-muted-foreground">{daysRemaining(project)} days left</span>
-        </div>
+        ) : (
+          <>
+            <Progress value={Math.min(funded, 100)} className="mt-4 h-1.5" />
+            <div className="mt-2 flex items-start justify-between gap-3 text-xs">
+              <div>
+                <strong className="block text-sm text-foreground">
+                  {money(amountBacked(project))}
+                </strong>
+                <span className="text-muted-foreground">{funded}% funded</span>
+              </div>
+              <span className="pt-1 text-muted-foreground">{daysRemaining(project)} days left</span>
+            </div>
+          </>
+        )}
         <div
           className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
-          aria-label={`${project.successfulBackingCount} backers, ${project.commentCount} comments, ${project.favoriteCount} favorites`}
+          aria-label={
+            isPrelaunch
+              ? `${project.favoriteCount} interested, ${project.commentCount} comments`
+              : `${project.successfulBackingCount} backers, ${project.commentCount} comments, ${project.favoriteCount} favorites`
+          }
         >
-          <span className="inline-flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1.5 ${isPrelaunch ? "hidden" : ""}`}>
             <Users className="size-3.5" aria-hidden="true" />
             {project.successfulBackingCount}
             <span className="sr-only"> backers</span>
@@ -100,7 +116,7 @@ export function ProjectCard({ project }: { project: Project }) {
             {project.commentCount}
             <span className="sr-only"> comments</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1.5 ${isPrelaunch ? "hidden" : ""}`}>
             <Heart className="size-3.5" aria-hidden="true" />
             {project.favoriteCount}
             <span className="sr-only"> favorites</span>

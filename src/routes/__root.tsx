@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import { NotificationBell } from "@/components/backed/notification-bell";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -306,50 +307,53 @@ function SiteHeader() {
             <ThemeToggle />
           </div>
           {account ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Open account menu"
-                  className="rounded-full p-0.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  <ProfileAvatar
-                    avatarUrl={account.avatarUrl}
-                    displayName={account.displayName}
-                    username={account.username}
-                    className="size-9 border border-border"
-                  />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-40">
-                <DropdownMenuItem asChild>
-                  {account.username ? (
-                    <Link to="/$username" params={{ username: account.username }}>
-                      Profile
-                    </Link>
-                  ) : (
-                    <Link to="/settings">Profile</Link>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard">Dashboard</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings">Settings</Link>
-                </DropdownMenuItem>
-                {isAdmin && (
+            <>
+              <NotificationBell />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Open account menu"
+                    className="rounded-full p-0.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                  >
+                    <ProfileAvatar
+                      avatarUrl={account.avatarUrl}
+                      displayName={account.displayName}
+                      username={account.username}
+                      className="size-9 border border-border"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-40">
                   <DropdownMenuItem asChild>
-                    <Link to="/admin">Admin</Link>
+                    {account.username ? (
+                      <Link to="/$username" params={{ username: account.username }}>
+                        Profile
+                      </Link>
+                    ) : (
+                      <Link to="/settings">Profile</Link>
+                    )}
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={signOut}>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Admin</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={signOut}>Log out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <Link
               to="/auth"
-               className="whitespace-nowrap rounded-md bg-black px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="whitespace-nowrap rounded-md bg-black px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Sign in
             </Link>
@@ -364,7 +368,7 @@ function SiteHeader() {
                 <Menu className="size-5" />
               </button>
             </SheetTrigger>
-             <SheetContent className="flex w-[min(88vw,22rem)] flex-col overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <SheetContent className="flex w-[min(88vw,22rem)] flex-col overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>

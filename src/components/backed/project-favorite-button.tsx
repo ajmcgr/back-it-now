@@ -7,9 +7,11 @@ import { supabase } from "@/lib/supabase";
 export function ProjectFavoriteButton({
   slug,
   initialCount,
+  notificationMode = false,
 }: {
   slug: string;
   initialCount: number;
+  notificationMode?: boolean;
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -98,12 +100,26 @@ export function ProjectFavoriteButton({
         variant="outline"
         className="w-full"
         aria-pressed={isFavorited}
-        aria-label={isFavorited ? "Remove from favorites" : "Favorite project"}
+        aria-label={
+          isFavorited
+            ? notificationMode
+              ? "Stop launch notifications"
+              : "Remove from favorites"
+            : notificationMode
+              ? "Notify me when this project launches"
+              : "Favorite project"
+        }
         disabled={isSaving}
         onClick={handleClick}
       >
         <Heart className={isFavorited ? "fill-current" : ""} aria-hidden="true" />
-        {isFavorited ? "Favorited" : "Favorite"}
+        {isFavorited
+          ? notificationMode
+            ? "You’ll be notified"
+            : "Favorited"
+          : notificationMode
+            ? "Notify me when it launches"
+            : "Favorite"}
         <span className="text-muted-foreground">{favoriteCount}</span>
       </Button>
       {message ? (

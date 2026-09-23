@@ -50,9 +50,11 @@ export const Route = createFileRoute("/projects/$slug")({
       slug: params.slug,
       presentation,
       similarProjects: similarPresentations.map(
-        ({ slug, presentation: similar }: Awaited<
-          ReturnType<typeof loadSimilarCanonicalProjects>
-        >[number]) => presentationAsProject(slug, similar),
+        ({
+          slug,
+          presentation: similar,
+        }: Awaited<ReturnType<typeof loadSimilarCanonicalProjects>>[number]) =>
+          presentationAsProject(slug, similar),
       ),
     };
   },
@@ -63,7 +65,12 @@ export const Route = createFileRoute("/projects/$slug")({
     const project = presentation ? presentationAsProject(slug, presentation) : fallback;
     if (!project) return privateSeo("Project not found — Backed");
     const title = `${project.title} | Backed`;
-    const description = trimDescription(project.tagline, `Back ${project.title} on Backed.`);
+    const description = trimDescription(
+      project.tagline,
+      project.status === "prelaunch"
+        ? `Follow ${project.title} on Backed and get notified when it launches.`
+        : `Back ${project.title} on Backed.`,
+    );
     const path = `/projects/${project.slug}`;
     const coverImage = absoluteUrl(
       resolveProjectCover({
@@ -140,6 +147,8 @@ function ProjectPage() {
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState(false);
   const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState("");
   const [commentCount, setCommentCount] = useState<number | null>(
     presentation?.commentCount ?? fallback?.commentCount ?? null,
   );
@@ -148,9 +157,14 @@ function ProjectPage() {
     amount?: number;
   }>({ state: "idle" });
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
+  const isPrelaunch = project?.status === "prelaunch";
   const creator = presentation?.creator;
   useEffect(() => {
     const selectLinkedTab = () => {
+      if (isPrelaunch) {
+        setTab("Story");
+        return;
+      }
       const linkedTab = {
         "#updates": "Updates",
         "#backers": "Backers",
@@ -161,8 +175,9 @@ function ProjectPage() {
     selectLinkedTab();
     window.addEventListener("hashchange", selectLinkedTab);
     return () => window.removeEventListener("hashchange", selectLinkedTab);
-  }, []);
+  }, [isPrelaunch]);
   useEffect(() => {
+    if (isPrelaunch) return;
     let cancelled = false;
     void loadProjectComments(slug)
       .then((comments) => {
@@ -172,7 +187,7 @@ function ProjectPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [isPrelaunch, slug]);
   useEffect(() => {
     if (!supabase || !creator?.username) {
       setOwnershipResolved(true);
@@ -247,6 +262,20 @@ function ProjectPage() {
       cancelled = true;
     };
   }, [slug]);
+  const launchProject = async () => {
+    if (!supabase || isLaunching) return;
+    setIsLaunching(true);
+    setLaunchError("");
+    const { data, error } = await supabase.functions.invoke("project-lifecycle", {
+      body: { slug },
+    });
+    setIsLaunching(false);
+    if (error || !data?.slug) {
+      setLaunchError("We couldn’t launch this project. Please try again.");
+      return;
+    }
+    window.location.assign(`/projects/${data.slug}?published=1&share=1`);
+  };
   if (!project)
     return (
       <main className="container-backed py-24 text-center text-muted-foreground">
@@ -272,8 +301,14 @@ function ProjectPage() {
       <div className="container-backed pt-8 sm:pt-16">
         {publishedNotice && (
           <div className="mb-8 rounded-md border border-primary/30 bg-primary/5 p-5">
-            <p className="text-xl font-semibold">Your project is live 🎉</p>
-            <p className="mt-1 text-sm text-muted-foreground">Now get your first backers.</p>
+            <p className="text-xl font-semibold">
+              {isPrelaunch ? "Your pre-launch page is public" : "Your project is live 🎉"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isPrelaunch
+                ? "Share it to build interest before you launch."
+                : "Now get your first backers."}
+            </p>
             <Button className="mt-4" onClick={() => setIsPosterOpen(true)}>
               Share project
             </Button>
@@ -371,22 +406,39 @@ function ProjectPage() {
           />
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <p className="text-4xl font-semibold">{money(amountBacked(project))}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              backed of {money(project.goal)} goal
-            </p>
-            <Progress value={Math.min(funded, 100)} className="my-6 h-2" />
-            <p className="mb-5 text-sm font-semibold">{funded}% funded</p>
-            <div className="grid grid-cols-2 gap-5 border-y border-border py-5">
-              <div>
-                <strong className="block text-xl">{project.successfulBackingCount}</strong>
-                <span className="text-xs text-muted-foreground">backers</span>
+            {isPrelaunch ? (
+              <div className="border-y border-border py-5">
+                <p className="text-sm font-semibold text-primary">Pre-launch</p>
+                <p className="mt-2 text-3xl font-semibold">
+                  {project.plannedLaunchAt
+                    ? `Launching ${new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(project.plannedLaunchAt))}`
+                    : "Coming soon"}
+                </p>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {project.favoriteCount} {project.favoriteCount === 1 ? "person is" : "people are"}{" "}
+                  interested
+                </p>
               </div>
-              <div>
-                <strong className="block text-xl">{remaining}</strong>
-                <span className="text-xs text-muted-foreground">days to go</span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <p className="text-4xl font-semibold">{money(amountBacked(project))}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  backed of {money(project.goal)} goal
+                </p>
+                <Progress value={Math.min(funded, 100)} className="my-6 h-2" />
+                <p className="mb-5 text-sm font-semibold">{funded}% funded</p>
+                <div className="grid grid-cols-2 gap-5 border-y border-border py-5">
+                  <div>
+                    <strong className="block text-xl">{project.successfulBackingCount}</strong>
+                    <span className="text-xs text-muted-foreground">backers</span>
+                  </div>
+                  <div>
+                    <strong className="block text-xl">{remaining}</strong>
+                    <span className="text-xs text-muted-foreground">days to go</span>
+                  </div>
+                </div>
+              </>
+            )}
             <div className="my-6 rounded-md border border-border p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Reward
@@ -397,7 +449,28 @@ function ProjectPage() {
               </p>
               {availability && <p className="mt-3 text-sm font-semibold">{availability}</p>}
             </div>
-            {ownershipResolved ? (
+            {isPrelaunch ? (
+              !ownershipResolved ? (
+                <Button size="lg" className="w-full" disabled>
+                  Checking availability…
+                </Button>
+              ) : isOwner ? (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  disabled={isLaunching}
+                  onClick={() => void launchProject()}
+                >
+                  {isLaunching ? "Launching…" : "Launch project"}
+                </Button>
+              ) : (
+                <ProjectFavoriteButton
+                  slug={project.slug}
+                  initialCount={project.favoriteCount}
+                  notificationMode
+                />
+              )
+            ) : ownershipResolved ? (
               isOwner ? (
                 <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-center text-sm font-medium text-muted-foreground">
                   You can’t back your own project.
@@ -413,9 +486,11 @@ function ProjectPage() {
             <Button variant="outline" className="mt-3 w-full" onClick={() => setIsPosterOpen(true)}>
               {isOwner ? "Share project" : "Share"}
             </Button>
-            <div className="mt-3">
-              <ProjectFavoriteButton slug={project.slug} initialCount={project.favoriteCount} />
-            </div>
+            {!isPrelaunch ? (
+              <div className="mt-3">
+                <ProjectFavoriteButton slug={project.slug} initialCount={project.favoriteCount} />
+              </div>
+            ) : null}
             {isOwner && (
               <Button asChild variant="ghost" className="mt-1 w-full">
                 <Link to="/projects/$slug/edit" params={{ slug: project.slug }}>
@@ -423,10 +498,13 @@ function ProjectPage() {
                 </Link>
               </Button>
             )}
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              This is a reward-based project. Backing does not provide equity, ownership, or
-              financial returns.
-            </p>
+            {launchError ? <p className="mt-3 text-xs text-destructive">{launchError}</p> : null}
+            {!isPrelaunch ? (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                This is a reward-based project. Backing does not provide equity, ownership, or
+                financial returns.
+              </p>
+            ) : null}
           </aside>
         </div>
       </div>
@@ -437,7 +515,10 @@ function ProjectPage() {
           role="tablist"
           aria-label="Project details"
         >
-          {(["Story", "Updates", "Backers", "Comments"] as const).map((item) => (
+          {(isPrelaunch
+            ? (["Story"] as const)
+            : (["Story", "Updates", "Backers", "Comments"] as const)
+          ).map((item) => (
             <button
               key={item}
               type="button"
@@ -518,7 +599,23 @@ function ProjectPage() {
       ) : null}
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background px-3 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] lg:hidden">
-        {ownershipResolved ? (
+        {isPrelaunch ? (
+          !ownershipResolved ? (
+            <Button className="w-full" disabled>
+              Checking availability…
+            </Button>
+          ) : isOwner ? (
+            <Button className="w-full" disabled={isLaunching} onClick={() => void launchProject()}>
+              {isLaunching ? "Launching…" : "Launch project"}
+            </Button>
+          ) : (
+            <ProjectFavoriteButton
+              slug={project.slug}
+              initialCount={project.favoriteCount}
+              notificationMode
+            />
+          )
+        ) : ownershipResolved ? (
           isOwner ? (
             <Button className="w-full" onClick={() => setIsPosterOpen(true)}>
               Share project

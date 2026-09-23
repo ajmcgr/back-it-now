@@ -25,6 +25,8 @@ export type CanonicalProjectPresentation = {
   successfulBackerCount: number;
   commentCount: number;
   favoriteCount: number;
+  status: "prelaunch" | "live";
+  plannedLaunchAt: string | null;
   deadlineAt: string | null;
   rewardTitle: string | null;
   rewardDescription: string | null;
@@ -68,7 +70,7 @@ export async function loadCanonicalProjectPresentation(slug: string) {
   const { data, error } = await publicSupabase
     .from("public_profile_projects")
     .select(
-      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, comment_count, favorite_count, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
+      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, comment_count, favorite_count, status, planned_launch_at, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -131,7 +133,8 @@ export function presentationAsProject(
     location: presentation.location ?? "",
     projectDates: presentation.projectDates ?? "",
     externalWebsite: presentation.externalWebsite ?? "",
-    status: "live",
+    status: presentation.status,
+    plannedLaunchAt: presentation.plannedLaunchAt,
     deadline: presentation.deadlineAt ?? new Date().toISOString(),
     initialBackedAmount: presentation.initialBackedAmount / 100,
     successfulBackingAmount: presentation.successfulBackedAmount / 100,
@@ -182,6 +185,9 @@ export function presentationFromPublicRow(
       typeof data["successful_backer_count"] === "number" ? data["successful_backer_count"] : 0,
     commentCount: typeof data["comment_count"] === "number" ? data["comment_count"] : 0,
     favoriteCount: typeof data["favorite_count"] === "number" ? data["favorite_count"] : 0,
+    status: data["status"] === "prelaunch" ? "prelaunch" : "live",
+    plannedLaunchAt:
+      typeof data["planned_launch_at"] === "string" ? data["planned_launch_at"] : null,
     deadlineAt: typeof data["deadline_at"] === "string" ? data["deadline_at"] : null,
     rewardTitle: typeof data["reward_title"] === "string" ? data["reward_title"] : null,
     rewardDescription:

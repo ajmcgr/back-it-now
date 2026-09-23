@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sanitizeGalleryMedia } from "../_shared/project-gallery.ts";
+import { deliverProjectLaunchEmails } from "../_shared/audience-email.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "https://backedit.co",
@@ -155,7 +156,36 @@ Deno.serve(async (request) => {
           .eq("id", project.project_id)
           .eq("creator_id", auth.user.id);
       }
-      return respond({ id: project.project_id, slug: project.project_slug });
+      const { data: publishedProject } = await admin
+        .from("projects")
+        .select("id, slug, name, status")
+        .eq("id", project.project_id)
+        .maybeSingle();
+      let notifications = { sent: 0, failed: 0 };
+      if (publishedProject?.status === "live") {
+        const { data: launchEvent } = await admin
+          .from("project_launch_events")
+          .select("id")
+          .eq("project_id", project.project_id)
+          .maybeSingle();
+        if (launchEvent) {
+          notifications = await deliverProjectLaunchEmails(
+            admin,
+            {
+              id: publishedProject.id,
+              slug: publishedProject.slug,
+              name: publishedProject.name,
+            },
+            launchEvent.id,
+          );
+        }
+      }
+      return respond({
+        id: project.project_id,
+        slug: project.project_slug,
+        status: publishedProject?.status ?? "live",
+        notifications,
+      });
     }
     return respond({ error: "unknown_action" }, 400);
   } catch (error) {

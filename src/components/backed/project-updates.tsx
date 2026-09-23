@@ -104,12 +104,14 @@ function UpdateShareDialog({
         </DialogHeader>
         {links ? (
           <div className="grid grid-cols-2 gap-3">
-            {([
-              ["X", links.x, "share_x"],
-              ["LinkedIn", links.linkedin, "share_linkedin"],
-              ["Reddit", links.reddit, "share_reddit"],
-              ["WhatsApp", links.whatsapp, "share_whatsapp"],
-            ] as Array<[string, string, string]>).map(([label, href, event]) => (
+            {(
+              [
+                ["X", links.x, "share_x"],
+                ["LinkedIn", links.linkedin, "share_linkedin"],
+                ["Reddit", links.reddit, "share_reddit"],
+                ["WhatsApp", links.whatsapp, "share_whatsapp"],
+              ] as Array<[string, string, string]>
+            ).map(([label, href, event]) => (
               <Button key={label} asChild variant="outline">
                 <a
                   href={href}

@@ -334,20 +334,22 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
                 >
                   Edit
                 </Link>
-                {project.status === "live" && (
+                {(project.status === "live" || project.status === "prelaunch") && (
                   <a href={`/projects/${project.slug}?share=1`} className="hover:underline">
                     Share
                   </a>
                 )}
-                <a href={`/projects/${project.slug}#backers`} className="hover:underline">
-                  Backers
-                </a>
+                {project.status !== "prelaunch" && (
+                  <a href={`/projects/${project.slug}#backers`} className="hover:underline">
+                    Backers
+                  </a>
+                )}
               </div>
             </div>
             <div>
               <span className="mb-1 block text-xs text-muted-foreground md:hidden">Status</span>
               <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold capitalize">
-                {project.status}
+                {project.status === "prelaunch" ? "Pre-launch" : project.status}
               </span>
             </div>
             <div>

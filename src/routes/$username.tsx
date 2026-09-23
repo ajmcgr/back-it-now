@@ -2,6 +2,7 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import { CreatorFollowButton } from "@/components/backed/creator-follow-button";
 import { ProjectGrid } from "@/components/backed/project-card";
 import { Button } from "@/components/ui/button";
 import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
@@ -15,7 +16,7 @@ type PublicProfile = {
   avatar_url: string | null;
   bio: string | null;
   website: string | null;
-  show_public_favorites: boolean;
+  follower_count: number;
 };
 
 export const Route = createFileRoute("/$username")({
@@ -24,25 +25,20 @@ export const Route = createFileRoute("/$username")({
     if (!publicSupabase || !/^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]$/.test(username)) {
       throw notFound();
     }
-    const [
-      { data: profile, error: profileError },
-      { data: projectRows, error: projectsError },
-      { data: favoriteRows, error: favoritesError },
-    ] = await Promise.all([
-      publicSupabase
-        .from("public_profiles")
-        .select("username, display_name, avatar_url, bio, website, show_public_favorites")
-        .eq("username", username)
-        .maybeSingle(),
-      publicSupabase
-        .from("public_profile_projects")
-        .select("*")
-        .eq("creator_username", username)
-        .order("deadline_at", { ascending: true }),
-      publicSupabase.rpc("list_public_profile_favorites", { p_username: username }),
-    ]);
-    if (profileError || projectsError || favoritesError)
-      throw new Error("Public profile data is unavailable.");
+    const [{ data: profile, error: profileError }, { data: projectRows, error: projectsError }] =
+      await Promise.all([
+        publicSupabase
+          .from("public_profiles")
+          .select("username, display_name, avatar_url, bio, website, follower_count")
+          .eq("username", username)
+          .maybeSingle(),
+        publicSupabase
+          .from("public_profile_projects")
+          .select("*")
+          .eq("creator_username", username)
+          .order("deadline_at", { ascending: true }),
+      ]);
+    if (profileError || projectsError) throw new Error("Public profile data is unavailable.");
     if (!profile) throw notFound();
     const toProjects = (rows: Array<Record<string, unknown>>): Project[] =>
       rows.flatMap((row) => {
@@ -54,7 +50,6 @@ export const Route = createFileRoute("/$username")({
     return {
       profile: profile as PublicProfile,
       projects: toProjects((projectRows ?? []) as Array<Record<string, unknown>>),
-      favorites: toProjects((favoriteRows ?? []) as Array<Record<string, unknown>>),
     };
   },
   head: ({ loaderData }) => {
@@ -114,7 +109,7 @@ function safeWebsite(value: string | null) {
 }
 
 function PublicProfilePage() {
-  const { profile, projects, favorites } = Route.useLoaderData();
+  const { profile, projects } = Route.useLoaderData();
   const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
@@ -152,6 +147,18 @@ function PublicProfilePage() {
           ) : null}
         </div>
         <p className="mt-2 text-lg text-muted-foreground">@{profile.username}</p>
+        {!isOwnProfile ? (
+          <div className="mt-5">
+            <CreatorFollowButton
+              username={profile.username}
+              initialCount={profile.follower_count}
+            />
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {profile.follower_count} {profile.follower_count === 1 ? "follower" : "followers"}
+          </p>
+        )}
         {profile.bio ? (
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8">{profile.bio}</p>
         ) : null}
@@ -185,21 +192,6 @@ function PublicProfilePage() {
           </div>
         )}
       </section>
-
-      {profile.show_public_favorites ? (
-        <section className="mx-auto mt-16 max-w-5xl">
-          <h2 className="text-3xl font-semibold">Favorites</h2>
-          {favorites.length ? (
-            <div className="mt-7">
-              <ProjectGrid items={favorites} />
-            </div>
-          ) : (
-            <div className="mt-7 rounded-md border border-border p-8 text-center">
-              <p className="text-muted-foreground">No public favorites yet.</p>
-            </div>
-          )}
-        </section>
-      ) : null}
     </main>
   );
 }

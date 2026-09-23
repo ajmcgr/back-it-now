@@ -109,12 +109,14 @@ function ProjectUpdatePage() {
             <span className="mr-2 inline-flex items-center gap-2 text-sm font-semibold">
               <Share2 className="size-4" /> Share update
             </span>
-            {([
-              ["X", links.x, "share_x"],
-              ["LinkedIn", links.linkedin, "share_linkedin"],
-              ["Reddit", links.reddit, "share_reddit"],
-              ["WhatsApp", links.whatsapp, "share_whatsapp"],
-            ] as Array<[string, string, string]>).map(([label, href, event]) => (
+            {(
+              [
+                ["X", links.x, "share_x"],
+                ["LinkedIn", links.linkedin, "share_linkedin"],
+                ["Reddit", links.reddit, "share_reddit"],
+                ["WhatsApp", links.whatsapp, "share_whatsapp"],
+              ] as Array<[string, string, string]>
+            ).map(([label, href, event]) => (
               <Button key={label} asChild variant="outline" size="sm">
                 <a
                   href={href}
