@@ -97,23 +97,29 @@ function Index() {
 
   return (
     <main>
-      <section className="container-backed pb-14 pt-14 text-center sm:pb-24 sm:pt-28">
+      <section className="container-backed pt-5 sm:pt-6">
+        <nav
+          aria-label="Project categories"
+          className="flex gap-5 overflow-x-auto pb-2 text-left sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
+        >
+          {categories.map((category) => (
+            <Link
+              key={category}
+              to="/discover"
+              search={category === "All" ? {} : { category }}
+              className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              {category}
+            </Link>
+          ))}
+        </nav>
+      </section>
+
+      <section className="container-backed pb-14 pt-10 text-center sm:pb-24 sm:pt-16">
         <div className="mx-auto max-w-4xl">
-          <nav
-            aria-label="Project categories"
-            className="mb-7 flex gap-5 overflow-x-auto pb-2 text-left sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
-          >
-            {categories.map((category) => (
-              <Link
-                key={category}
-                to="/discover"
-                search={category === "All" ? {} : { category }}
-                className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                {category}
-              </Link>
-            ))}
-          </nav>
+          <div className="mb-6">
+            <PublicAnalyticsCounter />
+          </div>
           <h1 className="type-display text-4xl font-semibold text-foreground sm:text-6xl lg:text-7xl">
             Back things you want to exist.
           </h1>
@@ -171,12 +177,6 @@ function Index() {
         >
           View all projects <ArrowRight className="size-4" />
         </Link>
-      </section>
-
-      <section className="border-t border-border py-8">
-        <div className="container-backed">
-          <PublicAnalyticsCounter />
-        </div>
       </section>
 
       <section className="container-backed py-20 text-center sm:py-28">
