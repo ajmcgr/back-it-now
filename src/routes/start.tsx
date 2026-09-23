@@ -130,7 +130,7 @@ function StartPage() {
   async function saveDraft() {
     if (!supabase) throw new Error("Project saving is temporarily unavailable.");
     const secret = draftRecord?.secret ?? `${crypto.randomUUID()}${crypto.randomUUID()}`;
-    const plannedLaunchInput = draftText(draft.plannedLaunchAt);
+    const plannedLaunchInput = draftText(draft["plannedLaunchAt"]);
     const payload = {
       ...draft,
       plannedLaunchAt: plannedLaunchInput ? new Date(plannedLaunchInput).toISOString() : "",
@@ -597,7 +597,7 @@ function StartPage() {
                         type="button"
                         onClick={() => update("launchMode", option.value)}
                         className={`rounded-md border p-4 text-left transition-colors ${
-                          (draftText(draft.launchMode) || "live") === option.value
+                          (draftText(draft["launchMode"]) || "live") === option.value
                             ? "border-foreground bg-muted/50"
                             : "border-border hover:border-foreground/40"
                         }`}
@@ -609,7 +609,7 @@ function StartPage() {
                       </button>
                     ))}
                   </div>
-                  {(draftText(draft.launchMode) || "live") === "prelaunch" ? (
+                  {(draftText(draft["launchMode"]) || "live") === "prelaunch" ? (
                     <label className="mt-5 block">
                       <span className="mb-2 block text-sm font-semibold">
                         Planned launch date and time (optional)
@@ -649,7 +649,7 @@ function StartPage() {
                 {isSaving
                   ? "Saving…"
                   : isAuthenticated
-                    ? (draftText(draft.launchMode) || "live") === "prelaunch"
+                    ? (draftText(draft["launchMode"]) || "live") === "prelaunch"
                       ? "Start pre-launch"
                       : "Launch project"
                     : "Sign in to publish"}

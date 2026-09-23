@@ -89,8 +89,8 @@ function Index() {
   function setDiscoveryState(nextSort: ProjectSort, nextView: ProjectView) {
     void navigate({
       search: {
-        sort: nextSort === DEFAULT_PROJECT_SORT ? undefined : nextSort,
-        view: nextView === DEFAULT_PROJECT_VIEW ? undefined : nextView,
+        ...(nextSort === DEFAULT_PROJECT_SORT ? {} : { sort: nextSort }),
+        ...(nextView === DEFAULT_PROJECT_VIEW ? {} : { view: nextView }),
       },
     });
   }
