@@ -48,6 +48,7 @@ type Profile = CreatorPayoutProfile & {
   receive_creator_new_projects: boolean;
   receive_my_project_activity: boolean;
   receive_product_news: boolean;
+  newsletter_sync_status: "not_subscribed" | "pending" | "subscribed" | "failed" | "no_email";
 };
 
 type StripeResetStatus = {
@@ -72,6 +73,7 @@ const emptyProfile: Profile = {
   receive_creator_new_projects: true,
   receive_my_project_activity: true,
   receive_product_news: false,
+  newsletter_sync_status: "not_subscribed",
   stripe_account_id: null,
   stripe_onboarding_complete: false,
   stripe_charges_enabled: false,
@@ -104,6 +106,7 @@ function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
+  const savedProductNews = useRef(false);
 
   async function loadStripeCountries() {
     if (!supabase) return;
@@ -140,7 +143,7 @@ function Settings() {
       const { data: savedProfile } = await supabase
         .from("profiles")
         .select(
-          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_project_launches, receive_creator_new_projects, receive_my_project_activity, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
+          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_project_launches, receive_creator_new_projects, receive_my_project_activity, receive_product_news, newsletter_sync_status, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -149,6 +152,7 @@ function Settings() {
         ...savedProfile,
         email: savedProfile?.email ?? user.email ?? "",
       };
+      savedProductNews.current = nextProfile.receive_product_news;
       setProviders([...new Set((user.identities ?? []).map((identity) => identity.provider))]);
       const stripeAction = new URLSearchParams(window.location.search).get("stripe");
       if (stripeAction === "refresh") {
@@ -236,26 +240,61 @@ function Settings() {
         receive_project_launches: profile.receive_project_launches,
         receive_creator_new_projects: profile.receive_creator_new_projects,
         receive_my_project_activity: profile.receive_my_project_activity,
-        receive_product_news: profile.receive_product_news,
       })
       .eq("id", data.session.user.id)
       .select(
-        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_project_launches, receive_creator_new_projects, receive_my_project_activity, receive_product_news, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
+        "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_project_launches, receive_creator_new_projects, receive_my_project_activity, receive_product_news, newsletter_sync_status, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
       )
       .single();
-    setIsSaving(false);
     if (error || !savedProfile) {
+      setIsSaving(false);
       if (error?.code === "23505") return setMessage("That username is already taken.");
       if (error?.code === "23514") return setMessage("That username or website is not allowed.");
       return setMessage("We couldn't save your changes. Please try again.");
     }
+    let finalProfile = savedProfile;
+    const newsletterNeedsSync =
+      profile.receive_product_news !== savedProductNews.current ||
+      (profile.receive_product_news && profile.newsletter_sync_status !== "subscribed");
+    let newsletterError = false;
+    if (newsletterNeedsSync) {
+      try {
+        const { data: newsletterResult, error: newsletterInvokeError } =
+          await supabase.functions.invoke("beehiiv-subscribe", {
+            body: {
+              accountAction: profile.receive_product_news ? "subscribe" : "unsubscribe",
+              path: "/settings",
+            },
+          });
+        newsletterError =
+          Boolean(newsletterInvokeError) ||
+          newsletterResult?.status === "unavailable" ||
+          newsletterResult?.status === "unauthorized";
+      } catch {
+        newsletterError = true;
+      }
+      const { data: refreshedProfile } = await supabase
+        .from("profiles")
+        .select(
+          "display_name, username, avatar_url, bio, website, email, receive_project_updates, receive_favorite_project_updates, receive_project_launches, receive_creator_new_projects, receive_my_project_activity, receive_product_news, newsletter_sync_status, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
+        )
+        .eq("id", data.session.user.id)
+        .single();
+      if (refreshedProfile) finalProfile = refreshedProfile;
+    }
+    savedProductNews.current = finalProfile.receive_product_news;
     setProfile((current) => ({
       ...current,
-      ...savedProfile,
-      email: savedProfile.email ?? data.session.user.email ?? "",
+      ...finalProfile,
+      email: finalProfile.email ?? data.session.user.email ?? "",
     }));
     window.dispatchEvent(new Event("backed-profile-updated"));
-    setMessage("Changes saved.");
+    setIsSaving(false);
+    setMessage(
+      newsletterError
+        ? "Profile saved, but we couldn't update your newsletter preference. Please try again."
+        : "Changes saved.",
+    );
   }
 
   async function uploadAvatar(file?: File) {

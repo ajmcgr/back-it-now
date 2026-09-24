@@ -139,7 +139,9 @@ async function loadUsers(admin: SupabaseClient) {
   const [{ data: profiles, error }, authUsers] = await Promise.all([
     admin
       .from("profiles")
-      .select("id, display_name, username, avatar_url, created_at")
+      .select(
+        "id, display_name, username, avatar_url, created_at, receive_product_news, newsletter_sync_status",
+      )
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     listAuthUsers(admin),
@@ -155,6 +157,8 @@ async function loadUsers(admin: SupabaseClient) {
     created_at: profile.created_at,
     email: authById.get(profile.id)?.email ?? null,
     is_admin: profile.id === ownerAdminUserId,
+    receive_product_news: profile.receive_product_news,
+    newsletter_sync_status: profile.newsletter_sync_status,
   }));
 }
 

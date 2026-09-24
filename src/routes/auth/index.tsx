@@ -16,6 +16,7 @@ function AuthPage() {
       ? "/"
       : (new URLSearchParams(window.location.search).get("next") ?? "/");
   const [email, setEmail] = useState("");
+  const [newsletterConsent, setNewsletterConsent] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<"x" | "google" | "email" | null>(null);
 
@@ -25,7 +26,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: authRedirectUrl(next),
+        redirectTo: authRedirectUrl(next, newsletterConsent),
         // Ask Google to present its account picker. This keeps explicit sign-in
         // intentional without changing Supabase's PKCE exchange or its session
         // storage, and does not request a fresh consent screen each time.
@@ -42,7 +43,10 @@ function AuthPage() {
     setPending("email");
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: authRedirectUrl(next), shouldCreateUser: true },
+      options: {
+        emailRedirectTo: authRedirectUrl(next, newsletterConsent),
+        shouldCreateUser: true,
+      },
     });
     setMessage(error ? error.message : "Check your inbox for a secure Backed sign-in link.");
     setPending(null);
@@ -96,6 +100,15 @@ function AuthPage() {
             Continue with email
           </Button>
         </form>
+        <label className="mt-5 flex cursor-pointer items-start gap-3 text-left text-sm leading-6 text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={newsletterConsent}
+            onChange={(event) => setNewsletterConsent(event.target.checked)}
+            className="mt-1 size-4 shrink-0 accent-black"
+          />
+          <span>Send me project picks and updates from Backed.</span>
+        </label>
         {message && <p className="mt-4 text-sm leading-6 text-muted-foreground">{message}</p>}
         {!isSupabaseConfigured && (
           <p className="mt-4 text-xs text-muted-foreground">

@@ -13,6 +13,14 @@ export const Route = createFileRoute("/admin_/users")({
   component: AdminUsers,
 });
 
+function newsletterLabel(user: AdminUser) {
+  if (!user.email || user.newsletter_sync_status === "no_email") return "No email";
+  if (user.newsletter_sync_status === "subscribed") return "Subscribed";
+  if (user.newsletter_sync_status === "pending") return "Sync pending";
+  if (user.newsletter_sync_status === "failed") return "Sync failed";
+  return user.receive_product_news ? "Opted in" : "Not opted in";
+}
+
 function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [denied, setDenied] = useState(false);
@@ -67,12 +75,13 @@ function AdminUsers() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead className="border-b border-border bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-4">User</th>
                 <th>Username</th>
                 <th>Email</th>
+                <th>Newsletter</th>
                 <th>Joined</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
@@ -98,6 +107,7 @@ function AdminUsers() {
                   </td>
                   <td>{user.username ? `@${user.username}` : "—"}</td>
                   <td>{user.email || "—"}</td>
+                  <td>{newsletterLabel(user)}</td>
                   <td>{new Date(user.created_at).toLocaleDateString()}</td>
                   <td className="p-4">
                     <div className="flex justify-end gap-1">

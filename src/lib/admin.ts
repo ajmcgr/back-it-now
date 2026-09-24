@@ -68,6 +68,8 @@ export type AdminUser = {
   email: string | null;
   created_at: string;
   is_admin: boolean;
+  receive_product_news: boolean;
+  newsletter_sync_status: "not_subscribed" | "pending" | "subscribed" | "failed" | "no_email";
 };
 
 export type AdminComment = {

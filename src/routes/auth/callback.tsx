@@ -22,6 +22,7 @@ function AuthCallback() {
       const code = callbackUrl.searchParams.get("code");
       if (!code) return setError("Your sign-in link has expired. Please try again.");
       const next = callbackUrl.searchParams.get("next");
+      const newsletterConsent = callbackUrl.searchParams.get("newsletter") === "yes";
       const destination = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
       if (exchangeError) {
@@ -41,9 +42,10 @@ function AuthCallback() {
         const text = (value: unknown) => (typeof value === "string" && value ? value : undefined);
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id, newsletter_sync_status")
           .eq("id", user.id)
           .maybeSingle();
+        let newsletterStatus = profile?.newsletter_sync_status ?? null;
         if (!profile) {
           const candidate: Record<string, unknown> = {
             id: user.id,
@@ -52,14 +54,31 @@ function AuthCallback() {
             display_name: text(meta["full_name"]) ?? text(meta["name"]) ?? null,
             avatar_url: text(meta["avatar_url"]) ?? text(meta["picture"]) ?? null,
           };
-          const { error: insertError } = await supabase.from("profiles").insert(candidate);
-          if (insertError) await supabase.from("profiles").insert({ id: user.id });
-          // New Backed accounts join the Beehiiv subscriber list. Best effort only:
-          // the newsletter must never block or break an authenticated session.
-          void fetch("/api/beehiiv-subscribe", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${session.session.access_token}` },
-          }).catch(() => {});
+          const { data: inserted, error: insertError } = await supabase
+            .from("profiles")
+            .insert(candidate)
+            .select("newsletter_sync_status")
+            .maybeSingle();
+          if (insertError) {
+            const { data: fallback } = await supabase
+              .from("profiles")
+              .select("newsletter_sync_status")
+              .eq("id", user.id)
+              .maybeSingle();
+            newsletterStatus = fallback?.newsletter_sync_status ?? null;
+          } else {
+            newsletterStatus = inserted?.newsletter_sync_status ?? null;
+          }
+        }
+        // Marketing consent is explicit and optional. The single Backed Beehiiv
+        // function resolves the canonical email from this authenticated session,
+        // records sync state, and remains outside the critical auth path.
+        if (newsletterConsent && newsletterStatus !== "subscribed") {
+          void supabase.functions
+            .invoke("beehiiv-subscribe", {
+              body: { accountAction: "subscribe", path: "/auth/callback" },
+            })
+            .catch(() => {});
         }
       } catch {
         // Authentication remains valid if non-critical profile bookkeeping is unavailable.

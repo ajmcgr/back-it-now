@@ -41,8 +41,9 @@ export const publicSupabase = isSupabaseConfigured
     })
   : null;
 
-export function authRedirectUrl(next?: string) {
+export function authRedirectUrl(next?: string, newsletterConsent = false) {
   const url = new URL("/auth/callback", window.location.origin);
   if (next?.startsWith("/") && !next.startsWith("//")) url.searchParams.set("next", next);
+  if (newsletterConsent) url.searchParams.set("newsletter", "yes");
   return url.toString();
 }

@@ -27,7 +27,6 @@ import { Route as AdminCommentsRouteImport } from './routes/admin_.comments'
 import { Route as AdminNewsletterRouteImport } from './routes/admin_.newsletter'
 import { Route as AdminProjectsRouteImport } from './routes/admin_.projects'
 import { Route as AdminUsersRouteImport } from './routes/admin_.users'
-import { Route as ApiBeehiivSubscribeRouteImport } from './routes/api/beehiiv-subscribe'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
@@ -124,11 +123,6 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiBeehiivSubscribeRoute = ApiBeehiivSubscribeRouteImport.update({
-  id: '/api/beehiiv-subscribe',
-  path: '/api/beehiiv-subscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/auth/',
   path: '/auth/',
@@ -175,7 +169,6 @@ export interface FileRoutesByFullPath {
   '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/projects': typeof AdminProjectsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -201,7 +194,6 @@ export interface FileRoutesByTo {
   '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/projects': typeof AdminProjectsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth': typeof AuthIndexRoute
@@ -228,7 +220,6 @@ export interface FileRoutesById {
   '/admin_/newsletter': typeof AdminNewsletterRoute
   '/admin_/projects': typeof AdminProjectsRoute
   '/admin_/users': typeof AdminUsersRoute
-  '/api/beehiiv-subscribe': typeof ApiBeehiivSubscribeRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -256,7 +247,6 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/projects'
     | '/admin/users'
-    | '/api/beehiiv-subscribe'
     | '/auth/callback'
     | '/projects/$slug'
     | '/auth/'
@@ -282,7 +272,6 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/projects'
     | '/admin/users'
-    | '/api/beehiiv-subscribe'
     | '/auth/callback'
     | '/projects/$slug'
     | '/auth'
@@ -308,7 +297,6 @@ export interface FileRouteTypes {
     | '/admin_/newsletter'
     | '/admin_/projects'
     | '/admin_/users'
-    | '/api/beehiiv-subscribe'
     | '/auth/callback'
     | '/projects/$slug'
     | '/auth/'
@@ -335,7 +323,6 @@ export interface RootRouteChildren {
   AdminNewsletterRoute: typeof AdminNewsletterRoute
   AdminProjectsRoute: typeof AdminProjectsRoute
   AdminUsersRoute: typeof AdminUsersRoute
-  ApiBeehiivSubscribeRoute: typeof ApiBeehiivSubscribeRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
@@ -470,13 +457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/beehiiv-subscribe': {
-      id: '/api/beehiiv-subscribe'
-      path: '/api/beehiiv-subscribe'
-      fullPath: '/api/beehiiv-subscribe'
-      preLoaderRoute: typeof ApiBeehiivSubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth/': {
       id: '/auth/'
       path: '/auth'
@@ -546,7 +526,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminNewsletterRoute: AdminNewsletterRoute,
   AdminProjectsRoute: AdminProjectsRoute,
   AdminUsersRoute: AdminUsersRoute,
-  ApiBeehiivSubscribeRoute: ApiBeehiivSubscribeRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
