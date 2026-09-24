@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { FolderKanban, LoaderCircle, Search, UserRound } from "lucide-react";
+import { FolderKanban, Search, UserRound } from "lucide-react";
 
+import { CompactRowsSkeleton } from "@/components/backed/loading-skeletons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { publicSupabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -214,12 +215,6 @@ function SearchPanel({
           onKeyDown={handleKeyDown}
           className="h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-9 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/35 focus:ring-2 focus:ring-ring/35"
         />
-        {status === "loading" ? (
-          <LoaderCircle
-            aria-label="Searching"
-            className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-          />
-        ) : null}
       </div>
 
       {showResults ? (
@@ -233,7 +228,7 @@ function SearchPanel({
           )}
         >
           {status === "idle" || status === "loading" ? (
-            <p className="px-4 py-5 text-center text-sm text-muted-foreground">Searching…</p>
+            <CompactRowsSkeleton />
           ) : status === "error" ? (
             <p className="px-4 py-5 text-center text-sm text-muted-foreground">
               Search is temporarily unavailable.
@@ -307,11 +302,7 @@ export function MobileSiteSearch() {
           <Search aria-hidden="true" className="size-5" />
         </button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-[min(calc(100vw-2rem),24rem)] p-3"
-      >
+      <PopoverContent align="end" sideOffset={8} className="w-[min(calc(100vw-2rem),24rem)] p-3">
         <SearchPanel autoFocus onDismiss={() => setOpen(false)} />
       </PopoverContent>
     </Popover>

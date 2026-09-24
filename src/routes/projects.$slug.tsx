@@ -11,6 +11,7 @@ import { ProjectGrid } from "@/components/backed/project-card";
 import { ProjectPosterDialog } from "@/components/backed/project-poster";
 import { ProjectUpdates } from "@/components/backed/project-updates";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import { ProjectPageSkeleton } from "@/components/backed/loading-skeletons";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -137,6 +138,7 @@ export const Route = createFileRoute("/projects/$slug")({
       },
     });
   },
+  pendingComponent: ProjectPageSkeleton,
   component: ProjectPage,
 });
 
@@ -279,12 +281,7 @@ function ProjectPage() {
     }
     window.location.assign(`/projects/${data.slug}?published=1&share=1`);
   };
-  if (!project)
-    return (
-      <main className="container-backed py-24 text-center text-muted-foreground">
-        Loading project…
-      </main>
-    );
+  if (!project) return <ProjectPageSkeleton />;
   const coverImage = resolveProjectCover({
     slug: project.slug,
     imageUrl: presentation?.imageUrl ?? null,

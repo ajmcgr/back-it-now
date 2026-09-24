@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -232,9 +233,9 @@ export function ProjectComments({
       ) : null}
 
       {loading ? (
-        <div className="mt-8 space-y-4" aria-label="Loading comments">
+        <div className="mt-8 space-y-4" aria-label="Loading comments" aria-busy="true">
           {[0, 1].map((item) => (
-            <div key={item} className="h-24 animate-pulse rounded-md bg-muted" />
+            <Skeleton key={item} className="h-24" />
           ))}
         </div>
       ) : loadError ? (

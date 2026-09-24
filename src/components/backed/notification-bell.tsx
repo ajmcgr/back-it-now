@@ -1,5 +1,6 @@
 import { Bell } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { CompactRowsSkeleton } from "@/components/backed/loading-skeletons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,7 +104,7 @@ export function NotificationBell() {
         </div>
         <div className="max-h-[min(28rem,70vh)] overflow-y-auto p-1">
           {loading && !notifications.length ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Loading…</p>
+            <CompactRowsSkeleton />
           ) : notifications.length ? (
             notifications.map((notification) => (
               <DropdownMenuItem

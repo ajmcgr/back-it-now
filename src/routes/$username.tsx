@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { CreatorFollowButton } from "@/components/backed/creator-follow-button";
+import { ProfilePageSkeleton } from "@/components/backed/loading-skeletons";
 import { ProjectGrid } from "@/components/backed/project-card";
 import { Button } from "@/components/ui/button";
 import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
@@ -95,6 +96,7 @@ export const Route = createFileRoute("/$username")({
       },
     });
   },
+  pendingComponent: ProfilePageSkeleton,
   component: PublicProfilePage,
 });
 

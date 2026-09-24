@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProjectResults } from "@/components/backed/project-card";
 import { ProjectDiscoveryControls } from "@/components/backed/project-discovery-controls";
+import { DiscoverPageSkeleton } from "@/components/backed/loading-skeletons";
 import {
   DEFAULT_PROJECT_SORT,
   DEFAULT_PROJECT_VIEW,
@@ -45,8 +46,14 @@ export const Route = createFileRoute("/discover")({
       description: "Explore independent products and projects worth backing on Backed.",
       path: "/discover",
     }),
+  pendingComponent: DiscoverPending,
   component: Discover,
 });
+
+function DiscoverPending() {
+  const { view } = Route.useSearch();
+  return <DiscoverPageSkeleton view={parseProjectView(view)} />;
+}
 function Discover() {
   const {
     q = "",

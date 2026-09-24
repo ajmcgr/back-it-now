@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, ImagePlus, Trash2, Youtube } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ProjectFormSkeleton } from "@/components/backed/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -258,12 +259,7 @@ function EditProject() {
         : "Project cancelled. New backings are blocked while eligible refunds are processed.",
     );
   }
-  if (loading)
-    return (
-      <main className="container-backed py-20 text-center text-muted-foreground">
-        Loading project…
-      </main>
-    );
+  if (loading) return <ProjectFormSkeleton />;
   if (!Object.keys(form).length)
     return (
       <main className="container-backed py-20 text-center">

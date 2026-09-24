@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ProjectGrid } from "@/components/backed/project-card";
+import { DashboardSkeleton } from "@/components/backed/loading-skeletons";
 import { resolveProjectCover } from "@/lib/project-presentation";
 import { presentationAsProject, presentationFromPublicRow } from "@/lib/project-presentation";
 import { money, type Project } from "@/lib/projects";
@@ -264,11 +265,7 @@ function Dashboard() {
       {loadError ? (
         <div className="mt-8 rounded-md border border-destructive/30 p-5 text-sm">{loadError}</div>
       ) : isLoading ? (
-        <div className="mt-8 grid gap-3" aria-label="Loading dashboard">
-          {[0, 1].map((item) => (
-            <div key={item} className="h-24 animate-pulse rounded-md bg-muted" />
-          ))}
-        </div>
+        <DashboardSkeleton />
       ) : activeTab === "created" ? (
         <CreatedProjects projects={projects} />
       ) : activeTab === "backed" ? (

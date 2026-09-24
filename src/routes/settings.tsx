@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
+import { SettingsSkeleton } from "@/components/backed/loading-skeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { privateSeo } from "@/lib/seo";
@@ -394,12 +396,7 @@ function Settings() {
     }
   }
 
-  if (isLoading)
-    return (
-      <main className="container-backed py-16 text-center text-muted-foreground">
-        Loading settings…
-      </main>
-    );
+  if (isLoading) return <SettingsSkeleton />;
 
   const payoutState = getPayoutState(profile);
   const payout = payoutContent[payoutState];
@@ -489,26 +486,26 @@ function Settings() {
           {payoutState === "not_connected" ? (
             <div className="mt-5 max-w-md space-y-2">
               <Label htmlFor="stripe-country">Where are you based?</Label>
-              <Select
-                value={selectedStripeCountry}
-                onValueChange={setSelectedStripeCountry}
-                disabled={isLoadingStripeCountries || stripeCountries.length === 0}
-              >
-                <SelectTrigger id="stripe-country">
-                  <SelectValue
-                    placeholder={
-                      isLoadingStripeCountries ? "Loading countries…" : "Choose a country"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {stripeCountries.map((country) => (
-                    <SelectItem key={country} value={country}>
-                      {countryName(country)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingStripeCountries ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={selectedStripeCountry}
+                  onValueChange={setSelectedStripeCountry}
+                  disabled={stripeCountries.length === 0}
+                >
+                  <SelectTrigger id="stripe-country">
+                    <SelectValue placeholder="Choose a country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stripeCountries.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {countryName(country)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <p className="text-sm text-muted-foreground">
                 Stripe uses this to set up your payout account.
               </p>

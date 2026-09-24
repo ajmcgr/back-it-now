@@ -1,6 +1,7 @@
 import { Download, Instagram, Linkedin, Link2, MessageCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { resolveProjectCover } from "@/lib/project-presentation";
 import { shareUrls, trackShare, type ShareContext } from "@/lib/project-share";
 import {
@@ -361,7 +362,7 @@ export function ProjectPosterDialog({
             className="mt-3 w-full border border-border"
           />
         ) : (
-          <div className="mt-3 aspect-[1200/630] animate-pulse bg-muted" />
+          <Skeleton className="mt-3 aspect-[1200/630] w-full" />
         )}
         <div className="grid gap-2 sm:grid-cols-3">
           <Button onClick={download} disabled={!poster}>

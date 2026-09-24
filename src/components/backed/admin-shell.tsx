@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -68,14 +69,14 @@ export function AdminUnavailable({ message }: { message?: string }) {
 
 export function AdminLoading() {
   return (
-    <main className="container-backed py-20" aria-label="Loading admin">
-      <div className="mx-auto max-w-3xl animate-pulse space-y-4">
-        <div className="h-9 w-48 rounded bg-muted" />
-        <div className="h-4 w-80 max-w-full rounded bg-muted" />
+    <main className="container-backed py-20" aria-label="Loading admin" aria-busy="true">
+      <div className="mx-auto max-w-3xl space-y-4">
+        <Skeleton className="h-9 w-48" />
+        <Skeleton className="h-4 w-80 max-w-full" />
         <div className="grid gap-3 pt-6 sm:grid-cols-3">
-          <div className="h-28 rounded-lg bg-muted" />
-          <div className="h-28 rounded-lg bg-muted" />
-          <div className="h-28 rounded-lg bg-muted" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
         </div>
       </div>
     </main>

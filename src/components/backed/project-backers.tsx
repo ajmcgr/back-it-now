@@ -3,6 +3,7 @@ import { UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { publicSupabase, supabase } from "@/lib/supabase";
 
 type BackerPresentation = {
@@ -85,9 +86,9 @@ export function ProjectBackers({
       </p>
 
       {isLoading ? (
-        <div className="mt-8 grid gap-3" aria-label="Loading backers">
+        <div className="mt-8 grid gap-3" aria-label="Loading backers" aria-busy="true">
           {[0, 1].map((item) => (
-            <div key={item} className="h-20 animate-pulse rounded-md bg-muted" />
+            <Skeleton key={item} className="h-20" />
           ))}
         </div>
       ) : loadError ? (

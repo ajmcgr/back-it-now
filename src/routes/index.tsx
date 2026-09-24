@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { ProjectResults } from "@/components/backed/project-card";
 import { ProjectDiscoveryControls } from "@/components/backed/project-discovery-controls";
 import { PublicAnalyticsCounter } from "@/components/backed/public-analytics-counter";
+import { HomePageSkeleton } from "@/components/backed/loading-skeletons";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_PROJECT_VIEW,
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/")({
     (await loadRankedCanonicalProjects(deps.sort, 6)).map(({ slug, presentation }) =>
       presentationAsProject(slug, presentation),
     ),
+  pendingComponent: HomePending,
   head: () =>
     publicSeo({
       title: "Backed | Back things you want to exist",
@@ -70,6 +72,11 @@ export const Route = createFileRoute("/")({
     }),
   component: Index,
 });
+
+function HomePending() {
+  const { view } = Route.useSearch();
+  return <HomePageSkeleton view={parseProjectView(view)} />;
+}
 
 function Index() {
   const { sort: sortSearch, view: viewSearch } = Route.useSearch();

@@ -32,6 +32,7 @@ import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { NotificationBell } from "@/components/backed/notification-bell";
 import { NewsletterSignup } from "@/components/backed/newsletter-signup";
 import { DesktopSiteSearch, MobileSiteSearch } from "@/components/backed/site-search";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -226,7 +227,9 @@ function showNewsletterSignup(pathname: string) {
 
   const segments = normalized.split("/").filter(Boolean);
   const rootSegment = segments[0];
-  return rootSegment !== undefined && segments.length === 1 && !privateRootSegments.has(rootSegment);
+  return (
+    rootSegment !== undefined && segments.length === 1 && !privateRootSegments.has(rootSegment)
+  );
 }
 
 function SiteHeader() {
@@ -235,6 +238,7 @@ function SiteHeader() {
     displayName: string | null;
     avatarUrl: string | null;
   } | null>(null);
+  const [isAccountResolved, setIsAccountResolved] = useState(!supabase);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -246,6 +250,7 @@ function SiteHeader() {
       if (!user) {
         setAccount(null);
         setIsAdmin(false);
+        setIsAccountResolved(true);
         return;
       }
       const { data: profile } = await client
@@ -259,6 +264,7 @@ function SiteHeader() {
         displayName: profile?.display_name ?? metadata["full_name"] ?? metadata["name"] ?? null,
         avatarUrl: profile?.avatar_url ?? metadata["avatar_url"] ?? metadata["picture"] ?? null,
       });
+      setIsAccountResolved(true);
       const { data: adminStatus } = await client.functions.invoke("admin-projects", {
         body: { action: "status" },
       });
@@ -268,6 +274,7 @@ function SiteHeader() {
     const { data } = client.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         setAccount(null);
+        setIsAccountResolved(true);
         return;
       }
       void loadAccount();
@@ -299,7 +306,7 @@ function SiteHeader() {
             className="w-fit shrink-0 rounded-sm p-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <img
-              src="/logo.png"
+              src="/header-logo.png"
               alt="Backed"
               width={3654}
               height={1291}
@@ -346,7 +353,12 @@ function SiteHeader() {
           <div className="max-[359px]:hidden">
             <ThemeToggle />
           </div>
-          {account ? (
+          {!isAccountResolved ? (
+            <div role="status" aria-label="Loading account" aria-busy="true">
+              <Skeleton className="size-9 rounded-full" />
+              <span className="sr-only">Loading account</span>
+            </div>
+          ) : account ? (
             <>
               <NotificationBell />
               <DropdownMenu>
