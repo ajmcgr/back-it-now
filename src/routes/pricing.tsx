@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
@@ -72,12 +73,9 @@ function PricingPage() {
           On a $100 successful backing, Backed’s platform fee is $5. Payment processing is separate
           and varies by payment method and processor.
         </p>
-        <Link
-          to="/start"
-          className="mt-6 inline-flex rounded-md bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black/85"
-        >
-          Start a project
-        </Link>
+        <Button asChild className="mt-6">
+          <Link to="/start">Start a project</Link>
+        </Button>
       </section>
     </main>
   );

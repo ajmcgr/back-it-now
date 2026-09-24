@@ -33,6 +33,7 @@ import { NotificationBell } from "@/components/backed/notification-bell";
 import { NewsletterSignup } from "@/components/backed/newsletter-signup";
 import { DesktopSiteSearch, MobileSiteSearch } from "@/components/backed/site-search";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buttonVariants } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 
 function NotFoundComponent() {
@@ -47,14 +48,14 @@ function NotFoundComponent() {
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-9 px-4" })}
           >
             Go home
           </Link>
           <Link
             to="/discover"
             search={{}}
-            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85"
+            className={buttonVariants({ size: "sm", className: "h-9 px-4" })}
           >
             Explore projects
           </Link>
@@ -84,13 +85,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85"
+            className={buttonVariants({ size: "sm", className: "h-9 px-4" })}
           >
             Try again
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-9 px-4" })}
           >
             Go home
           </a>
@@ -405,7 +406,7 @@ function SiteHeader() {
           ) : (
             <Link
               to="/auth"
-              className="whitespace-nowrap rounded-md bg-black px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className={buttonVariants({ size: "sm", className: "h-9 whitespace-nowrap" })}
             >
               Sign in
             </Link>
