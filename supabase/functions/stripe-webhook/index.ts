@@ -128,9 +128,17 @@ async function attemptCreatorTransfer(admin: Admin, api: Stripe, backingId: stri
   if (!backing || backing.status !== "paid" || backing.stripe_transfer_id) return;
   const { data: project } = await admin
     .from("projects")
-    .select("creator_id")
+    .select("creator_id, status")
     .eq("id", backing.project_id)
     .maybeSingle();
+  if (!project || project.status !== "live") {
+    await admin
+      .from("backings")
+      .update({ transfer_status: "not_required", transfer_failure_reason: "project_not_live" })
+      .eq("id", backing.id)
+      .is("stripe_transfer_id", null);
+    return;
+  }
   const { data: creator } = project
     ? await admin
         .from("profiles")
@@ -323,7 +331,10 @@ Deno.serve(async (req) => {
               ctaUrl: `https://backedit.co/projects/${project.slug}?share=1`,
             });
           await sendShareMilestones(admin, result.backing_id);
-          await attemptCreatorTransfer(admin, api, result.backing_id);
+          const { data: cancellationRefundId } = await admin.rpc("queue_cancellation_backing", {
+            p_backing_id: result.backing_id,
+          });
+          if (!cancellationRefundId) await attemptCreatorTransfer(admin, api, result.backing_id);
         }
       }
     }
@@ -385,18 +396,29 @@ Deno.serve(async (req) => {
 
     if (event.type === "transfer.reversed") {
       const transfer = event.data.object as Stripe.Transfer;
-      await admin
+      const { data: backing } = await admin
         .from("backings")
         .update({ transfer_status: "reversed", transfer_reversed_at: new Date().toISOString() })
-        .eq("stripe_transfer_id", transfer.id);
+        .eq("stripe_transfer_id", transfer.id)
+        .select("id")
+        .maybeSingle();
+      if (backing) {
+        const reversalIds = transfer.reversals.data.map((reversal) => reversal.id);
+        if (reversalIds.length)
+          await admin
+            .from("backing_refunds")
+            .update({ reversal_status: "confirmed", updated_at: new Date().toISOString() })
+            .eq("backing_id", backing.id)
+            .in("transfer_reversal_id", reversalIds);
+      }
     }
 
-    if (event.type === "refund.updated") {
+    if (["refund.created", "refund.updated", "refund.failed"].includes(event.type)) {
       const refund = event.data.object as Stripe.Refund;
       const status =
         refund.status === "succeeded"
           ? "succeeded"
-          : refund.status === "failed"
+          : refund.status === "failed" || refund.status === "canceled"
             ? "failed"
             : "pending";
       const { data: backingId, error } = await admin.rpc("record_stripe_refund", {

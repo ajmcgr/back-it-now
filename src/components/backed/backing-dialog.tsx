@@ -136,6 +136,10 @@ export function BackingCheckoutButton({
             </span>
           </label>
           {checkoutError && <p className="text-sm text-destructive">{checkoutError}</p>}
+          <p className="text-xs leading-5 text-muted-foreground">
+            Your backing will be charged immediately. Projects don’t need to reach their goal to
+            receive funds.
+          </p>
           <Button
             size="lg"
             onClick={startCheckout}

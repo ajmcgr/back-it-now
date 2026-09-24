@@ -59,6 +59,7 @@ function PricingPage() {
           <ul className="mt-6 space-y-3 leading-7 text-muted-foreground">
             <li>No separate Backed platform fee for backers</li>
             <li>Rewards are optional</li>
+            <li>Backings are charged immediately</li>
             <li>Limited rewards remain available only while capacity lasts</li>
             <li>Successful backings count toward the project’s visible progress</li>
           </ul>

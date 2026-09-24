@@ -25,7 +25,8 @@ export type CanonicalProjectPresentation = {
   successfulBackerCount: number;
   commentCount: number;
   favoriteCount: number;
-  status: "prelaunch" | "live";
+  status: "prelaunch" | "live" | "cancelling" | "cancelled";
+  cancellationComplete: boolean;
   plannedLaunchAt: string | null;
   deadlineAt: string | null;
   rewardTitle: string | null;
@@ -70,7 +71,7 @@ export async function loadCanonicalProjectPresentation(slug: string) {
   const { data, error } = await publicSupabase
     .from("public_profile_projects")
     .select(
-      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, comment_count, favorite_count, status, planned_launch_at, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity",
+      "creator_username, creator_display_name, creator_avatar_url, image_url, gallery_media, name, summary, description, category, external_website, location, project_dates, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, comment_count, favorite_count, status, planned_launch_at, deadline_at, reward_title, reward_description, reward_amount, reward_total_quantity, reward_available_quantity, cancellation_complete",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -154,6 +155,7 @@ export function presentationAsProject(
     projectDates: presentation.projectDates ?? "",
     externalWebsite: presentation.externalWebsite ?? "",
     status: presentation.status,
+    cancellationComplete: presentation.cancellationComplete,
     plannedLaunchAt: presentation.plannedLaunchAt,
     createdAt: presentation.createdAt,
     latestBackedAt: presentation.latestBackedAt,
@@ -207,7 +209,13 @@ export function presentationFromPublicRow(
       typeof data["successful_backer_count"] === "number" ? data["successful_backer_count"] : 0,
     commentCount: typeof data["comment_count"] === "number" ? data["comment_count"] : 0,
     favoriteCount: typeof data["favorite_count"] === "number" ? data["favorite_count"] : 0,
-    status: data["status"] === "prelaunch" ? "prelaunch" : "live",
+    status:
+      data["status"] === "prelaunch" ||
+      data["status"] === "cancelling" ||
+      data["status"] === "cancelled"
+        ? data["status"]
+        : "live",
+    cancellationComplete: data["cancellation_complete"] === true,
     plannedLaunchAt:
       typeof data["planned_launch_at"] === "string" ? data["planned_launch_at"] : null,
     deadlineAt: typeof data["deadline_at"] === "string" ? data["deadline_at"] : null,

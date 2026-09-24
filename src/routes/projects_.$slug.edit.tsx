@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,6 +48,15 @@ function EditProject() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [projectStatus, setProjectStatus] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelConfirmation, setCancelConfirmation] = useState("");
+  const [cancelPreview, setCancelPreview] = useState<{
+    eligibleCount: number;
+    eligibleAmount: number;
+  } | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
@@ -71,6 +88,7 @@ function EditProject() {
       const project = data.project;
       const reward = data.reward ?? {};
       setRestricted(project.successful_backed_amount > 0 || project.successful_backer_count > 0);
+      setProjectStatus(project.status ?? "");
       setForm({
         name: project.name,
         summary: project.summary,
@@ -200,6 +218,44 @@ function EditProject() {
       restricted
         ? "Project details saved. Funding, deadline, and reward commitments are locked after backing."
         : "Project saved.",
+    );
+  }
+  async function openCancellation() {
+    if (!supabase || cancelBusy) return;
+    setCancelOpen(true);
+    setCancelBusy(true);
+    setCancelError("");
+    setCancelConfirmation("");
+    const { data, error } = await supabase.functions.invoke("project-cancellation", {
+      body: { action: "preview", slug },
+    });
+    setCancelBusy(false);
+    if (error || typeof data?.eligibleCount !== "number") {
+      setCancelError("Cancellation details are temporarily unavailable. Please try again.");
+      return;
+    }
+    setCancelPreview({ eligibleCount: data.eligibleCount, eligibleAmount: data.eligibleAmount });
+  }
+  async function cancelProject() {
+    if (!supabase || cancelBusy || cancelConfirmation !== "CANCEL") return;
+    setCancelBusy(true);
+    setCancelError("");
+    const { data, error } = await supabase.functions.invoke("project-cancellation", {
+      body: { action: "start", slug, confirmation: cancelConfirmation },
+    });
+    setCancelBusy(false);
+    if (error || !data?.cancellation) {
+      setCancelError(
+        "The project could not be cancelled. No duplicate refunds were created. Please try again.",
+      );
+      return;
+    }
+    setProjectStatus(data.cancellation.status === "completed" ? "cancelled" : "cancelling");
+    setCancelOpen(false);
+    setMessage(
+      data.cancellation.status === "completed"
+        ? "Project cancelled. Eligible backings have been refunded."
+        : "Project cancelled. New backings are blocked while eligible refunds are processed.",
     );
   }
   if (loading)
@@ -419,7 +475,94 @@ function EditProject() {
           </Button>
         </div>
         {message && <p className="text-right text-sm text-muted-foreground">{message}</p>}
+        {projectStatus === "live" ? (
+          <section className="mt-10 border-t border-destructive/30 pt-8">
+            <h2 className="text-xl font-semibold">Cancel project</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Cancellation immediately stops new backings and refunds every eligible paid backing.
+              It cannot be undone.
+            </p>
+            <Button
+              type="button"
+              variant="destructive"
+              className="mt-4"
+              onClick={() => void openCancellation()}
+            >
+              Cancel project
+            </Button>
+          </section>
+        ) : projectStatus === "cancelling" || projectStatus === "cancelled" ? (
+          <section className="mt-10 rounded-md border border-border bg-muted/40 p-5">
+            <h2 className="text-xl font-semibold">Project cancelled</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {projectStatus === "cancelled"
+                ? "Eligible backers have been refunded."
+                : "New backings are blocked while eligible refunds are processed."}
+            </p>
+          </section>
+        ) : null}
       </div>
+      <Dialog open={cancelOpen} onOpenChange={(open) => !cancelBusy && setCancelOpen(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel this project?</DialogTitle>
+            <DialogDescription>
+              Cancelling immediately stops new backings. Eligible paid backings will be refunded.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {cancelBusy && !cancelPreview ? (
+            <p className="text-sm text-muted-foreground">Checking eligible backings…</p>
+          ) : cancelPreview ? (
+            <div className="grid grid-cols-2 gap-3 rounded-md border border-border p-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Eligible paid backings</p>
+                <p className="mt-1 text-xl font-semibold">{cancelPreview.eligibleCount}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Full refund amount</p>
+                <p className="mt-1 text-xl font-semibold">
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+                    cancelPreview.eligibleAmount / 100,
+                  )}
+                </p>
+              </div>
+            </div>
+          ) : null}
+          <label className="block text-sm font-semibold">
+            Type CANCEL to continue
+            <Input
+              className="mt-2"
+              value={cancelConfirmation}
+              onChange={(event) => setCancelConfirmation(event.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          {cancelError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {cancelError}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={cancelBusy}
+              onClick={() => setCancelOpen(false)}
+            >
+              Keep project live
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={cancelBusy || !cancelPreview || cancelConfirmation !== "CANCEL"}
+              onClick={() => void cancelProject()}
+            >
+              {cancelBusy ? "Cancelling…" : "Cancel project and refund backers"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

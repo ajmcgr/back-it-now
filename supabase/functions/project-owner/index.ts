@@ -41,7 +41,7 @@ Deno.serve(async (request) => {
     const { data: project, error } = await admin
       .from("projects")
       .select(
-        "id, slug, name, summary, description, image_url, gallery_media, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at",
+        "id, slug, name, summary, description, image_url, gallery_media, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at, status",
       )
       .eq("slug", slug)
       .eq("creator_id", auth.user.id)

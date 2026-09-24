@@ -28,7 +28,37 @@ export type AdminProject = {
     display_name: string | null;
     avatar_url: string | null;
   };
+  project_cancellations: {
+    status: string;
+    eligible_refund_count: number;
+    eligible_refund_amount: number;
+    project_cancellation_refunds: Array<{ status: string; requested_amount: number }>;
+  } | null;
 };
+
+export async function retryProjectCancellation(slug: string) {
+  if (!supabase) throw new Error("admin_unavailable");
+  const { data, error } = await supabase.functions.invoke("project-cancellation", {
+    body: { action: "retry", slug },
+  });
+  if (error || data?.error) throw new Error(data?.error || "cancellation_retry_failed");
+  return data;
+}
+
+export async function loadProjectCancellationSummaries() {
+  if (!supabase) throw new Error("admin_unavailable");
+  const { data, error } = await supabase.functions.invoke("project-cancellation", {
+    body: { action: "admin-list" },
+  });
+  if (error || data?.error) throw new Error(data?.error || "cancellation_list_failed");
+  return (data?.cancellations ?? []) as Array<{
+    project_id: string;
+    status: string;
+    eligible_refund_count: number;
+    eligible_refund_amount: number;
+    project_cancellation_refunds: Array<{ status: string; requested_amount: number }>;
+  }>;
+}
 
 export type AdminUser = {
   id: string;

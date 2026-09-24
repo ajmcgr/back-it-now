@@ -35,6 +35,7 @@ export function CreatorIdentity({ creator }: { creator: CanonicalProjectCreator 
 export function ProjectCard({ project }: { project: Project }) {
   const funded = percent(project);
   const isPrelaunch = project.status === "prelaunch";
+  const isCancelled = project.status === "cancelling" || project.status === "cancelled";
   const creator = project.creatorUsername
     ? {
         username: project.creatorUsername,
@@ -77,7 +78,14 @@ export function ProjectCard({ project }: { project: Project }) {
         <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">
           {project.description}
         </p>
-        {isPrelaunch ? (
+        {isCancelled ? (
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3 text-sm">
+            <strong>Project cancelled</strong>
+            <span className="text-muted-foreground">
+              {money(amountBacked(project))} historically backed
+            </span>
+          </div>
+        ) : isPrelaunch ? (
           <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3 text-sm">
             <strong>Coming soon</strong>
             <span className="text-muted-foreground">
@@ -146,6 +154,7 @@ export function ProjectList({ items, numbered = false }: { items: Project[]; num
     <div className="divide-y divide-border border-y border-border">
       {items.map((project, index) => {
         const isPrelaunch = project.status === "prelaunch";
+        const isCancelled = project.status === "cancelling" || project.status === "cancelled";
         const coverImage = resolveProjectCover({
           slug: project.slug,
           coverImage: project.coverImage,
@@ -199,7 +208,13 @@ export function ProjectList({ items, numbered = false }: { items: Project[]; num
                   {project.tagline || project.description}
                 </p>
                 <p className="mt-2 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground tabular-nums">
-                  {isPrelaunch ? (
+                  {isCancelled ? (
+                    <>
+                      <span className="font-semibold text-foreground">Project cancelled</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{money(amountBacked(project))} historically backed</span>
+                    </>
+                  ) : isPrelaunch ? (
                     <>
                       <span>{plural(project.favoriteCount, "person", "people")} interested</span>
                       <span aria-hidden="true">·</span>

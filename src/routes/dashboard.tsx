@@ -19,6 +19,16 @@ type CreatorProject = {
   successful_backed_amount: number;
   successful_backer_count: number;
   deadline_at: string | null;
+  cancellation?: {
+    eligible_refund_count: number;
+    counts: {
+      succeeded: number;
+      failed: number;
+      pending: number;
+      queued: number;
+      processing: number;
+    };
+  } | null;
 };
 type BackingRecord = {
   id: string;
@@ -39,6 +49,7 @@ type BackedProject = {
   name: string;
   imageUrl: string | null;
   creatorName: string;
+  status: string;
   totalAmount: number;
   backings: Array<BackingRecord & { rewardTitle: string | null }>;
 };
@@ -51,6 +62,8 @@ export const Route = createFileRoute("/dashboard")({
 function backingStatus(backing: BackingRecord) {
   if (backing.refund_amount >= backing.gross_amount) return "Refunded";
   if (backing.refund_amount > 0) return "Partially refunded";
+  if (backing.refund_status === "pending") return "Refund pending";
+  if (backing.refund_status === "failed") return "Refund needs attention";
   return backing.status === "paid" ? "Backed" : "Payment issue";
 }
 
@@ -96,7 +109,17 @@ function Dashboard() {
         if (createdResult.error || backingResult.error || favoriteResult.error)
           throw new Error("Your dashboard is temporarily unavailable.");
         const ownBackings = (backingResult.data ?? []) as BackingRecord[];
-        setProjects((createdResult.data ?? []) as CreatorProject[]);
+        const createdProjects = (createdResult.data ?? []) as CreatorProject[];
+        const projectsWithCancellation = await Promise.all(
+          createdProjects.map(async (project) => {
+            if (project.status !== "cancelling" && project.status !== "cancelled") return project;
+            const { data } = await supabase.functions.invoke("project-cancellation", {
+              body: { action: "status", slug: project.slug },
+            });
+            return { ...project, cancellation: data?.cancellation ?? null };
+          }),
+        );
+        setProjects(projectsWithCancellation);
         setBackings(ownBackings);
         setFavoriteProjects(
           (favoriteResult.data ?? []).flatMap((row: Record<string, unknown>) => {
@@ -187,6 +210,7 @@ function Dashboard() {
           creatorName: String(
             project["creator_display_name"] ?? project["creator_username"] ?? "Creator",
           ),
+          status: String(project["status"] ?? "live"),
           totalAmount: backing.gross_amount,
           backings: [item],
         });
@@ -351,6 +375,15 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
               <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold capitalize">
                 {project.status === "prelaunch" ? "Pre-launch" : project.status}
               </span>
+              {project.cancellation ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {project.cancellation.counts.succeeded} of{" "}
+                  {project.cancellation.eligible_refund_count} backings refunded
+                  {project.cancellation.counts.failed > 0
+                    ? ` · ${project.cancellation.counts.failed} need attention`
+                    : ""}
+                </p>
+              ) : null}
             </div>
             <div>
               <span className="mb-1 block text-xs text-muted-foreground md:hidden">
@@ -423,6 +456,11 @@ function BackedProjects({
             <p className="text-sm text-muted-foreground">By {project.creatorName}</p>
             <h2 className="mt-1 text-xl font-semibold">{project.name}</h2>
             <p className="mt-3 font-semibold">{money(project.totalAmount / 100)} backed</p>
+            {project.status === "cancelling" || project.status === "cancelled" ? (
+              <p className="mt-2 text-sm font-medium">
+                {project.status === "cancelled" ? "Project cancelled" : "Refunds are processing"}
+              </p>
+            ) : null}
             {project.backings.length > 1 ? (
               <p className="text-sm text-muted-foreground">{project.backings.length} backings</p>
             ) : null}

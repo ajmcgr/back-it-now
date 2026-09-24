@@ -48,8 +48,10 @@ function TermsPage() {
           <TermsSection title="Payments and refunds">
             Payments, when enabled, are handled by a third-party payment provider. Backed does not
             store full card details. Backed charges creators a 5% platform fee on each successful
-            backing; payment processing fees are additional. Refunds, cancellations and fulfillment
-            are governed by the project terms, the payment provider's rules and applicable law.
+            backing; payment processing fees are additional. Backings are charged immediately, and
+            funding goals are targets rather than all-or-nothing thresholds. If a creator cancels a
+            project, new backings stop and eligible paid backings are refunded in full. Refund
+            timing remains subject to the payment provider and card or bank processing times.
           </TermsSection>
           <TermsSection title="Service availability">
             We may change, suspend or discontinue parts of Backed. To the extent permitted by law,

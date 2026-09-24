@@ -88,7 +88,24 @@ Deno.serve(async (req) => {
       reservationId = data;
     }
     let checkoutSessionId: string | null = null;
+    const pendingKey = `pending_${crypto.randomUUID()}`;
     try {
+      const { error: intentError } = await admin.rpc("create_checkout_backing_intent", {
+        p_pending_key: pendingKey,
+        p_project_id: project.id,
+        p_reward_id: claimReward && reward ? reward.id : null,
+        p_reservation_id: reservationId,
+        p_backer_id: user?.id ?? null,
+        p_amount: amount,
+        p_currency: project.currency,
+        p_expires_at: expiresAt,
+        p_is_private: isPrivate,
+      });
+      if (intentError) {
+        if (reservationId)
+          await admin.rpc("release_reward_reservation", { p_reservation_id: reservationId });
+        return json({ error: "project_unavailable" }, 409);
+      }
       const stripe = getStripe();
       const checkoutMetadata = {
         reservation_id: reservationId ?? "",
@@ -126,6 +143,19 @@ Deno.serve(async (req) => {
         },
       });
       checkoutSessionId = session.id;
+      const { data: activeIntent, error: activeIntentError } = await admin
+        .from("checkout_backing_intents")
+        .update({ checkout_session_id: session.id })
+        .eq("checkout_session_id", pendingKey)
+        .is("released_at", null)
+        .select("checkout_session_id")
+        .maybeSingle();
+      if (activeIntentError || !activeIntent) {
+        await stripe.checkout.sessions.expire(session.id);
+        if (reservationId)
+          await admin.rpc("release_reward_reservation", { p_reservation_id: reservationId });
+        return json({ error: "project_unavailable" }, 409);
+      }
       if (reservationId) {
         const { error: reservationUpdateError } = await admin
           .from("reward_reservations")
@@ -135,20 +165,13 @@ Deno.serve(async (req) => {
           .is("released_at", null);
         if (reservationUpdateError) throw reservationUpdateError;
       }
-      const { error: intentError } = await admin.from("checkout_backing_intents").insert({
-        checkout_session_id: session.id,
-        project_id: project.id,
-        reward_id: claimReward && reward ? reward.id : null,
-        reservation_id: reservationId,
-        backer_id: user?.id ?? null,
-        amount,
-        currency: project.currency,
-        expires_at: expiresAt,
-        is_private: isPrivate,
-      });
-      if (intentError) throw intentError;
       return json({ checkoutUrl: session.url });
     } catch (error) {
+      await admin
+        .from("checkout_backing_intents")
+        .update({ released_at: new Date().toISOString() })
+        .in("checkout_session_id", [pendingKey, ...(checkoutSessionId ? [checkoutSessionId] : [])])
+        .is("converted_at", null);
       if (checkoutSessionId) {
         try {
           await getStripe().checkout.sessions.expire(checkoutSessionId);

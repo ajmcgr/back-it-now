@@ -1,5 +1,6 @@
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
+import { processProjectCancellation } from "../_shared/project-cancellation.ts";
 
 const admin = () =>
   createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -24,9 +25,17 @@ async function attemptTransfer(
 ) {
   const { data: project } = await db
     .from("projects")
-    .select("creator_id")
+    .select("creator_id, status")
     .eq("id", backing.project_id)
     .maybeSingle();
+  if (!project || project.status !== "live") {
+    await db
+      .from("backings")
+      .update({ transfer_status: "not_required", transfer_failure_reason: "project_not_live" })
+      .eq("id", backing.id)
+      .is("stripe_transfer_id", null);
+    return "not_required";
+  }
   const { data: creator } = project
     ? await db
         .from("profiles")
@@ -113,9 +122,20 @@ Deno.serve(async (req) => {
     const results = await Promise.allSettled(
       (backings ?? []).map((backing) => attemptTransfer(db, api, backing)),
     );
+    const { data: cancellations, error: cancellationError } = await db
+      .from("project_cancellations")
+      .select("id")
+      .in("status", ["processing", "attention_required"])
+      .limit(20);
+    if (cancellationError) throw cancellationError;
+    const cancellationResults = [];
+    for (const cancellation of cancellations ?? []) {
+      cancellationResults.push(await processProjectCancellation(db, api, cancellation.id, 50));
+    }
     return Response.json({
       processed: results.length,
       created: results.filter((r) => r.status === "fulfilled" && r.value === "created").length,
+      cancellations: cancellationResults.length,
     });
   } catch {
     return new Response("creator_proceeds_reconciliation_failed", { status: 500 });

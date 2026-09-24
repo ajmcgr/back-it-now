@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { AdminDeleteDialog } from "@/components/backed/admin-delete-dialog";
 import { AdminLoading, AdminShell, AdminUnavailable } from "@/components/backed/admin-shell";
 import { Button } from "@/components/ui/button";
-import { invokeAdmin, type AdminProject } from "@/lib/admin";
+import {
+  invokeAdmin,
+  loadProjectCancellationSummaries,
+  retryProjectCancellation,
+  type AdminProject,
+} from "@/lib/admin";
 import { privateSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/admin_/projects")({
@@ -28,8 +33,17 @@ function AdminProjects() {
   const [message, setMessage] = useState("");
 
   const load = useCallback(async () => {
-    const response = await invokeAdmin<{ projects: AdminProject[] }>("list_projects");
-    setProjects(response.projects);
+    const [response, cancellations] = await Promise.all([
+      invokeAdmin<{ projects: AdminProject[] }>("list_projects"),
+      loadProjectCancellationSummaries(),
+    ]);
+    const byProject = new Map(cancellations.map((item) => [item.project_id, item]));
+    setProjects(
+      response.projects.map((project) => ({
+        ...project,
+        project_cancellations: byProject.get(project.id) ?? null,
+      })),
+    );
   }, []);
 
   useEffect(() => {
@@ -47,6 +61,21 @@ function AdminProjects() {
       await load();
     } catch {
       setMessage("The project could not be deleted. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function retryCancellation(project: AdminProject) {
+    setBusy(true);
+    setMessage("");
+    try {
+      await retryProjectCancellation(project.slug);
+      setMessage(
+        `Retried unresolved refunds for ${project.name}. Completed refunds were not duplicated.`,
+      );
+      await load();
+    } catch {
+      setMessage("Unresolved refunds could not be retried. No completed refund was duplicated.");
     } finally {
       setBusy(false);
     }
@@ -83,6 +112,13 @@ function AdminProjects() {
               {projects.map((project) => {
                 const creator = project.profiles;
                 const archived = Boolean(project.admin_archived_at);
+                const cancellation = project.project_cancellations;
+                const refundRows = cancellation?.project_cancellation_refunds ?? [];
+                const refunded = refundRows.filter((refund) => refund.status === "succeeded");
+                const failed = refundRows.filter((refund) => refund.status === "failed");
+                const pending = refundRows.filter((refund) =>
+                  ["queued", "processing", "pending"].includes(refund.status),
+                );
                 return (
                   <tr key={project.id} className="border-b border-border last:border-0">
                     <td className="p-4">
@@ -101,7 +137,15 @@ function AdminProjects() {
                       </div>
                     </td>
                     <td>{creator.display_name || creator.username || "Backed creator"}</td>
-                    <td className="capitalize">{archived ? "archived" : project.status}</td>
+                    <td>
+                      <span className="capitalize">{archived ? "archived" : project.status}</span>
+                      {cancellation ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {refunded.length}/{cancellation.eligible_refund_count} refunded ·{" "}
+                          {pending.length} pending · {failed.length} failed
+                        </p>
+                      ) : null}
+                    </td>
                     <td className="tabular-nums">
                       {formatMoney(
                         project.initial_backed_amount + project.successful_backed_amount,
@@ -110,6 +154,16 @@ function AdminProjects() {
                     <td>{new Date(project.created_at).toLocaleDateString()}</td>
                     <td className="p-4">
                       <div className="flex justify-end gap-1">
+                        {failed.length > 0 ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => void retryCancellation(project)}
+                          >
+                            Retry refunds
+                          </Button>
+                        ) : null}
                         <Button variant="ghost" size="icon" asChild>
                           <Link
                             to="/projects/$slug"

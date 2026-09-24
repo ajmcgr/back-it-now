@@ -28,7 +28,8 @@ export type Project = {
   location: string;
   projectDates: string;
   externalWebsite: string;
-  status: "draft" | "prelaunch" | "live" | "funded" | "closed";
+  status: "draft" | "prelaunch" | "live" | "cancelling" | "cancelled" | "funded" | "closed";
+  cancellationComplete?: boolean;
   plannedLaunchAt?: string | null;
   createdAt?: string | null;
   latestBackedAt?: string | null;

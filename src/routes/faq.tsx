@@ -8,11 +8,19 @@ const questions = [
   ],
   [
     "What happens when I back a project?",
-    "Choose how much to back and optionally claim an eligible reward. Once payment succeeds, your backing is added to the project and shown in its progress.",
+    "Choose how much to back and optionally claim an eligible reward. You're charged immediately, and your successful backing is added to the project's progress.",
   ],
   [
-    "Does a project have to reach its funding goal?",
-    "No. A funding goal is a progress target, not an all-or-nothing threshold. Creators remain entitled to successful backing proceeds, less Backed and payment-processing fees, even if they do not reach the goal.",
+    "When am I charged?",
+    "You're charged when you back a project. Backed projects don't need to reach their funding goal for creators to receive funds.",
+  ],
+  [
+    "What happens if a project doesn't reach its goal?",
+    "The creator still receives the funds raised. Funding goals show what the creator hopes to raise, but Backed isn't all-or-nothing.",
+  ],
+  [
+    "What happens if a creator can't continue with a project?",
+    "If a creator decides they can no longer proceed, they can cancel the project. The project stops accepting new backings and eligible paid backings are refunded.",
   ],
   [
     "What does Backed cost?",
@@ -32,7 +40,7 @@ const questions = [
   ],
   [
     "Can a backing be refunded?",
-    "Refunds are handled through Stripe when a project cannot fulfill a backing or a refund is otherwise required. Backed is not equity or an investment product.",
+    "If a creator cancels a project, eligible paid backings are refunded in full through Stripe. Bank or card processing time may vary. Backed is not equity or an investment product.",
   ],
   [
     "Can I launch a project?",

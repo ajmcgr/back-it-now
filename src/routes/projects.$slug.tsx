@@ -69,7 +69,9 @@ export const Route = createFileRoute("/projects/$slug")({
       project.tagline,
       project.status === "prelaunch"
         ? `Follow ${project.title} on Backed and get notified when it launches.`
-        : `Back ${project.title} on Backed.`,
+        : project.status === "cancelling" || project.status === "cancelled"
+          ? `${project.title} was cancelled by its creator.`
+          : `Back ${project.title} on Backed.`,
     );
     const path = `/projects/${project.slug}`;
     const coverImage = absoluteUrl(
@@ -158,6 +160,7 @@ function ProjectPage() {
   }>({ state: "idle" });
   const project = presentation ? presentationAsProject(slug, presentation) : fallback;
   const isPrelaunch = project?.status === "prelaunch";
+  const isCancelled = project?.status === "cancelling" || project?.status === "cancelled";
   const creator = presentation?.creator;
   useEffect(() => {
     const selectLinkedTab = () => {
@@ -299,6 +302,16 @@ function ProjectPage() {
   return (
     <main className="pb-28 lg:pb-24">
       <div className="container-backed pt-8 sm:pt-16">
+        {isCancelled ? (
+          <div className="mb-8 rounded-md border border-border bg-muted/50 p-5" role="status">
+            <p className="text-xl font-semibold">Project cancelled</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {project.cancellationComplete
+                ? "This project was cancelled by the creator. Eligible backers have been refunded."
+                : "This project was cancelled by the creator. Eligible backings are being refunded."}
+            </p>
+          </div>
+        ) : null}
         {publishedNotice && (
           <div className="mb-8 rounded-md border border-primary/30 bg-primary/5 p-5">
             <p className="text-xl font-semibold">
@@ -423,7 +436,7 @@ function ProjectPage() {
               <>
                 <p className="text-4xl font-semibold">{money(amountBacked(project))}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  backed of {money(project.goal)} goal
+                  {isCancelled ? "historically backed" : `backed of ${money(project.goal)} goal`}
                 </p>
                 <Progress value={Math.min(funded, 100)} className="my-6 h-2" />
                 <p className="mb-5 text-sm font-semibold">{funded}% funded</p>
@@ -433,8 +446,10 @@ function ProjectPage() {
                     <span className="text-xs text-muted-foreground">backers</span>
                   </div>
                   <div>
-                    <strong className="block text-xl">{remaining}</strong>
-                    <span className="text-xs text-muted-foreground">days to go</span>
+                    <strong className="block text-xl">{isCancelled ? "Closed" : remaining}</strong>
+                    <span className="text-xs text-muted-foreground">
+                      {isCancelled ? "not accepting backings" : "days to go"}
+                    </span>
                   </div>
                 </div>
               </>
@@ -449,7 +464,11 @@ function ProjectPage() {
               </p>
               {availability && <p className="mt-3 text-sm font-semibold">{availability}</p>}
             </div>
-            {isPrelaunch ? (
+            {isCancelled ? (
+              <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-center text-sm font-medium text-muted-foreground">
+                This project is no longer accepting backings.
+              </div>
+            ) : isPrelaunch ? (
               !ownershipResolved ? (
                 <Button size="lg" className="w-full" disabled>
                   Checking availability…
@@ -486,7 +505,7 @@ function ProjectPage() {
             <Button variant="outline" className="mt-3 w-full" onClick={() => setIsPosterOpen(true)}>
               {isOwner ? "Share project" : "Share"}
             </Button>
-            {!isPrelaunch ? (
+            {!isPrelaunch && !isCancelled ? (
               <div className="mt-3">
                 <ProjectFavoriteButton slug={project.slug} initialCount={project.favoriteCount} />
               </div>
@@ -599,7 +618,11 @@ function ProjectPage() {
       ) : null}
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background px-3 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] lg:hidden">
-        {isPrelaunch ? (
+        {isCancelled ? (
+          <div className="w-full rounded-md border border-border bg-muted px-4 py-3 text-center text-sm font-semibold">
+            Project cancelled
+          </div>
+        ) : isPrelaunch ? (
           !ownershipResolved ? (
             <Button className="w-full" disabled>
               Checking availability…
