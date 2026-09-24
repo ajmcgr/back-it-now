@@ -530,7 +530,13 @@ function SiteFooter() {
       <div className="container-backed">
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div className="col-span-2 sm:col-span-1">
-            <img src="/logo.png" alt="Backed" width={3654} height={1291} className="h-10 w-auto" />
+            <img
+              src="/header-logo.png"
+              alt="Backed"
+              width={3654}
+              height={1291}
+              className="h-10 w-auto"
+            />
             <p className="mt-3 max-w-xs leading-6">Back things you want to exist.</p>
           </div>
           <FooterGroup
