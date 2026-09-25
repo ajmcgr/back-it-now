@@ -2,8 +2,6 @@ import socialCardAsset from "@/assets/backed-social-card-2026-09-23.png.asset.js
 
 export const SITE_NAME = "Backed";
 export const SITE_URL = "https://backedit.co";
-const SOCIAL_IMAGE_ENDPOINT =
-  "https://zlzaxgsyczfeepwidjii.supabase.co/functions/v1/project-social-image";
 export const DEFAULT_SOCIAL_IMAGE = socialCardAsset.url;
 
 type PublicSeoOptions = {
@@ -65,47 +63,6 @@ export function publicSeo({
         }
       : {}),
   };
-}
-
-function fingerprint(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
-}
-
-type ProjectSocialImageOptions = {
-  slug: string;
-  name: string;
-  summary: string;
-  creator: string;
-  amountBacked: number;
-  goal: number;
-  backers: number;
-};
-
-export function projectSocialImageUrl(project: ProjectSocialImageOptions) {
-  const values = [
-    project.name,
-    project.summary,
-    project.creator,
-    project.amountBacked,
-    project.goal,
-    project.backers,
-  ];
-  const params = new URLSearchParams({
-    slug: project.slug,
-    name: project.name.slice(0, 90),
-    summary: project.summary.slice(0, 180),
-    creator: project.creator.slice(0, 70),
-    raised: String(Math.max(0, Math.round(project.amountBacked * 100))),
-    goal: String(Math.max(0, Math.round(project.goal * 100))),
-    backers: String(Math.max(0, Math.floor(project.backers))),
-    v: fingerprint(values.join("|")),
-  });
-  return `${SOCIAL_IMAGE_ENDPOINT}?${params.toString()}`;
 }
 
 export function privateSeo(title: string) {
