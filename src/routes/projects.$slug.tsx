@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -143,6 +143,7 @@ export const Route = createFileRoute("/projects/$slug")({
 });
 
 function ProjectPage() {
+  const router = useRouter();
   const { slug, presentation, similarProjects } = Route.useLoaderData();
   const fallback = projects.find((item) => item.slug === slug && item.status === "live");
   const [tab, setTab] = useState("Story");
@@ -227,38 +228,20 @@ function ProjectPage() {
     const returnedSessionId = params.get("session_id");
     setCheckoutConfirmation({ state: "confirming" });
     const confirmBacking = async () => {
-      const { data: auth } = await client.auth.getSession();
-      if (!auth.session) {
+      if (!returnedSessionId) {
         if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
         return;
       }
-      const { data: canonicalProject } = await client
-        .from("projects")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (!canonicalProject) {
-        if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
+      const { data, error } = await client.functions.invoke("stripe-checkout-confirmation", {
+        body: { sessionId: returnedSessionId, projectSlug: slug },
+        timeout: 30_000,
+      });
+      if (!cancelled && !error && data?.confirmed) {
+        setCheckoutSucceeded(true);
+        setCheckoutConfirmation({ state: "confirmed", amount: data.amount });
+        window.history.replaceState(null, "", `${window.location.pathname}${window.location.hash}`);
+        await router.invalidate();
         return;
-      }
-      for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
-        let query = client
-          .from("backings")
-          .select("gross_amount, stripe_checkout_session_id, paid_at")
-          .eq("project_id", canonicalProject.id)
-          .eq("backer_id", auth.session.user.id)
-          .eq("status", "paid")
-          .order("paid_at", { ascending: false })
-          .limit(1);
-        if (returnedSessionId) query = query.eq("stripe_checkout_session_id", returnedSessionId);
-        const { data: matchingBackings } = await query;
-        const backing = matchingBackings?.[0];
-        if (backing) {
-          setCheckoutSucceeded(true);
-          setCheckoutConfirmation({ state: "confirmed", amount: backing.gross_amount });
-          return;
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, 1500));
       }
       if (!cancelled) setCheckoutConfirmation({ state: "delayed" });
     };
@@ -266,7 +249,7 @@ function ProjectPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [router, slug]);
   const launchProject = async () => {
     if (!supabase || isLaunching) return;
     setIsLaunching(true);
@@ -346,7 +329,7 @@ function ProjectPage() {
                 <p className="text-xl font-semibold">Confirming your backing…</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {checkoutConfirmation.state === "delayed"
-                    ? "This is taking longer than expected. Your dashboard will update as soon as confirmation completes."
+                    ? "We received your checkout return but are still confirming the payment. Don’t pay again. Check your backed projects or refresh shortly."
                     : "This usually takes only a few seconds."}
                 </p>
                 {checkoutConfirmation.state === "delayed" ? (

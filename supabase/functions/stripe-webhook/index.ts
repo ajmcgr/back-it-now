@@ -1,6 +1,7 @@
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 import { renderBackedEmail, sendResendEmail } from "../_shared/backed-email.ts";
+import { finalizeBackingFromStripe } from "../_shared/stripe-finalization.ts";
 
 const stripe = () => {
   const key = Deno.env.get("STRIPE_SECRET_KEY");
@@ -249,15 +250,19 @@ async function reverseCreatorTransfer(
 }
 
 Deno.serve(async (req) => {
+  let stage = "request_received";
   try {
+    stage = "stripe_client_initialized";
     const api = stripe();
     const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     if (!secret?.startsWith("whsec_")) throw new Error("stripe_webhook_secret_required");
+    stage = "signature_verification";
     const event = api.webhooks.constructEvent(
       await req.text(),
       req.headers.get("stripe-signature") ?? "",
       secret,
     );
+    stage = "idempotency_lookup";
     const admin = adminClient();
     const { data: prior } = await admin
       .from("webhook_events")
@@ -271,40 +276,24 @@ Deno.serve(async (req) => {
       event.type === "checkout.session.async_payment_succeeded"
     ) {
       const session = event.data.object as Stripe.Checkout.Session;
-      if (session.payment_status === "paid" && session.payment_intent) {
-        const intent = await api.paymentIntents.retrieve(String(session.payment_intent), {
-          expand: ["latest_charge.balance_transaction"],
-        });
-        const charge = typeof intent.latest_charge === "object" ? intent.latest_charge : null;
-        const balance =
-          charge && typeof charge.balance_transaction === "object"
-            ? charge.balance_transaction
-            : null;
-        const { data, error } = await admin.rpc("finalize_stripe_checkout", {
-          p_checkout_session_id: session.id,
-          p_payment_intent_id: intent.id,
-          p_processing_fee_amount: balance?.fee ?? 0,
-          p_backer_email: session.customer_details?.email ?? "",
-          p_stripe_charge_id: charge?.id ?? null,
-        });
-        if (error) throw error;
-        const result = Array.isArray(data) ? data[0] : data;
-        if (result?.backing_id) {
-          if (balance?.id)
-            await admin
-              .from("backings")
-              .update({ stripe_balance_transaction_id: balance.id })
-              .eq("id", result.backing_id);
+      stage = "checkout_finalization";
+      const finalized = await finalizeBackingFromStripe(api, admin, {
+        sessionId: session.id,
+        trustedWebhook: true,
+      });
+      if (finalized.backingId) {
+        stage = "post_finalization_side_effects";
+        try {
           const { data: project } = await admin
             .from("projects")
             .select("id, slug, name, creator_id")
-            .eq("id", result.project_id)
+            .eq("id", finalized.projectId)
             .maybeSingle();
           await sendDelivery(admin, {
-            key: `backing-confirmation:${result.backing_id}`,
+            key: `backing-confirmation:${finalized.backingId}`,
             event: "backing_confirmation",
-            backingId: result.backing_id,
-            to: session.customer_details?.email ?? "",
+            backingId: finalized.backingId,
+            to: finalized.customerEmail,
             subject: "Your Backed confirmation",
             title: "Your backing is confirmed",
             body: "Thanks for backing this project. Your support has been recorded. Help make it happen by sharing the project with your community.",
@@ -320,9 +309,9 @@ Deno.serve(async (req) => {
             : { data: null };
           if (project && creator?.email)
             await sendDelivery(admin, {
-              key: `creator-new-backing:${result.backing_id}`,
+              key: `creator-new-backing:${finalized.backingId}`,
               event: "creator_new_backing",
-              backingId: result.backing_id,
+              backingId: finalized.backingId,
               to: creator.email,
               subject: `Someone backed ${project.name}`,
               title: `Someone backed ${project.name} 🎉`,
@@ -330,11 +319,16 @@ Deno.serve(async (req) => {
               ctaLabel: "Share your project",
               ctaUrl: `https://backedit.co/projects/${project.slug}?share=1`,
             });
-          await sendShareMilestones(admin, result.backing_id);
+          await sendShareMilestones(admin, finalized.backingId);
           const { data: cancellationRefundId } = await admin.rpc("queue_cancellation_backing", {
-            p_backing_id: result.backing_id,
+            p_backing_id: finalized.backingId,
           });
-          if (!cancellationRefundId) await attemptCreatorTransfer(admin, api, result.backing_id);
+          if (!cancellationRefundId) await attemptCreatorTransfer(admin, api, finalized.backingId);
+        } catch (sideEffectError) {
+          console.error(
+            "stripe_post_finalization_failed",
+            sideEffectError instanceof Error ? sideEffectError.message : "unknown_error",
+          );
         }
       }
     }
@@ -461,12 +455,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    stage = "event_audit";
     const { error: auditError } = await admin
       .from("webhook_events")
       .insert({ stripe_event_id: event.id, event_type: event.type });
     if (auditError?.code !== "23505" && auditError) throw auditError;
     return Response.json({ received: true });
-  } catch {
+  } catch (error) {
+    console.error(
+      "stripe_webhook_failed",
+      stage,
+      error instanceof Error ? error.message : "unknown_error",
+    );
     return new Response("webhook_error", { status: 400 });
   }
 });
