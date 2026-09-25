@@ -1,6 +1,7 @@
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
-import { renderBackedEmail, sendResendEmail } from "../_shared/backed-email.ts";
+import { deliverBackedEmail } from "../_shared/email-delivery.ts";
+import { sendBackingTransactionalEmails } from "../_shared/backing-emails.ts";
 import { finalizeBackingFromStripe } from "../_shared/stripe-finalization.ts";
 
 const stripe = () => {
@@ -27,39 +28,7 @@ async function sendDelivery(
     ctaUrl?: string;
   },
 ) {
-  if (!input.to) return;
-  await admin.from("email_deliveries").insert({
-    dedupe_key: input.key,
-    event_type: input.event,
-    backing_id: input.backingId,
-    recipient_email: input.to,
-  });
-  const { data: delivery } = await admin
-    .from("email_deliveries")
-    .select("id, status")
-    .eq("dedupe_key", input.key)
-    .maybeSingle();
-  if (!delivery || delivery.status === "sent") return;
-  const response = await sendResendEmail({
-    to: input.to,
-    subject: input.subject,
-    email: renderBackedEmail({
-      title: input.title,
-      preheader: input.title,
-      body: input.body,
-      ctaLabel: input.ctaLabel,
-      ctaUrl: input.ctaUrl,
-    }),
-    idempotencyKey: input.key,
-  });
-  await admin
-    .from("email_deliveries")
-    .update(
-      response.ok
-        ? { status: "sent", sent_at: new Date().toISOString(), last_error: null }
-        : { status: "failed", last_error: "resend_delivery_failed" },
-    )
-    .eq("id", delivery.id);
+  return deliverBackedEmail(admin, input);
 }
 
 async function sendShareMilestones(admin: Admin, backingId: string) {
@@ -269,7 +238,21 @@ Deno.serve(async (req) => {
       .select("stripe_event_id")
       .eq("stripe_event_id", event.id)
       .maybeSingle();
-    if (prior) return Response.json({ received: true, duplicate: true });
+    if (prior) {
+      if (
+        event.type === "checkout.session.completed" ||
+        event.type === "checkout.session.async_payment_succeeded"
+      ) {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const { data: backing } = await admin
+          .from("backings")
+          .select("id")
+          .eq("stripe_checkout_session_id", session.id)
+          .maybeSingle();
+        if (backing) await sendBackingTransactionalEmails(admin, backing.id);
+      }
+      return Response.json({ received: true, duplicate: true });
+    }
 
     if (
       event.type === "checkout.session.completed" ||
@@ -284,41 +267,7 @@ Deno.serve(async (req) => {
       if (finalized.backingId) {
         stage = "post_finalization_side_effects";
         try {
-          const { data: project } = await admin
-            .from("projects")
-            .select("id, slug, name, creator_id")
-            .eq("id", finalized.projectId)
-            .maybeSingle();
-          await sendDelivery(admin, {
-            key: `backing-confirmation:${finalized.backingId}`,
-            event: "backing_confirmation",
-            backingId: finalized.backingId,
-            to: finalized.customerEmail,
-            subject: "Your Backed confirmation",
-            title: "Your backing is confirmed",
-            body: "Thanks for backing this project. Your support has been recorded. Help make it happen by sharing the project with your community.",
-            ctaLabel: project ? "Share project" : undefined,
-            ctaUrl: project ? `https://backedit.co/projects/${project.slug}` : undefined,
-          });
-          const { data: creator } = project
-            ? await admin
-                .from("profiles")
-                .select("email")
-                .eq("id", project.creator_id)
-                .maybeSingle()
-            : { data: null };
-          if (project && creator?.email)
-            await sendDelivery(admin, {
-              key: `creator-new-backing:${finalized.backingId}`,
-              event: "creator_new_backing",
-              backingId: finalized.backingId,
-              to: creator.email,
-              subject: `Someone backed ${project.name}`,
-              title: `Someone backed ${project.name} 🎉`,
-              body: "You have a new successful backing. Keep the momentum going by sharing your project.",
-              ctaLabel: "Share your project",
-              ctaUrl: `https://backedit.co/projects/${project.slug}?share=1`,
-            });
+          await sendBackingTransactionalEmails(admin, finalized.backingId);
           await sendShareMilestones(admin, finalized.backingId);
           const { data: cancellationRefundId } = await admin.rpc("queue_cancellation_backing", {
             p_backing_id: finalized.backingId,

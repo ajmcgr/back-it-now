@@ -4,6 +4,7 @@ import {
   CheckoutReconciliationError,
   finalizeBackingFromStripe,
 } from "../_shared/stripe-finalization.ts";
+import { sendBackingTransactionalEmails } from "../_shared/backing-emails.ts";
 
 const origin = "https://backedit.co";
 const cors = {
@@ -48,6 +49,14 @@ Deno.serve(async (req) => {
       expectedProjectSlug: projectSlug,
       requesterId: auth.user?.id ?? null,
     });
+    try {
+      await sendBackingTransactionalEmails(admin, result.backingId);
+    } catch (emailError) {
+      console.error(
+        "checkout_confirmation_email_failed",
+        emailError instanceof Error ? emailError.message : "unknown_error",
+      );
+    }
     return json({
       confirmed: true,
       backingId: result.backingId,
