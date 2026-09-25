@@ -11,7 +11,7 @@ import {
   type ProjectUpdate,
 } from "@/lib/project-updates";
 import { trackShare } from "@/lib/project-share";
-import { projectSocialImageUrl, publicSeo, trimDescription } from "@/lib/seo";
+import { publicSeo, trimDescription } from "@/lib/seo";
 
 export const Route = createFileRoute("/projects/$slug/updates/$updateId")({
   loader: async ({ params }) => {
@@ -33,15 +33,6 @@ export const Route = createFileRoute("/projects/$slug/updates/$updateId")({
       title: `${update.title} | ${project.title} | Backed`,
       description: trimDescription(update.body, `An update from ${project.title}.`),
       path: `/projects/${project.slug}/updates/${update.id}`,
-      image: projectSocialImageUrl({
-        slug: project.slug,
-        name: project.title,
-        summary: update.title,
-        creator: project.creator,
-        amountBacked: project.initialBackedAmount + project.successfulBackingAmount,
-        goal: project.goal,
-        backers: project.successfulBackingCount,
-      }),
       type: "article",
     });
   },
