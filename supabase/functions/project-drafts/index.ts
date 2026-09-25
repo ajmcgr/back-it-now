@@ -25,6 +25,8 @@ function messageFor(error: unknown) {
   if (message.includes("draft_owned_by_another_user"))
     return "This draft belongs to a different Backed account.";
   if (message.includes("draft_not_found")) return "This draft is no longer available.";
+  if (message.includes("profile_username_required"))
+    return "Choose a username in Settings before publishing your project.";
   return "We could not publish this project. Please check the details and try again.";
 }
 

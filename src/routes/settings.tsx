@@ -249,6 +249,8 @@ function Settings() {
     if (error || !savedProfile) {
       setIsSaving(false);
       if (error?.code === "23505") return setMessage("That username is already taken.");
+      if (error?.code === "23514" && error.message.includes("public_project_username_required"))
+        return setMessage("Keep a username while you have a public project on Backed.");
       if (error?.code === "23514") return setMessage("That username or website is not allowed.");
       return setMessage("We couldn't save your changes. Please try again.");
     }
