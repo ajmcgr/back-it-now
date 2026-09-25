@@ -16,7 +16,7 @@ function AuthPage() {
       ? "/"
       : (new URLSearchParams(window.location.search).get("next") ?? "/");
   const [email, setEmail] = useState("");
-  const [newsletterConsent, setNewsletterConsent] = useState(false);
+  const [newsletterConsent, setNewsletterConsent] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<"x" | "google" | "email" | null>(null);
 
