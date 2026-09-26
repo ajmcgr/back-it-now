@@ -86,26 +86,27 @@ function Dashboard() {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
     if (requestedTab === "backed" || requestedTab === "favorites") setActiveTab(requestedTab);
     const load = async () => {
-      if (!supabase) return setIsLoading(false);
-      const { data: session } = await supabase.auth.getSession();
+      const client = supabase;
+      if (!client) return setIsLoading(false);
+      const { data: session } = await client.auth.getSession();
       if (!session.session) return window.location.assign("/auth?next=/dashboard");
       try {
         const [createdResult, backingResult, favoriteResult] = await Promise.all([
-          supabase
+          client
             .from("projects")
             .select(
               "id, slug, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
             )
             .eq("creator_id", session.session.user.id)
             .order("created_at", { ascending: false }),
-          supabase
+          client
             .from("backings")
             .select(
               "id, project_id, reward_id, gross_amount, currency, status, refund_status, refund_amount, paid_at, created_at, is_private",
             )
             .eq("backer_id", session.session.user.id)
             .order("paid_at", { ascending: false }),
-          supabase.rpc("list_my_favorite_projects"),
+          client.rpc("list_my_favorite_projects"),
         ]);
         if (createdResult.error || backingResult.error || favoriteResult.error)
           throw new Error("Your dashboard is temporarily unavailable.");
@@ -114,7 +115,7 @@ function Dashboard() {
         const projectsWithCancellation = await Promise.all(
           createdProjects.map(async (project) => {
             if (project.status !== "cancelling" && project.status !== "cancelled") return project;
-            const { data } = await supabase.functions.invoke("project-cancellation", {
+            const { data } = await client.functions.invoke("project-cancellation", {
               body: { action: "status", slug: project.slug },
             });
             return { ...project, cancellation: data?.cancellation ?? null };
@@ -141,12 +142,12 @@ function Dashboard() {
           ),
         ];
         const [projectResult, rewardResult] = await Promise.all([
-          supabase
+          client
             .from("projects")
             .select("id, slug, name, image_url, status")
             .in("id", projectIds),
           rewardIds.length
-            ? supabase.from("rewards").select("id, title").in("id", rewardIds)
+            ? client.from("rewards").select("id, title").in("id", rewardIds)
             : Promise.resolve({ data: [], error: null }),
         ]);
         if (projectResult.error || rewardResult.error)
@@ -156,7 +157,7 @@ function Dashboard() {
           .map((project) => project["slug"])
           .filter((slug): slug is string => typeof slug === "string");
         const { data: presentationRows, error: presentationError } = slugs.length
-          ? await supabase
+          ? await client
               .from("public_profile_projects")
               .select("slug, creator_username, creator_display_name, image_url")
               .in("slug", slugs)

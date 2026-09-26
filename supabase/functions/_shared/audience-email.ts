@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
 import { renderBackedEmail, sendResendEmail } from "./backed-email.ts";
 
 export async function deliverProjectLaunchEmails(
