@@ -531,17 +531,7 @@ function SiteFooter() {
   return (
     <footer className="border-t border-border py-10 sm:py-12">
       <div className="container-backed">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-9 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(4,1fr)]">
-          <div className="col-span-2 sm:col-span-1">
-            <img
-              src="/header-logo.png"
-              alt="Backed"
-              width={3654}
-              height={1291}
-              className="h-10 w-auto"
-            />
-            <p className="mt-3 max-w-xs leading-6">Back things you want to exist.</p>
-          </div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 text-sm text-muted-foreground sm:grid-cols-3 lg:grid-cols-5">
           <FooterGroup
             title="Explore"
             links={[
@@ -552,13 +542,23 @@ function SiteFooter() {
             ]}
           />
           <FooterGroup
-            title="Support"
+            title="Resources"
             links={[
               ["About", "/about"],
               ["FAQ", "/faq"],
               ["Contact", "/contact"],
               ["Terms", "/terms"],
               ["Privacy", "/privacy"],
+            ]}
+          />
+          <FooterGroup
+            title="Free Tools"
+            links={[
+              ["Funding goal", "/tools/funding-goal-calculator"],
+              ["Fee calculator", "/tools/crowdfunding-fee-calculator"],
+              ["Reward pricing", "/tools/reward-price-calculator"],
+              ["Campaign planner", "/tools/campaign-planner"],
+              ["All tools →", "/tools"],
             ]}
           />
           <FooterGroup

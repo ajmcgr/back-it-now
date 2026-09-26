@@ -38,6 +38,11 @@ import { Route as CompareIndiegogoRouteImport } from './routes/compare/indiegogo
 import { Route as CompareKickstarterRouteImport } from './routes/compare/kickstarter'
 import { Route as ComparePatreonRouteImport } from './routes/compare/patreon'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
+import { Route as ToolsIndexRouteImport } from './routes/tools/index'
+import { Route as ToolsCampaignPlannerRouteImport } from './routes/tools/campaign-planner'
+import { Route as ToolsCrowdfundingFeeCalculatorRouteImport } from './routes/tools/crowdfunding-fee-calculator'
+import { Route as ToolsFundingGoalCalculatorRouteImport } from './routes/tools/funding-goal-calculator'
+import { Route as ToolsRewardPriceCalculatorRouteImport } from './routes/tools/reward-price-calculator'
 import { Route as ProjectsSlugEditRouteImport } from './routes/projects_.$slug.edit'
 import { Route as ProjectsSlugUpdatesUpdateIdRouteImport } from './routes/projects.$slug.updates.$updateId'
 
@@ -186,6 +191,34 @@ const ProjectsSlugRoute = ProjectsSlugRouteImport.update({
   path: '/projects/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/tools/',
+  path: '/tools/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsCampaignPlannerRoute = ToolsCampaignPlannerRouteImport.update({
+  id: '/tools/campaign-planner',
+  path: '/tools/campaign-planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsCrowdfundingFeeCalculatorRoute =
+  ToolsCrowdfundingFeeCalculatorRouteImport.update({
+    id: '/tools/crowdfunding-fee-calculator',
+    path: '/tools/crowdfunding-fee-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ToolsFundingGoalCalculatorRoute =
+  ToolsFundingGoalCalculatorRouteImport.update({
+    id: '/tools/funding-goal-calculator',
+    path: '/tools/funding-goal-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ToolsRewardPriceCalculatorRoute =
+  ToolsRewardPriceCalculatorRouteImport.update({
+    id: '/tools/reward-price-calculator',
+    path: '/tools/reward-price-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProjectsSlugEditRoute = ProjectsSlugEditRouteImport.update({
   id: '/projects_/$slug/edit',
   path: '/projects/$slug/edit',
@@ -225,9 +258,14 @@ export interface FileRoutesByFullPath {
   '/compare/kickstarter': typeof CompareKickstarterRoute
   '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
+  '/tools/campaign-planner': typeof ToolsCampaignPlannerRoute
+  '/tools/crowdfunding-fee-calculator': typeof ToolsCrowdfundingFeeCalculatorRoute
+  '/tools/funding-goal-calculator': typeof ToolsFundingGoalCalculatorRoute
+  '/tools/reward-price-calculator': typeof ToolsRewardPriceCalculatorRoute
   '/auth/': typeof AuthIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/compare/': typeof CompareIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -258,9 +296,14 @@ export interface FileRoutesByTo {
   '/compare/kickstarter': typeof CompareKickstarterRoute
   '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
+  '/tools/campaign-planner': typeof ToolsCampaignPlannerRoute
+  '/tools/crowdfunding-fee-calculator': typeof ToolsCrowdfundingFeeCalculatorRoute
+  '/tools/funding-goal-calculator': typeof ToolsFundingGoalCalculatorRoute
+  '/tools/reward-price-calculator': typeof ToolsRewardPriceCalculatorRoute
   '/auth': typeof AuthIndexRoute
   '/blog': typeof BlogIndexRoute
   '/compare': typeof CompareIndexRoute
+  '/tools': typeof ToolsIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -292,9 +335,14 @@ export interface FileRoutesById {
   '/compare/kickstarter': typeof CompareKickstarterRoute
   '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
+  '/tools/campaign-planner': typeof ToolsCampaignPlannerRoute
+  '/tools/crowdfunding-fee-calculator': typeof ToolsCrowdfundingFeeCalculatorRoute
+  '/tools/funding-goal-calculator': typeof ToolsFundingGoalCalculatorRoute
+  '/tools/reward-price-calculator': typeof ToolsRewardPriceCalculatorRoute
   '/auth/': typeof AuthIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/compare/': typeof CompareIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/projects_/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -327,9 +375,14 @@ export interface FileRouteTypes {
     | '/compare/kickstarter'
     | '/compare/patreon'
     | '/projects/$slug'
+    | '/tools/campaign-planner'
+    | '/tools/crowdfunding-fee-calculator'
+    | '/tools/funding-goal-calculator'
+    | '/tools/reward-price-calculator'
     | '/auth/'
     | '/blog/'
     | '/compare/'
+    | '/tools/'
     | '/projects/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   fileRoutesByTo: FileRoutesByTo
@@ -360,9 +413,14 @@ export interface FileRouteTypes {
     | '/compare/kickstarter'
     | '/compare/patreon'
     | '/projects/$slug'
+    | '/tools/campaign-planner'
+    | '/tools/crowdfunding-fee-calculator'
+    | '/tools/funding-goal-calculator'
+    | '/tools/reward-price-calculator'
     | '/auth'
     | '/blog'
     | '/compare'
+    | '/tools'
     | '/projects/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   id:
@@ -393,9 +451,14 @@ export interface FileRouteTypes {
     | '/compare/kickstarter'
     | '/compare/patreon'
     | '/projects/$slug'
+    | '/tools/campaign-planner'
+    | '/tools/crowdfunding-fee-calculator'
+    | '/tools/funding-goal-calculator'
+    | '/tools/reward-price-calculator'
     | '/auth/'
     | '/blog/'
     | '/compare/'
+    | '/tools/'
     | '/projects_/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   fileRoutesById: FileRoutesById
@@ -427,9 +490,14 @@ export interface RootRouteChildren {
   CompareKickstarterRoute: typeof CompareKickstarterRoute
   ComparePatreonRoute: typeof ComparePatreonRoute
   ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
+  ToolsCampaignPlannerRoute: typeof ToolsCampaignPlannerRoute
+  ToolsCrowdfundingFeeCalculatorRoute: typeof ToolsCrowdfundingFeeCalculatorRoute
+  ToolsFundingGoalCalculatorRoute: typeof ToolsFundingGoalCalculatorRoute
+  ToolsRewardPriceCalculatorRoute: typeof ToolsRewardPriceCalculatorRoute
   AuthIndexRoute: typeof AuthIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   CompareIndexRoute: typeof CompareIndexRoute
+  ToolsIndexRoute: typeof ToolsIndexRoute
   ProjectsSlugEditRoute: typeof ProjectsSlugEditRoute
 }
 
@@ -638,6 +706,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/': {
+      id: '/tools/'
+      path: '/tools'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/campaign-planner': {
+      id: '/tools/campaign-planner'
+      path: '/tools/campaign-planner'
+      fullPath: '/tools/campaign-planner'
+      preLoaderRoute: typeof ToolsCampaignPlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/crowdfunding-fee-calculator': {
+      id: '/tools/crowdfunding-fee-calculator'
+      path: '/tools/crowdfunding-fee-calculator'
+      fullPath: '/tools/crowdfunding-fee-calculator'
+      preLoaderRoute: typeof ToolsCrowdfundingFeeCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/funding-goal-calculator': {
+      id: '/tools/funding-goal-calculator'
+      path: '/tools/funding-goal-calculator'
+      fullPath: '/tools/funding-goal-calculator'
+      preLoaderRoute: typeof ToolsFundingGoalCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/reward-price-calculator': {
+      id: '/tools/reward-price-calculator'
+      path: '/tools/reward-price-calculator'
+      fullPath: '/tools/reward-price-calculator'
+      preLoaderRoute: typeof ToolsRewardPriceCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects_/$slug/edit': {
       id: '/projects_/$slug/edit'
       path: '/projects/$slug/edit'
@@ -694,9 +797,14 @@ const rootRouteChildren: RootRouteChildren = {
   CompareKickstarterRoute: CompareKickstarterRoute,
   ComparePatreonRoute: ComparePatreonRoute,
   ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
+  ToolsCampaignPlannerRoute: ToolsCampaignPlannerRoute,
+  ToolsCrowdfundingFeeCalculatorRoute: ToolsCrowdfundingFeeCalculatorRoute,
+  ToolsFundingGoalCalculatorRoute: ToolsFundingGoalCalculatorRoute,
+  ToolsRewardPriceCalculatorRoute: ToolsRewardPriceCalculatorRoute,
   AuthIndexRoute: AuthIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   CompareIndexRoute: CompareIndexRoute,
+  ToolsIndexRoute: ToolsIndexRoute,
   ProjectsSlugEditRoute: ProjectsSlugEditRoute,
 }
 export const routeTree = rootRouteImport
