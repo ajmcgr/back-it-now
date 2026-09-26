@@ -1,5 +1,15 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, Calculator, Gift, WalletCards } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Calculator,
+  CircleDollarSign,
+  Gift,
+  Target,
+  Truck,
+  UsersRound,
+  WalletCards,
+} from "lucide-react";
 import { publicSeo } from "@/lib/seo";
 
 const tools = [
@@ -29,6 +39,33 @@ const tools = [
       "Map the important preparation, launch, midpoint and final-week dates for your campaign.",
     path: "/tools/campaign-planner",
     icon: CalendarDays,
+  },
+  {
+    title: "Backer target calculator",
+    description:
+      "Translate a funding goal and average backing into campaign, weekly and daily backer targets.",
+    path: "/tools/backer-target-calculator",
+    icon: Target,
+  },
+  {
+    title: "Pre-launch audience calculator",
+    description:
+      "Estimate how many qualified visitors you may need based on your goal and expected conversion rate.",
+    path: "/tools/prelaunch-audience-calculator",
+    icon: UsersRound,
+  },
+  {
+    title: "Shipping budget calculator",
+    description: "Plan domestic and international delivery, packaging and a replacement buffer.",
+    path: "/tools/shipping-budget-calculator",
+    icon: Truck,
+  },
+  {
+    title: "Campaign profit calculator",
+    description:
+      "Estimate what remains after campaign fees, production, fulfillment, shipping and marketing.",
+    path: "/tools/campaign-profit-calculator",
+    icon: CircleDollarSign,
   },
 ] as const;
 

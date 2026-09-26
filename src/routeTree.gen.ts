@@ -39,10 +39,14 @@ import { Route as CompareKickstarterRouteImport } from './routes/compare/kicksta
 import { Route as ComparePatreonRouteImport } from './routes/compare/patreon'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
 import { Route as ToolsIndexRouteImport } from './routes/tools/index'
+import { Route as ToolsBackerTargetCalculatorRouteImport } from './routes/tools/backer-target-calculator'
 import { Route as ToolsCampaignPlannerRouteImport } from './routes/tools/campaign-planner'
+import { Route as ToolsCampaignProfitCalculatorRouteImport } from './routes/tools/campaign-profit-calculator'
 import { Route as ToolsCrowdfundingFeeCalculatorRouteImport } from './routes/tools/crowdfunding-fee-calculator'
 import { Route as ToolsFundingGoalCalculatorRouteImport } from './routes/tools/funding-goal-calculator'
+import { Route as ToolsPrelaunchAudienceCalculatorRouteImport } from './routes/tools/prelaunch-audience-calculator'
 import { Route as ToolsRewardPriceCalculatorRouteImport } from './routes/tools/reward-price-calculator'
+import { Route as ToolsShippingBudgetCalculatorRouteImport } from './routes/tools/shipping-budget-calculator'
 import { Route as ProjectsSlugEditRouteImport } from './routes/projects_.$slug.edit'
 import { Route as ProjectsSlugUpdatesUpdateIdRouteImport } from './routes/projects.$slug.updates.$updateId'
 
@@ -196,11 +200,23 @@ const ToolsIndexRoute = ToolsIndexRouteImport.update({
   path: '/tools/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsBackerTargetCalculatorRoute =
+  ToolsBackerTargetCalculatorRouteImport.update({
+    id: '/tools/backer-target-calculator',
+    path: '/tools/backer-target-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ToolsCampaignPlannerRoute = ToolsCampaignPlannerRouteImport.update({
   id: '/tools/campaign-planner',
   path: '/tools/campaign-planner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsCampaignProfitCalculatorRoute =
+  ToolsCampaignProfitCalculatorRouteImport.update({
+    id: '/tools/campaign-profit-calculator',
+    path: '/tools/campaign-profit-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ToolsCrowdfundingFeeCalculatorRoute =
   ToolsCrowdfundingFeeCalculatorRouteImport.update({
     id: '/tools/crowdfunding-fee-calculator',
@@ -213,10 +229,22 @@ const ToolsFundingGoalCalculatorRoute =
     path: '/tools/funding-goal-calculator',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ToolsPrelaunchAudienceCalculatorRoute =
+  ToolsPrelaunchAudienceCalculatorRouteImport.update({
+    id: '/tools/prelaunch-audience-calculator',
+    path: '/tools/prelaunch-audience-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ToolsRewardPriceCalculatorRoute =
   ToolsRewardPriceCalculatorRouteImport.update({
     id: '/tools/reward-price-calculator',
     path: '/tools/reward-price-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ToolsShippingBudgetCalculatorRoute =
+  ToolsShippingBudgetCalculatorRouteImport.update({
+    id: '/tools/shipping-budget-calculator',
+    path: '/tools/shipping-budget-calculator',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ProjectsSlugEditRoute = ProjectsSlugEditRouteImport.update({
@@ -258,10 +286,14 @@ export interface FileRoutesByFullPath {
   '/compare/kickstarter': typeof CompareKickstarterRoute
   '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
+  '/tools/backer-target-calculator': typeof ToolsBackerTargetCalculatorRoute
   '/tools/campaign-planner': typeof ToolsCampaignPlannerRoute
+  '/tools/campaign-profit-calculator': typeof ToolsCampaignProfitCalculatorRoute
   '/tools/crowdfunding-fee-calculator': typeof ToolsCrowdfundingFeeCalculatorRoute
   '/tools/funding-goal-calculator': typeof ToolsFundingGoalCalculatorRoute
+  '/tools/prelaunch-audience-calculator': typeof ToolsPrelaunchAudienceCalculatorRoute
   '/tools/reward-price-calculator': typeof ToolsRewardPriceCalculatorRoute
+  '/tools/shipping-budget-calculator': typeof ToolsShippingBudgetCalculatorRoute
   '/auth/': typeof AuthIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/compare/': typeof CompareIndexRoute
@@ -296,10 +328,14 @@ export interface FileRoutesByTo {
   '/compare/kickstarter': typeof CompareKickstarterRoute
   '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
+  '/tools/backer-target-calculator': typeof ToolsBackerTargetCalculatorRoute
   '/tools/campaign-planner': typeof ToolsCampaignPlannerRoute
+  '/tools/campaign-profit-calculator': typeof ToolsCampaignProfitCalculatorRoute
   '/tools/crowdfunding-fee-calculator': typeof ToolsCrowdfundingFeeCalculatorRoute
   '/tools/funding-goal-calculator': typeof ToolsFundingGoalCalculatorRoute
+  '/tools/prelaunch-audience-calculator': typeof ToolsPrelaunchAudienceCalculatorRoute
   '/tools/reward-price-calculator': typeof ToolsRewardPriceCalculatorRoute
+  '/tools/shipping-budget-calculator': typeof ToolsShippingBudgetCalculatorRoute
   '/auth': typeof AuthIndexRoute
   '/blog': typeof BlogIndexRoute
   '/compare': typeof CompareIndexRoute
@@ -335,10 +371,14 @@ export interface FileRoutesById {
   '/compare/kickstarter': typeof CompareKickstarterRoute
   '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
+  '/tools/backer-target-calculator': typeof ToolsBackerTargetCalculatorRoute
   '/tools/campaign-planner': typeof ToolsCampaignPlannerRoute
+  '/tools/campaign-profit-calculator': typeof ToolsCampaignProfitCalculatorRoute
   '/tools/crowdfunding-fee-calculator': typeof ToolsCrowdfundingFeeCalculatorRoute
   '/tools/funding-goal-calculator': typeof ToolsFundingGoalCalculatorRoute
+  '/tools/prelaunch-audience-calculator': typeof ToolsPrelaunchAudienceCalculatorRoute
   '/tools/reward-price-calculator': typeof ToolsRewardPriceCalculatorRoute
+  '/tools/shipping-budget-calculator': typeof ToolsShippingBudgetCalculatorRoute
   '/auth/': typeof AuthIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/compare/': typeof CompareIndexRoute
@@ -375,10 +415,14 @@ export interface FileRouteTypes {
     | '/compare/kickstarter'
     | '/compare/patreon'
     | '/projects/$slug'
+    | '/tools/backer-target-calculator'
     | '/tools/campaign-planner'
+    | '/tools/campaign-profit-calculator'
     | '/tools/crowdfunding-fee-calculator'
     | '/tools/funding-goal-calculator'
+    | '/tools/prelaunch-audience-calculator'
     | '/tools/reward-price-calculator'
+    | '/tools/shipping-budget-calculator'
     | '/auth/'
     | '/blog/'
     | '/compare/'
@@ -413,10 +457,14 @@ export interface FileRouteTypes {
     | '/compare/kickstarter'
     | '/compare/patreon'
     | '/projects/$slug'
+    | '/tools/backer-target-calculator'
     | '/tools/campaign-planner'
+    | '/tools/campaign-profit-calculator'
     | '/tools/crowdfunding-fee-calculator'
     | '/tools/funding-goal-calculator'
+    | '/tools/prelaunch-audience-calculator'
     | '/tools/reward-price-calculator'
+    | '/tools/shipping-budget-calculator'
     | '/auth'
     | '/blog'
     | '/compare'
@@ -451,10 +499,14 @@ export interface FileRouteTypes {
     | '/compare/kickstarter'
     | '/compare/patreon'
     | '/projects/$slug'
+    | '/tools/backer-target-calculator'
     | '/tools/campaign-planner'
+    | '/tools/campaign-profit-calculator'
     | '/tools/crowdfunding-fee-calculator'
     | '/tools/funding-goal-calculator'
+    | '/tools/prelaunch-audience-calculator'
     | '/tools/reward-price-calculator'
+    | '/tools/shipping-budget-calculator'
     | '/auth/'
     | '/blog/'
     | '/compare/'
@@ -490,10 +542,14 @@ export interface RootRouteChildren {
   CompareKickstarterRoute: typeof CompareKickstarterRoute
   ComparePatreonRoute: typeof ComparePatreonRoute
   ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
+  ToolsBackerTargetCalculatorRoute: typeof ToolsBackerTargetCalculatorRoute
   ToolsCampaignPlannerRoute: typeof ToolsCampaignPlannerRoute
+  ToolsCampaignProfitCalculatorRoute: typeof ToolsCampaignProfitCalculatorRoute
   ToolsCrowdfundingFeeCalculatorRoute: typeof ToolsCrowdfundingFeeCalculatorRoute
   ToolsFundingGoalCalculatorRoute: typeof ToolsFundingGoalCalculatorRoute
+  ToolsPrelaunchAudienceCalculatorRoute: typeof ToolsPrelaunchAudienceCalculatorRoute
   ToolsRewardPriceCalculatorRoute: typeof ToolsRewardPriceCalculatorRoute
+  ToolsShippingBudgetCalculatorRoute: typeof ToolsShippingBudgetCalculatorRoute
   AuthIndexRoute: typeof AuthIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   CompareIndexRoute: typeof CompareIndexRoute
@@ -713,11 +769,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/backer-target-calculator': {
+      id: '/tools/backer-target-calculator'
+      path: '/tools/backer-target-calculator'
+      fullPath: '/tools/backer-target-calculator'
+      preLoaderRoute: typeof ToolsBackerTargetCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/campaign-planner': {
       id: '/tools/campaign-planner'
       path: '/tools/campaign-planner'
       fullPath: '/tools/campaign-planner'
       preLoaderRoute: typeof ToolsCampaignPlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/campaign-profit-calculator': {
+      id: '/tools/campaign-profit-calculator'
+      path: '/tools/campaign-profit-calculator'
+      fullPath: '/tools/campaign-profit-calculator'
+      preLoaderRoute: typeof ToolsCampaignProfitCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tools/crowdfunding-fee-calculator': {
@@ -734,11 +804,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsFundingGoalCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/prelaunch-audience-calculator': {
+      id: '/tools/prelaunch-audience-calculator'
+      path: '/tools/prelaunch-audience-calculator'
+      fullPath: '/tools/prelaunch-audience-calculator'
+      preLoaderRoute: typeof ToolsPrelaunchAudienceCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/reward-price-calculator': {
       id: '/tools/reward-price-calculator'
       path: '/tools/reward-price-calculator'
       fullPath: '/tools/reward-price-calculator'
       preLoaderRoute: typeof ToolsRewardPriceCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/shipping-budget-calculator': {
+      id: '/tools/shipping-budget-calculator'
+      path: '/tools/shipping-budget-calculator'
+      fullPath: '/tools/shipping-budget-calculator'
+      preLoaderRoute: typeof ToolsShippingBudgetCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects_/$slug/edit': {
@@ -797,10 +881,14 @@ const rootRouteChildren: RootRouteChildren = {
   CompareKickstarterRoute: CompareKickstarterRoute,
   ComparePatreonRoute: ComparePatreonRoute,
   ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
+  ToolsBackerTargetCalculatorRoute: ToolsBackerTargetCalculatorRoute,
   ToolsCampaignPlannerRoute: ToolsCampaignPlannerRoute,
+  ToolsCampaignProfitCalculatorRoute: ToolsCampaignProfitCalculatorRoute,
   ToolsCrowdfundingFeeCalculatorRoute: ToolsCrowdfundingFeeCalculatorRoute,
   ToolsFundingGoalCalculatorRoute: ToolsFundingGoalCalculatorRoute,
+  ToolsPrelaunchAudienceCalculatorRoute: ToolsPrelaunchAudienceCalculatorRoute,
   ToolsRewardPriceCalculatorRoute: ToolsRewardPriceCalculatorRoute,
+  ToolsShippingBudgetCalculatorRoute: ToolsShippingBudgetCalculatorRoute,
   AuthIndexRoute: AuthIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   CompareIndexRoute: CompareIndexRoute,

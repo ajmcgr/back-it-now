@@ -81,3 +81,100 @@ export function estimateRewardPrice({
     roundedPrice: Math.ceil(suggestedPrice),
   };
 }
+
+export function estimateBackerTarget({
+  goal,
+  averageBacking,
+  campaignDays,
+}: {
+  goal: number;
+  averageBacking: number;
+  campaignDays: number;
+}) {
+  const backers = goal > 0 && averageBacking > 0 ? Math.ceil(goal / averageBacking) : 0;
+  const days = Math.max(1, Math.round(campaignDays));
+  return {
+    backers,
+    backersPerDay: Math.ceil(backers / days),
+    backersPerWeek: Math.ceil((backers / days) * 7),
+    amountPerDay: goal / days,
+  };
+}
+
+export function estimateAudienceSize({
+  goal,
+  averageBacking,
+  conversionPercent,
+  prelaunchSharePercent,
+}: {
+  goal: number;
+  averageBacking: number;
+  conversionPercent: number;
+  prelaunchSharePercent: number;
+}) {
+  const backers = goal > 0 && averageBacking > 0 ? Math.ceil(goal / averageBacking) : 0;
+  const conversionRate = Math.min(Math.max(conversionPercent, 0.1), 100) / 100;
+  const visitors = Math.ceil(backers / conversionRate);
+  const prelaunchBackers = Math.ceil(backers * (Math.min(prelaunchSharePercent, 100) / 100));
+  const prelaunchAudience = Math.ceil(prelaunchBackers / conversionRate);
+  return { backers, visitors, prelaunchBackers, prelaunchAudience };
+}
+
+export function estimateShippingBudget({
+  domesticRewards,
+  domesticShipping,
+  internationalRewards,
+  internationalShipping,
+  packagingPerReward,
+  bufferPercent,
+}: {
+  domesticRewards: number;
+  domesticShipping: number;
+  internationalRewards: number;
+  internationalShipping: number;
+  packagingPerReward: number;
+  bufferPercent: number;
+}) {
+  const shipping =
+    domesticRewards * domesticShipping + internationalRewards * internationalShipping;
+  const packaging = (domesticRewards + internationalRewards) * packagingPerReward;
+  const subtotal = shipping + packaging;
+  const buffer = subtotal * (bufferPercent / 100);
+  return {
+    rewards: domesticRewards + internationalRewards,
+    shipping,
+    packaging,
+    buffer,
+    total: subtotal + buffer,
+  };
+}
+
+export function estimateCampaignProfit({
+  raised,
+  production,
+  fulfillment,
+  shipping,
+  marketing,
+  other,
+  platformPercent,
+  processingPercent,
+}: {
+  raised: number;
+  production: number;
+  fulfillment: number;
+  shipping: number;
+  marketing: number;
+  other: number;
+  platformPercent: number;
+  processingPercent: number;
+}) {
+  const campaignFees = raised * ((platformPercent + processingPercent) / 100);
+  const projectCosts = production + fulfillment + shipping + marketing + other;
+  const remainder = raised - campaignFees - projectCosts;
+  return {
+    campaignFees,
+    projectCosts,
+    remainder,
+    marginPercent: raised > 0 ? (remainder / raised) * 100 : 0,
+  };
+}

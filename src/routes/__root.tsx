@@ -558,6 +558,10 @@ function SiteFooter() {
               ["Fee calculator", "/tools/crowdfunding-fee-calculator"],
               ["Reward pricing", "/tools/reward-price-calculator"],
               ["Campaign planner", "/tools/campaign-planner"],
+              ["Backer target", "/tools/backer-target-calculator"],
+              ["Audience size", "/tools/prelaunch-audience-calculator"],
+              ["Shipping budget", "/tools/shipping-budget-calculator"],
+              ["Campaign profit", "/tools/campaign-profit-calculator"],
               ["All tools →", "/tools"],
             ]}
           />
