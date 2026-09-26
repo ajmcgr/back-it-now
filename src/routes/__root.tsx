@@ -564,11 +564,11 @@ function SiteFooter() {
           <FooterGroup
             title="Compare"
             links={[
-              ["Overview", "/compare"],
               ["Kickstarter", "/compare/kickstarter"],
               ["Indiegogo", "/compare/indiegogo"],
               ["Patreon", "/compare/patreon"],
               ["GoFundMe", "/compare/gofundme"],
+              ["All platforms →", "/compare"],
             ]}
           />
           <nav aria-label="Connect">
