@@ -25,6 +25,7 @@ import { loadProjectComments } from "@/lib/project-comments";
 import {
   absoluteUrl,
   privateSeo,
+  projectSocialImageUrl,
   publicSeo,
   trimDescription,
 } from "@/lib/seo";
@@ -82,11 +83,21 @@ export const Route = createFileRoute("/projects/$slug")({
         gallery: project.gallery,
       }) ?? "/logo.png",
     );
+    const image = projectSocialImageUrl({
+      slug: project.slug,
+      name: project.title,
+      summary: project.tagline,
+      creator: project.creator,
+      amountBacked: project.initialBackedAmount + project.successfulBackingAmount,
+      goal: project.goal,
+      backers: project.successfulBackingCount,
+    });
     const creatorName = presentation?.creator.displayName || presentation?.creator.username;
     return publicSeo({
       title,
       description,
       path,
+      image,
       type: "website",
       jsonLd: {
         "@context": "https://schema.org",

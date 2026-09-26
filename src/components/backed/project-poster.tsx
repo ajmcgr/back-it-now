@@ -212,7 +212,7 @@ async function renderProjectPoster(project: PosterProject) {
   const contentWidth = 436;
 
   try {
-    const logo = await loadImage("/logo.png");
+    const logo = await loadImage("/header-logo.png");
     const width = 180;
     context.drawImage(logo, contentX, 38, width, (logo.height / logo.width) * width);
   } catch {
@@ -286,8 +286,11 @@ async function renderProjectPoster(project: PosterProject) {
   });
   drawTextBlock(context, creator, contentX, fundingTop + 136, 600);
   context.fillStyle = "#5171ff";
-  context.font = "700 25px Inter, Arial, sans-serif";
-  context.fillText("backedit.co", contentX, fundingTop + 184);
+  context.font = "400 18px Inter, Arial, sans-serif";
+  const siteLabel = "backedit.co";
+  const siteLabelY = fundingTop + 188;
+  context.fillText(siteLabel, contentX, siteLabelY);
+  context.fillRect(contentX, siteLabelY + 21, context.measureText(siteLabel).width, 1);
 
   const dataUrl = canvas.toDataURL("image/png");
   posterCache.set(cacheKey, { createdAt: Date.now(), dataUrl });
