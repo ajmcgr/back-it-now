@@ -23,6 +23,7 @@ export type BlogArticle = {
   readMinutes: number;
   draft: boolean;
   imageConcept: string;
+  imageUrl?: string;
   sections: BlogSection[];
   relatedLinks: BlogLink[];
   sources?: BlogLink[];

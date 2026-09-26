@@ -28,6 +28,10 @@ export async function loadBlogImages() {
   );
 }
 
-export function resolveBlogImage(images: Map<string, BlogImage>, slug: string) {
-  return images.get(slug)?.publicUrl ?? BLOG_FALLBACK_IMAGE;
+export function resolveBlogImage(
+  images: Map<string, BlogImage>,
+  slug: string,
+  generatedImage?: string,
+) {
+  return generatedImage ?? images.get(slug)?.publicUrl ?? BLOG_FALLBACK_IMAGE;
 }

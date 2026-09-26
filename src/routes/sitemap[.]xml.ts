@@ -38,10 +38,17 @@ export const Route = createFileRoute("/sitemap.xml")({
           urls.add(new URL(`/blog/${article.slug}`, SITE_URL).toString());
         }
         if (publicSupabase) {
-          const [{ data: projects }, { data: profiles }] = await Promise.all([
-            publicSupabase.from("public_profile_projects").select("slug, creator_username"),
-            publicSupabase.from("public_profiles").select("username, bio, website, avatar_url"),
-          ]);
+          const [{ data: projects }, { data: profiles }, { data: generatedArticles }] =
+            await Promise.all([
+              publicSupabase.from("public_profile_projects").select("slug, creator_username"),
+              publicSupabase.from("public_profiles").select("username, bio, website, avatar_url"),
+              publicSupabase.from("blog_articles").select("slug"),
+            ]);
+          for (const article of generatedArticles ?? []) {
+            if (typeof article.slug === "string") {
+              urls.add(new URL(`/blog/${article.slug}`, SITE_URL).toString());
+            }
+          }
           for (const project of projects ?? []) {
             if (typeof project.slug === "string") {
               urls.add(new URL(`/projects/${project.slug}`, SITE_URL).toString());

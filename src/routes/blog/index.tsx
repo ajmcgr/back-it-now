@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BlogCard } from "@/components/backed/blog-card";
-import { publishedBlogArticles } from "@/content/blog";
+import { loadPublishedBlogArticles } from "@/lib/blog-articles";
 import { loadBlogImages, resolveBlogImage } from "@/lib/blog-images";
 import { absoluteUrl, publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog/")({
-  loader: async () => ({ images: await loadBlogImages() }),
+  loader: async () => {
+    const [articles, images] = await Promise.all([loadPublishedBlogArticles(), loadBlogImages()]);
+    return { articles, images };
+  },
   head: () =>
     publicSeo({
       title: "Crowdfunding Guides and Ideas | Backed Blog",
@@ -26,7 +29,7 @@ export const Route = createFileRoute("/blog/")({
 });
 
 function BlogIndex() {
-  const { images } = Route.useLoaderData();
+  const { articles, images } = Route.useLoaderData();
 
   return (
     <main className="container-backed py-14 sm:py-20">
@@ -42,11 +45,11 @@ function BlogIndex() {
       </header>
 
       <section className="mt-12 grid gap-6 md:grid-cols-2 lg:mt-16" aria-label="Blog articles">
-        {publishedBlogArticles.map((article) => (
+        {articles.map((article) => (
           <BlogCard
             key={article.slug}
             article={article}
-            image={resolveBlogImage(images, article.slug)}
+            image={resolveBlogImage(images, article.slug, article.imageUrl)}
           />
         ))}
       </section>

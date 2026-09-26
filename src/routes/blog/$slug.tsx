@@ -1,16 +1,20 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatBlogDate, getBlogArticle } from "@/content/blog";
+import { formatBlogDate } from "@/content/blog";
+import { loadPublishedBlogArticle } from "@/lib/blog-articles";
 import { BLOG_FALLBACK_IMAGE, loadBlogImages, resolveBlogImage } from "@/lib/blog-images";
 import { absoluteUrl, publicSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
-    const article = getBlogArticle(params.slug);
+    const article = await loadPublishedBlogArticle(params.slug);
     if (!article) throw notFound();
     const images = await loadBlogImages();
-    return { article, image: resolveBlogImage(images, article.slug) };
+    return {
+      article,
+      image: resolveBlogImage(images, article.slug, article.imageUrl),
+    };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return {};

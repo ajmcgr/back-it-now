@@ -77,7 +77,7 @@ function AdminBlog() {
     <AdminShell
       active="blog"
       title="Blog"
-      description="Published editorial articles and their permanent cover images. Images are generated only when you request one here."
+      description="Backed publishes a new article and cover automatically every seven days. These controls remain available for optional launch-article image regeneration."
     >
       <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         <span className="rounded-md border border-border px-2.5 py-1.5">{status.model}</span>
