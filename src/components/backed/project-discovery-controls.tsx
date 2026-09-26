@@ -3,10 +3,11 @@ import { cn } from "@/lib/utils";
 import type { ProjectSort, ProjectView } from "@/lib/project-discovery";
 
 const sortOptions: Array<{ value: ProjectSort; label: string }> = [
-  { value: "popular", label: "Popular" },
   { value: "latest", label: "Latest" },
+  { value: "popular", label: "Popular" },
   { value: "most-backed", label: "Most Backed" },
   { value: "ending-soon", label: "Ending Soon" },
+  { value: "coming-soon", label: "Coming Soon" },
 ];
 
 const viewOptions = [

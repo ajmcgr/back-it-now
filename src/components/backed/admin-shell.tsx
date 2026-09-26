@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type AdminSection = "overview" | "projects" | "users" | "comments" | "newsletter";
+type AdminSection = "overview" | "projects" | "users" | "comments" | "newsletter" | "blog";
 
 const navigation = [
   { id: "overview", label: "Overview", to: "/admin" },
@@ -11,6 +11,7 @@ const navigation = [
   { id: "users", label: "Users", to: "/admin/users" },
   { id: "comments", label: "Comments", to: "/admin/comments" },
   { id: "newsletter", label: "Newsletter", to: "/admin/newsletter" },
+  { id: "blog", label: "Blog", to: "/admin/blog" },
 ] as const;
 
 export function AdminShell({

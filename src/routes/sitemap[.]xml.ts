@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { publishedBlogArticles } from "@/content/blog";
 import { SITE_URL } from "@/lib/seo";
 import { publicSupabase } from "@/lib/supabase";
 
@@ -11,6 +12,11 @@ const staticPaths = [
   "/contact",
   "/terms",
   "/privacy",
+  "/blog",
+  "/compare/kickstarter",
+  "/compare/indiegogo",
+  "/compare/patreon",
+  "/compare/gofundme",
 ];
 
 function escapeXml(value: string) {
@@ -27,6 +33,9 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const urls = new Set(staticPaths.map((path) => new URL(path, SITE_URL).toString()));
+        for (const article of publishedBlogArticles) {
+          urls.add(new URL(`/blog/${article.slug}`, SITE_URL).toString());
+        }
         if (publicSupabase) {
           const [{ data: projects }, { data: profiles }] = await Promise.all([
             publicSupabase.from("public_profile_projects").select("slug, creator_username"),

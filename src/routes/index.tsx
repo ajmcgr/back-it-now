@@ -179,8 +179,21 @@ function Index() {
           <ProjectResults items={discoveryProjects} view={view} numbered />
         ) : (
           <div className="border-y border-border py-16 text-center">
-            <h3 className="text-xl font-semibold">No projects to show yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Try another sort.</p>
+            <h3 className="text-xl font-semibold">
+              {sort === "coming-soon" ? "No projects coming soon yet" : "No projects to show yet"}
+            </h3>
+            {sort === "coming-soon" ? (
+              <>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Have something you're working on?
+                </p>
+                <Button asChild variant="outline" className="mt-5">
+                  <Link to="/start">Start a project</Link>
+                </Button>
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">Try another sort.</p>
+            )}
           </div>
         )}
         <Link

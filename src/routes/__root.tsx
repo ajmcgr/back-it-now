@@ -203,6 +203,7 @@ function RootComponent() {
 const publicNewsletterPages = new Set([
   "/",
   "/about",
+  "/blog",
   "/contact",
   "/discover",
   "/faq",
@@ -224,6 +225,7 @@ const privateRootSegments = new Set([
 function showNewsletterSignup(pathname: string) {
   const normalized = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
   if (publicNewsletterPages.has(normalized)) return true;
+  if (/^\/blog\/[^/]+$/.test(normalized)) return true;
   if (/^\/projects\/[^/]+(?:\/updates\/[^/]+)?$/.test(normalized)) return true;
 
   const segments = normalized.split("/").filter(Boolean);
@@ -529,7 +531,7 @@ function SiteFooter() {
   return (
     <footer className="border-t border-border py-10 sm:py-12">
       <div className="container-backed">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-9 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 text-sm text-muted-foreground sm:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div className="col-span-2 sm:col-span-1">
             <img
               src="/header-logo.png"
@@ -554,8 +556,18 @@ function SiteFooter() {
               ["About", "/about"],
               ["FAQ", "/faq"],
               ["Contact", "/contact"],
+              ["Blog", "/blog"],
               ["Terms", "/terms"],
               ["Privacy", "/privacy"],
+            ]}
+          />
+          <FooterGroup
+            title="Compare"
+            links={[
+              ["Kickstarter", "/compare/kickstarter"],
+              ["Indiegogo", "/compare/indiegogo"],
+              ["Patreon", "/compare/patreon"],
+              ["GoFundMe", "/compare/gofundme"],
             ]}
           />
           <nav aria-label="Connect">

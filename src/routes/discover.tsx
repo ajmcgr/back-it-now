@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -134,8 +134,21 @@ function Discover() {
         <ProjectResults items={filtered} view={view} />
       ) : (
         <div className="py-24 text-center">
-          <h2 className="text-2xl font-semibold">No projects found</h2>
-          <p className="mt-2 text-muted-foreground">Try another search or category.</p>
+          <h2 className="text-2xl font-semibold">
+            {sort === "coming-soon" && !query && category === "All"
+              ? "No projects coming soon yet"
+              : "No projects found"}
+          </h2>
+          {sort === "coming-soon" && !query && category === "All" ? (
+            <>
+              <p className="mt-2 text-muted-foreground">Have something you're working on?</p>
+              <Button asChild variant="outline" className="mt-5">
+                <Link to="/start">Start a project</Link>
+              </Button>
+            </>
+          ) : (
+            <p className="mt-2 text-muted-foreground">Try another search or category.</p>
+          )}
         </div>
       )}
     </main>

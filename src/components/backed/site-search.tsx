@@ -3,6 +3,7 @@ import { FolderKanban, Search, UserRound } from "lucide-react";
 
 import { CompactRowsSkeleton } from "@/components/backed/loading-skeletons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { plainTextExcerpt } from "@/lib/projects";
 import { publicSupabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -265,7 +266,7 @@ function SearchPanel({
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold">{result.title}</span>
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {result.subtitle}
+                          {plainTextExcerpt(result.subtitle)}
                         </span>
                       </span>
                     </a>

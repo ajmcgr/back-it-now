@@ -30,6 +30,7 @@ export function publicSeo({
 }: PublicSeoOptions) {
   const canonical = absoluteUrl(path);
   const socialImage = image ? absoluteUrl(image) : DEFAULT_SOCIAL_IMAGE;
+  const isWebp = new URL(socialImage).pathname.toLowerCase().endsWith(".webp");
 
   return {
     meta: [
@@ -43,9 +44,9 @@ export function publicSeo({
       { property: "og:url", content: canonical },
       { property: "og:image", content: socialImage },
       { property: "og:image:secure_url", content: socialImage },
-      { property: "og:image:type", content: "image/png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:type", content: isWebp ? "image/webp" : "image/png" },
+      { property: "og:image:width", content: isWebp ? "1536" : "1200" },
+      { property: "og:image:height", content: isWebp ? "864" : "630" },
       { property: "og:image:alt", content: title },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: title },

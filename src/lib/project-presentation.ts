@@ -92,7 +92,7 @@ export async function loadCanonicalProjects() {
 }
 
 export async function loadRankedCanonicalProjects(
-  sort: "popular" | "latest" | "most-backed" | "ending-soon",
+  sort: "popular" | "latest" | "most-backed" | "ending-soon" | "coming-soon",
   limit = 60,
   offset = 0,
 ) {

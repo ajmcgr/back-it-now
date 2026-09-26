@@ -3,7 +3,15 @@ import { Heart, MessageCircle, Users } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { resolveProjectCover, type CanonicalProjectCreator } from "@/lib/project-presentation";
-import { amountBacked, daysRemaining, money, percent, type Project } from "@/lib/projects";
+import {
+  amountBacked,
+  daysRemaining,
+  money,
+  percent,
+  plannedLaunchLabel,
+  projectExcerpt,
+  type Project,
+} from "@/lib/projects";
 
 export function CreatorIdentity({ creator }: { creator: CanonicalProjectCreator | null }) {
   const identity = (
@@ -35,6 +43,9 @@ export function CreatorIdentity({ creator }: { creator: CanonicalProjectCreator 
 export function ProjectCard({ project }: { project: Project }) {
   const funded = percent(project);
   const isPrelaunch = project.status === "prelaunch";
+  const launchLabel = plannedLaunchLabel(project);
+  const hasFutureLaunchDate = isPrelaunch && launchLabel !== "Coming soon";
+  const excerpt = projectExcerpt(project);
   const isCancelled = project.status === "cancelling" || project.status === "cancelled";
   const creator = project.creatorUsername
     ? {
@@ -75,8 +86,8 @@ export function ProjectCard({ project }: { project: Project }) {
             {project.title}
           </h3>
         </Link>
-        <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">
-          {project.description}
+        <p className="mt-2 min-h-10 line-clamp-3 break-words [overflow-wrap:anywhere] text-sm leading-5 text-muted-foreground">
+          {excerpt}
         </p>
         {isCancelled ? (
           <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3 text-sm">
@@ -87,9 +98,11 @@ export function ProjectCard({ project }: { project: Project }) {
           </div>
         ) : isPrelaunch ? (
           <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3 text-sm">
-            <strong>Coming soon</strong>
+            <strong className="rounded-full bg-secondary px-2.5 py-1 text-xs">Coming soon</strong>
             <span className="text-muted-foreground">
-              {project.favoriteCount} {project.favoriteCount === 1 ? "person" : "people"} interested
+              {hasFutureLaunchDate
+                ? launchLabel
+                : `${project.favoriteCount} ${project.favoriteCount === 1 ? "person" : "people"} interested`}
             </span>
           </div>
         ) : (
@@ -124,10 +137,10 @@ export function ProjectCard({ project }: { project: Project }) {
             {project.commentCount}
             <span className="sr-only"> comments</span>
           </span>
-          <span className={`inline-flex items-center gap-1.5 ${isPrelaunch ? "hidden" : ""}`}>
+          <span className="inline-flex items-center gap-1.5">
             <Heart className="size-3.5" aria-hidden="true" />
             {project.favoriteCount}
-            <span className="sr-only"> favorites</span>
+            <span className="sr-only"> {isPrelaunch ? "interested" : "favorites"}</span>
           </span>
         </div>
       </div>
@@ -154,6 +167,9 @@ export function ProjectList({ items, numbered = false }: { items: Project[]; num
     <div className="divide-y divide-border border-y border-border">
       {items.map((project, index) => {
         const isPrelaunch = project.status === "prelaunch";
+        const launchLabel = plannedLaunchLabel(project);
+        const hasFutureLaunchDate = isPrelaunch && launchLabel !== "Coming soon";
+        const excerpt = projectExcerpt(project);
         const isCancelled = project.status === "cancelling" || project.status === "cancelled";
         const coverImage = resolveProjectCover({
           slug: project.slug,
@@ -204,8 +220,8 @@ export function ProjectList({ items, numbered = false }: { items: Project[]; num
                     by {project.creatorUsername ? `@${project.creatorUsername}` : project.creator}
                   </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                  {project.tagline || project.description}
+                <p className="mt-1 line-clamp-2 break-words [overflow-wrap:anywhere] text-sm leading-5 text-muted-foreground">
+                  {excerpt}
                 </p>
                 <p className="mt-2 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground tabular-nums">
                   {isCancelled ? (
@@ -216,6 +232,10 @@ export function ProjectList({ items, numbered = false }: { items: Project[]; num
                     </>
                   ) : isPrelaunch ? (
                     <>
+                      <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-foreground">
+                        Coming soon
+                      </span>
+                      <span aria-hidden="true">·</span>
                       <span>{plural(project.favoriteCount, "person", "people")} interested</span>
                       <span aria-hidden="true">·</span>
                       <span>{plural(project.commentCount, "comment")}</span>
@@ -234,14 +254,18 @@ export function ProjectList({ items, numbered = false }: { items: Project[]; num
                     </>
                   )}
                 </p>
-                <p className="mt-2 text-xs font-semibold sm:hidden">
-                  {isPrelaunch ? "Coming soon" : `${daysRemaining(project)} days left`}
-                </p>
+                {!isPrelaunch || hasFutureLaunchDate ? (
+                  <p className="mt-2 text-xs font-semibold sm:hidden">
+                    {isPrelaunch ? launchLabel : `${daysRemaining(project)} days left`}
+                  </p>
+                ) : null}
               </div>
 
-              <p className="hidden whitespace-nowrap text-right text-sm font-semibold sm:block">
-                {isPrelaunch ? "Coming soon" : `${daysRemaining(project)} days left`}
-              </p>
+              {!isPrelaunch || hasFutureLaunchDate ? (
+                <p className="hidden whitespace-nowrap text-right text-sm font-semibold sm:block">
+                  {isPrelaunch ? launchLabel : `${daysRemaining(project)} days left`}
+                </p>
+              ) : null}
             </Link>
           </article>
         );

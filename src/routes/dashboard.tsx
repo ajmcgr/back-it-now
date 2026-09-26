@@ -142,10 +142,7 @@ function Dashboard() {
           ),
         ];
         const [projectResult, rewardResult] = await Promise.all([
-          client
-            .from("projects")
-            .select("id, slug, name, image_url, status")
-            .in("id", projectIds),
+          client.from("projects").select("id, slug, name, image_url, status").in("id", projectIds),
           rewardIds.length
             ? client.from("rewards").select("id, title").in("id", rewardIds)
             : Promise.resolve({ data: [], error: null }),

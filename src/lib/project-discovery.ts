@@ -1,6 +1,12 @@
 import { amountBacked, type Project } from "@/lib/projects";
 
-export const projectSorts = ["popular", "latest", "most-backed", "ending-soon"] as const;
+export const projectSorts = [
+  "latest",
+  "popular",
+  "most-backed",
+  "ending-soon",
+  "coming-soon",
+] as const;
 export const projectViews = ["list", "cards"] as const;
 
 export type ProjectSort = (typeof projectSorts)[number];
@@ -35,6 +41,7 @@ export function sortDiscoveryProjects(items: Project[], sort: ProjectSort, now =
   const nowTime = now.getTime();
   const eligible = items.filter((project) => {
     if (project.status !== "live" && project.status !== "prelaunch") return false;
+    if (sort === "coming-soon") return project.status === "prelaunch";
     if (sort === "most-backed") return project.status === "live";
     if (sort !== "ending-soon") return true;
     const deadline = timestamp(project.deadline);
@@ -58,6 +65,15 @@ export function sortDiscoveryProjects(items: Project[], sort: ProjectSort, now =
     }
     if (sort === "ending-soon") {
       return timestamp(a.deadline) - timestamp(b.deadline) || newestFirst(a, b);
+    }
+    if (sort === "coming-soon") {
+      const aLaunch = timestamp(a.plannedLaunchAt);
+      const bLaunch = timestamp(b.plannedLaunchAt);
+      const aFuture = aLaunch > nowTime;
+      const bFuture = bLaunch > nowTime;
+      if (aFuture !== bFuture) return aFuture ? -1 : 1;
+      if (aFuture && bFuture && aLaunch !== bLaunch) return aLaunch - bLaunch;
+      return newestFirst(a, b);
     }
     return newestFirst(a, b);
   });

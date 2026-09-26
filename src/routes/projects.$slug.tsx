@@ -35,6 +35,7 @@ import {
   daysRemaining,
   money,
   percent,
+  plannedLaunchLabel,
   projects,
   rewardAvailability,
 } from "@/lib/projects";
@@ -402,11 +403,7 @@ function ProjectPage() {
             {isPrelaunch ? (
               <div className="border-y border-border py-5">
                 <p className="text-sm font-semibold text-primary">Pre-launch</p>
-                <p className="mt-2 text-3xl font-semibold">
-                  {project.plannedLaunchAt
-                    ? `Launching ${new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(project.plannedLaunchAt))}`
-                    : "Coming soon"}
-                </p>
+                <p className="mt-2 text-3xl font-semibold">{plannedLaunchLabel(project)}</p>
                 <p className="mt-3 text-sm text-muted-foreground">
                   {project.favoriteCount} {project.favoriteCount === 1 ? "person is" : "people are"}{" "}
                   interested

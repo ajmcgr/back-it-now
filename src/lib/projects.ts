@@ -112,6 +112,37 @@ export const percent = (project: Project) =>
 export const daysRemaining = (project: Project, now = new Date()) =>
   Math.max(0, Math.ceil((new Date(project.deadline).getTime() - now.getTime()) / 86_400_000));
 
+export function plainTextExcerpt(value: string | null | undefined) {
+  if (!value) return "";
+
+  return value
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/(^|\n)\s{0,3}(?:#{1,6}\s+|>\s*|[-+*]\s+|\d+[.)]\s+)/g, "$1")
+    .replace(/(\*\*|__|~~|`)(.*?)\1/g, "$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function projectExcerpt(project: Pick<Project, "tagline" | "description">) {
+  return plainTextExcerpt(project.tagline) || plainTextExcerpt(project.description);
+}
+
+export function plannedLaunchLabel(project: Project, now = new Date()) {
+  if (!project.plannedLaunchAt) return "Coming soon";
+  const plannedLaunch = new Date(project.plannedLaunchAt);
+  if (!Number.isFinite(plannedLaunch.getTime()) || plannedLaunch.getTime() <= now.getTime()) {
+    return "Coming soon";
+  }
+  const includeYear = plannedLaunch.getFullYear() !== now.getFullYear();
+  return `Launching ${new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    ...(includeYear ? { year: "numeric" } : {}),
+  }).format(plannedLaunch)}`;
+}
+
 export const rewardRemaining = (reward: Reward) =>
   reward.totalQuantity === null
     ? null

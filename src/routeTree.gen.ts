@@ -23,12 +23,19 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminBlogRouteImport } from './routes/admin_.blog'
 import { Route as AdminCommentsRouteImport } from './routes/admin_.comments'
 import { Route as AdminNewsletterRouteImport } from './routes/admin_.newsletter'
 import { Route as AdminProjectsRouteImport } from './routes/admin_.projects'
 import { Route as AdminUsersRouteImport } from './routes/admin_.users'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as CompareGofundmeRouteImport } from './routes/compare/gofundme'
+import { Route as CompareIndiegogoRouteImport } from './routes/compare/indiegogo'
+import { Route as CompareKickstarterRouteImport } from './routes/compare/kickstarter'
+import { Route as ComparePatreonRouteImport } from './routes/compare/patreon'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
 import { Route as ProjectsSlugEditRouteImport } from './routes/projects_.$slug.edit'
 import { Route as ProjectsSlugUpdatesUpdateIdRouteImport } from './routes/projects.$slug.updates.$updateId'
@@ -103,6 +110,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminBlogRoute = AdminBlogRouteImport.update({
+  id: '/admin_/blog',
+  path: '/admin/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCommentsRoute = AdminCommentsRouteImport.update({
   id: '/admin_/comments',
   path: '/admin/comments',
@@ -131,6 +143,36 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareGofundmeRoute = CompareGofundmeRouteImport.update({
+  id: '/compare/gofundme',
+  path: '/compare/gofundme',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareIndiegogoRoute = CompareIndiegogoRouteImport.update({
+  id: '/compare/indiegogo',
+  path: '/compare/indiegogo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareKickstarterRoute = CompareKickstarterRouteImport.update({
+  id: '/compare/kickstarter',
+  path: '/compare/kickstarter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComparePatreonRoute = ComparePatreonRouteImport.update({
+  id: '/compare/patreon',
+  path: '/compare/patreon',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsSlugRoute = ProjectsSlugRouteImport.update({
@@ -165,13 +207,20 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
+  '/admin/blog': typeof AdminBlogRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/projects': typeof AdminProjectsRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/compare/gofundme': typeof CompareGofundmeRoute
+  '/compare/indiegogo': typeof CompareIndiegogoRoute
+  '/compare/kickstarter': typeof CompareKickstarterRoute
+  '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -190,13 +239,20 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
+  '/admin/blog': typeof AdminBlogRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/projects': typeof AdminProjectsRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/compare/gofundme': typeof CompareGofundmeRoute
+  '/compare/indiegogo': typeof CompareIndiegogoRoute
+  '/compare/kickstarter': typeof CompareKickstarterRoute
+  '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth': typeof AuthIndexRoute
+  '/blog': typeof BlogIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -216,13 +272,20 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/terms': typeof TermsRoute
+  '/admin_/blog': typeof AdminBlogRoute
   '/admin_/comments': typeof AdminCommentsRoute
   '/admin_/newsletter': typeof AdminNewsletterRoute
   '/admin_/projects': typeof AdminProjectsRoute
   '/admin_/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/compare/gofundme': typeof CompareGofundmeRoute
+  '/compare/indiegogo': typeof CompareIndiegogoRoute
+  '/compare/kickstarter': typeof CompareKickstarterRoute
+  '/compare/patreon': typeof ComparePatreonRoute
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/projects_/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -243,13 +306,20 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/start'
     | '/terms'
+    | '/admin/blog'
     | '/admin/comments'
     | '/admin/newsletter'
     | '/admin/projects'
     | '/admin/users'
     | '/auth/callback'
+    | '/blog/$slug'
+    | '/compare/gofundme'
+    | '/compare/indiegogo'
+    | '/compare/kickstarter'
+    | '/compare/patreon'
     | '/projects/$slug'
     | '/auth/'
+    | '/blog/'
     | '/projects/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   fileRoutesByTo: FileRoutesByTo
@@ -268,13 +338,20 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/start'
     | '/terms'
+    | '/admin/blog'
     | '/admin/comments'
     | '/admin/newsletter'
     | '/admin/projects'
     | '/admin/users'
     | '/auth/callback'
+    | '/blog/$slug'
+    | '/compare/gofundme'
+    | '/compare/indiegogo'
+    | '/compare/kickstarter'
+    | '/compare/patreon'
     | '/projects/$slug'
     | '/auth'
+    | '/blog'
     | '/projects/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   id:
@@ -293,13 +370,20 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/start'
     | '/terms'
+    | '/admin_/blog'
     | '/admin_/comments'
     | '/admin_/newsletter'
     | '/admin_/projects'
     | '/admin_/users'
     | '/auth/callback'
+    | '/blog/$slug'
+    | '/compare/gofundme'
+    | '/compare/indiegogo'
+    | '/compare/kickstarter'
+    | '/compare/patreon'
     | '/projects/$slug'
     | '/auth/'
+    | '/blog/'
     | '/projects_/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   fileRoutesById: FileRoutesById
@@ -319,13 +403,20 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
   TermsRoute: typeof TermsRoute
+  AdminBlogRoute: typeof AdminBlogRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
   AdminNewsletterRoute: typeof AdminNewsletterRoute
   AdminProjectsRoute: typeof AdminProjectsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  BlogSlugRoute: typeof BlogSlugRoute
+  CompareGofundmeRoute: typeof CompareGofundmeRoute
+  CompareIndiegogoRoute: typeof CompareIndiegogoRoute
+  CompareKickstarterRoute: typeof CompareKickstarterRoute
+  ComparePatreonRoute: typeof ComparePatreonRoute
   ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ProjectsSlugEditRoute: typeof ProjectsSlugEditRoute
 }
 
@@ -429,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/blog': {
+      id: '/admin_/blog'
+      path: '/admin/blog'
+      fullPath: '/admin/blog'
+      preLoaderRoute: typeof AdminBlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin_/comments': {
       id: '/admin_/comments'
       path: '/admin/comments'
@@ -469,6 +567,48 @@ declare module '@tanstack/react-router' {
       path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/gofundme': {
+      id: '/compare/gofundme'
+      path: '/compare/gofundme'
+      fullPath: '/compare/gofundme'
+      preLoaderRoute: typeof CompareGofundmeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/indiegogo': {
+      id: '/compare/indiegogo'
+      path: '/compare/indiegogo'
+      fullPath: '/compare/indiegogo'
+      preLoaderRoute: typeof CompareIndiegogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/kickstarter': {
+      id: '/compare/kickstarter'
+      path: '/compare/kickstarter'
+      fullPath: '/compare/kickstarter'
+      preLoaderRoute: typeof CompareKickstarterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare/patreon': {
+      id: '/compare/patreon'
+      path: '/compare/patreon'
+      fullPath: '/compare/patreon'
+      preLoaderRoute: typeof ComparePatreonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$slug': {
@@ -522,13 +662,20 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
   TermsRoute: TermsRoute,
+  AdminBlogRoute: AdminBlogRoute,
   AdminCommentsRoute: AdminCommentsRoute,
   AdminNewsletterRoute: AdminNewsletterRoute,
   AdminProjectsRoute: AdminProjectsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  BlogSlugRoute: BlogSlugRoute,
+  CompareGofundmeRoute: CompareGofundmeRoute,
+  CompareIndiegogoRoute: CompareIndiegogoRoute,
+  CompareKickstarterRoute: CompareKickstarterRoute,
+  ComparePatreonRoute: ComparePatreonRoute,
   ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ProjectsSlugEditRoute: ProjectsSlugEditRoute,
 }
 export const routeTree = rootRouteImport
