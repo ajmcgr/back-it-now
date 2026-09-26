@@ -17,8 +17,84 @@ const hash = async (value: string) =>
     (byte) => byte.toString(16).padStart(2, "0"),
   ).join("");
 
+const reservedUsernames = new Set([
+  "about",
+  "admin",
+  "api",
+  "assets",
+  "auth",
+  "contact",
+  "dashboard",
+  "discover",
+  "faq",
+  "favicon",
+  "index",
+  "logo",
+  "pricing",
+  "privacy",
+  "projects",
+  "robots",
+  "settings",
+  "sitemap",
+  "start",
+  "terms",
+]);
+
+function usernameBase(displayName: unknown) {
+  const normalized = typeof displayName === "string" ? displayName.normalize("NFKD") : "";
+  const candidate = normalized
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30)
+    .replace(/[-_]+$/g, "");
+  return candidate.length >= 3 && !reservedUsernames.has(candidate) ? candidate : "creator";
+}
+
+async function ensurePublicUsername(admin: ReturnType<typeof createClient>, userId: string) {
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("username, display_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError || !profile) throw profileError ?? new Error("profile_not_found");
+  if (profile.username) return profile.username as string;
+
+  const base = usernameBase(profile.display_name);
+  const opaqueSuffix = (await hash(userId)).slice(0, 8);
+  const candidates = [base, `${base.slice(0, 21).replace(/[-_]+$/g, "")}-${opaqueSuffix}`];
+
+  for (const username of candidates) {
+    const { data, error } = await admin
+      .from("profiles")
+      .update({ username })
+      .eq("id", userId)
+      .is("username", null)
+      .select("username")
+      .maybeSingle();
+    if (data?.username) return data.username as string;
+    if (error && error.code !== "23505" && error.code !== "23514") throw error;
+
+    const { data: current, error: currentError } = await admin
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (current?.username) return current.username as string;
+  }
+
+  throw new Error("profile_username_required");
+}
+
 function messageFor(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
+  const message =
+    error instanceof Error
+      ? error.message
+      : error && typeof error === "object" && "message" in error
+        ? String(error.message)
+        : "";
   if (message.includes("incomplete_draft"))
     return "Add a title, summary, cover image, funding goal, deadline, and reward before publishing.";
   if (message.includes("invalid_external_website")) return "Use a valid HTTPS website address.";
@@ -26,7 +102,9 @@ function messageFor(error: unknown) {
     return "This draft belongs to a different Backed account.";
   if (message.includes("draft_not_found")) return "This draft is no longer available.";
   if (message.includes("profile_username_required"))
-    return "Choose a username in Settings before publishing your project.";
+    return "We could not prepare your public creator profile. Choose a username in Settings, then try again.";
+  if (message.includes("invalid_project_values"))
+    return "Check the funding goal, deadline, reward, category, and project media, then try again.";
   return "We could not publish this project. Please check the details and try again.";
 }
 
@@ -99,11 +177,21 @@ Deno.serve(async (request) => {
         .eq("secret_hash", secretHash);
       if (sanitizeError) return respond({ error: "Could not validate the project gallery." }, 422);
 
-      const { data, error } = await admin.rpc("publish_project_draft", {
+      const publishArguments = {
         p_draft_id: id,
         p_secret_hash: secretHash,
         p_user_id: auth.user.id,
-      });
+      };
+      let { data, error } = await admin.rpc("publish_project_draft", publishArguments);
+      if (error?.message.includes("profile_username_required")) {
+        await ensurePublicUsername(admin, auth.user.id);
+        ({ data, error } = await admin.rpc("publish_project_draft", publishArguments));
+      }
+      if (error)
+        console.warn("project-drafts publish rejected", {
+          code: error.code,
+          reason: messageFor(error),
+        });
       if (error || !data?.[0]) return respond({ error: messageFor(error) }, 422);
 
       const project = data[0] as { project_id: string; project_slug: string };

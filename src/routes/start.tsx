@@ -72,6 +72,18 @@ const normalizeDraft = (value: unknown): Draft => {
   };
 };
 
+async function functionErrorMessage(error: unknown) {
+  if (!error || typeof error !== "object" || !("context" in error)) return null;
+  const context = (error as { context?: unknown }).context;
+  if (!(context instanceof Response)) return null;
+  try {
+    const body = (await context.clone().json()) as { error?: unknown };
+    return typeof body.error === "string" ? body.error : null;
+  } catch {
+    return null;
+  }
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -84,25 +96,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function StartPage() {
   const [step, setStep] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDraftReady, setIsDraftReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
-  const [draftRecord, setDraftRecord] = useState<DraftRecord | null>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("backed-project-draft-record") ?? "null");
-    } catch {
-      return null;
-    }
-  });
-  const [draft, setDraft] = useState<Draft>(() => {
-    try {
-      return normalizeDraft(JSON.parse(localStorage.getItem("backed-project-draft") ?? "{}"));
-    } catch {
-      return {};
-    }
-  });
+  const publishAfterAuthAttempted = useRef(false);
+  const publishRef = useRef<() => Promise<void>>(async () => undefined);
+  const [draftRecord, setDraftRecord] = useState<DraftRecord | null>(null);
+  const [draft, setDraft] = useState<Draft>({});
   const update = (name: string, value: Draft[string]) =>
     setDraft((current) => ({ ...current, [name]: value }));
   const field = (name: string) => ({
@@ -112,20 +115,45 @@ function StartPage() {
   });
 
   useEffect(() => {
-    localStorage.setItem("backed-project-draft", JSON.stringify(draft));
-  }, [draft]);
+    try {
+      setDraftRecord(JSON.parse(localStorage.getItem("backed-project-draft-record") ?? "null"));
+      setDraft(normalizeDraft(JSON.parse(localStorage.getItem("backed-project-draft") ?? "{}")));
+    } catch {
+      setDraftRecord(null);
+      setDraft({});
+    } finally {
+      setIsDraftReady(true);
+    }
+  }, []);
   useEffect(() => {
-    if (draftRecord)
+    if (!isDraftReady) return;
+    localStorage.setItem("backed-project-draft", JSON.stringify(draft));
+  }, [draft, isDraftReady]);
+  useEffect(() => {
+    if (!isDraftReady) return;
+    if (draftRecord) {
       localStorage.setItem("backed-project-draft-record", JSON.stringify(draftRecord));
-  }, [draftRecord]);
+    } else {
+      localStorage.removeItem("backed-project-draft-record");
+    }
+  }, [draftRecord, isDraftReady]);
   useEffect(() => {
     if (!supabase) return;
     void supabase.auth.getSession().then(({ data }) => {
       setIsAuthenticated(Boolean(data.session));
-      if (data.session && new URLSearchParams(location.search).get("publish") === "1")
-        void publish();
     });
   }, []);
+  useEffect(() => {
+    if (
+      !isDraftReady ||
+      !isAuthenticated ||
+      publishAfterAuthAttempted.current ||
+      new URLSearchParams(location.search).get("publish") !== "1"
+    )
+      return;
+    publishAfterAuthAttempted.current = true;
+    void publishRef.current();
+  }, [isAuthenticated, isDraftReady]);
 
   async function saveDraft() {
     if (!supabase) throw new Error("Project saving is temporarily unavailable.");
@@ -245,7 +273,12 @@ function StartPage() {
       const { data, error } = await supabase!.functions.invoke("project-drafts", {
         body: { action: "publish", id: record.id, secret: record.secret },
       });
-      if (error || !data?.slug) throw new Error(data?.error || "Could not launch your project.");
+      if (error || !data?.slug)
+        throw new Error(
+          data?.error ||
+            (await functionErrorMessage(error)) ||
+            "Could not launch your project. Please check the details and try again.",
+        );
       localStorage.removeItem("backed-project-draft");
       localStorage.removeItem("backed-project-draft-record");
       location.assign(
@@ -257,6 +290,7 @@ function StartPage() {
       setIsSaving(false);
     }
   }
+  publishRef.current = publish;
   const galleryMedia = projectMediaFromUnknown(draft.galleryMedia);
   return (
     <main className="container-backed py-10 sm:py-16">
