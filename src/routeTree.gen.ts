@@ -32,6 +32,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as CompareIndexRouteImport } from './routes/compare/index'
 import { Route as CompareGofundmeRouteImport } from './routes/compare/gofundme'
 import { Route as CompareIndiegogoRouteImport } from './routes/compare/indiegogo'
 import { Route as CompareKickstarterRouteImport } from './routes/compare/kickstarter'
@@ -155,6 +156,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompareIndexRoute = CompareIndexRouteImport.update({
+  id: '/compare/',
+  path: '/compare/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompareGofundmeRoute = CompareGofundmeRouteImport.update({
   id: '/compare/gofundme',
   path: '/compare/gofundme',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/compare/': typeof CompareIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/compare': typeof CompareIndexRoute
   '/projects/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/projects/$slug': typeof ProjectsSlugRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/compare/': typeof CompareIndexRoute
   '/projects_/$slug/edit': typeof ProjectsSlugEditRoute
   '/projects/$slug/updates/$updateId': typeof ProjectsSlugUpdatesUpdateIdRoute
 }
@@ -320,6 +329,7 @@ export interface FileRouteTypes {
     | '/projects/$slug'
     | '/auth/'
     | '/blog/'
+    | '/compare/'
     | '/projects/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   fileRoutesByTo: FileRoutesByTo
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/projects/$slug'
     | '/auth'
     | '/blog'
+    | '/compare'
     | '/projects/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   id:
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/projects/$slug'
     | '/auth/'
     | '/blog/'
+    | '/compare/'
     | '/projects_/$slug/edit'
     | '/projects/$slug/updates/$updateId'
   fileRoutesById: FileRoutesById
@@ -417,6 +429,7 @@ export interface RootRouteChildren {
   ProjectsSlugRoute: typeof ProjectsSlugRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  CompareIndexRoute: typeof CompareIndexRoute
   ProjectsSlugEditRoute: typeof ProjectsSlugEditRoute
 }
 
@@ -583,6 +596,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compare/': {
+      id: '/compare/'
+      path: '/compare'
+      fullPath: '/compare/'
+      preLoaderRoute: typeof CompareIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/compare/gofundme': {
       id: '/compare/gofundme'
       path: '/compare/gofundme'
@@ -676,6 +696,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsSlugRoute: ProjectsSlugRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
+  CompareIndexRoute: CompareIndexRoute,
   ProjectsSlugEditRoute: ProjectsSlugEditRoute,
 }
 export const routeTree = rootRouteImport

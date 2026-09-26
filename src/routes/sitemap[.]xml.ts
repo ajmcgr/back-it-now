@@ -13,6 +13,7 @@ const staticPaths = [
   "/terms",
   "/privacy",
   "/blog",
+  "/compare",
   "/compare/kickstarter",
   "/compare/indiegogo",
   "/compare/patreon",

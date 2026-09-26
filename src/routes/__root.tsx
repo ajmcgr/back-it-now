@@ -548,6 +548,7 @@ function SiteFooter() {
               ["Discover", "/discover"],
               ["Start a project", "/start"],
               ["Pricing", "/pricing"],
+              ["Blog", "/blog"],
             ]}
           />
           <FooterGroup
@@ -556,7 +557,6 @@ function SiteFooter() {
               ["About", "/about"],
               ["FAQ", "/faq"],
               ["Contact", "/contact"],
-              ["Blog", "/blog"],
               ["Terms", "/terms"],
               ["Privacy", "/privacy"],
             ]}
@@ -564,6 +564,7 @@ function SiteFooter() {
           <FooterGroup
             title="Compare"
             links={[
+              ["Overview", "/compare"],
               ["Kickstarter", "/compare/kickstarter"],
               ["Indiegogo", "/compare/indiegogo"],
               ["Patreon", "/compare/patreon"],
