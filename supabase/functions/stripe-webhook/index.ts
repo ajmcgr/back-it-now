@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
     const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     if (!secret?.startsWith("whsec_")) throw new Error("stripe_webhook_secret_required");
     stage = "signature_verification";
-    const event = api.webhooks.constructEvent(
+    const event = await api.webhooks.constructEventAsync(
       await req.text(),
       req.headers.get("stripe-signature") ?? "",
       secret,
