@@ -38,7 +38,7 @@ function mapGeneratedArticle(row: GeneratedArticleRow): BlogArticle {
     imageUrl: row.image_url,
     sections: row.sections,
     relatedLinks: row.related_links,
-    sources: row.sources,
+    ...(row.sources ? { sources: row.sources } : {}),
   };
 }
 

@@ -196,7 +196,7 @@ function CompareOverview() {
 function OverviewCells({
   platform,
 }: {
-  platform: Pick<(typeof platforms)[number], "funding" | "payment" | "fee" | "bestFor">;
+  platform: { funding: string; payment: string; fee: string; bestFor: string };
 }) {
   return (
     <>
