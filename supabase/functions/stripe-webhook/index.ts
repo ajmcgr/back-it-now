@@ -416,6 +416,7 @@ Deno.serve(async (req) => {
       stage,
       error instanceof Error ? error.message : "unknown_error",
     );
-    return new Response("webhook_error", { status: 400 });
+    const status = stage === "signature_verification" ? 400 : 500;
+    return new Response(`webhook_error:${stage}`, { status });
   }
 });
