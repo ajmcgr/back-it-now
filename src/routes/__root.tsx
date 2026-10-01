@@ -549,6 +549,7 @@ function SiteFooter() {
               ["Contact", "/contact"],
               ["Terms", "/terms"],
               ["Privacy", "/privacy"],
+              ["Acceptable Use", "/acceptable-use"],
             ]}
           />
           <FooterGroup

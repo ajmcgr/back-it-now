@@ -12,6 +12,7 @@ const staticPaths = [
   "/contact",
   "/terms",
   "/privacy",
+  "/acceptable-use",
   "/blog",
   "/tools",
   "/tools/funding-goal-calculator",
