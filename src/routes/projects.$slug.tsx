@@ -13,6 +13,7 @@ import { ProjectUpdates } from "@/components/backed/project-updates";
 import { ProfileAvatar } from "@/components/backed/profile-avatar";
 import { ProjectPageSkeleton } from "@/components/backed/loading-skeletons";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   presentationAsProject,
@@ -155,6 +156,10 @@ function ProjectPage() {
   const [checkoutSucceeded, setCheckoutSucceeded] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState("");
+  const [launchComplianceAccepted, setLaunchComplianceAccepted] = useState(false);
+  const [launchBenefitsThirdPartyOrCause, setLaunchBenefitsThirdPartyOrCause] = useState<
+    "yes" | "no" | null
+  >(null);
   const [commentCount, setCommentCount] = useState<number | null>(
     presentation?.commentCount ?? fallback?.commentCount ?? null,
   );
@@ -253,14 +258,26 @@ function ProjectPage() {
   }, [router, slug]);
   const launchProject = async () => {
     if (!supabase || isLaunching) return;
+    if (!launchComplianceAccepted || launchBenefitsThirdPartyOrCause === null) {
+      setLaunchError("Confirm the publication requirements and answer the beneficiary question.");
+      return;
+    }
     setIsLaunching(true);
     setLaunchError("");
     const { data, error } = await supabase.functions.invoke("project-lifecycle", {
-      body: { slug },
+      body: {
+        slug,
+        complianceAttested: true,
+        benefitsThirdPartyOrCause: launchBenefitsThirdPartyOrCause === "yes",
+      },
     });
     setIsLaunching(false);
     if (error || !data?.slug) {
       setLaunchError("We couldn’t launch this project. Please try again.");
+      return;
+    }
+    if (data.status === "pending_review") {
+      window.location.assign("/dashboard?review=pending");
       return;
     }
     window.location.assign(`/projects/${data.slug}?published=1&share=1`);
@@ -451,14 +468,65 @@ function ProjectPage() {
                   Checking availability…
                 </Button>
               ) : isOwner ? (
-                <Button
-                  size="lg"
-                  className="w-full"
-                  disabled={isLaunching}
-                  onClick={() => void launchProject()}
-                >
-                  {isLaunching ? "Launching…" : "Launch project"}
-                </Button>
+                <div className="space-y-4">
+                  <div className="space-y-4 rounded-md border border-border p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="launch-publication-attestation"
+                        checked={launchComplianceAccepted}
+                        onCheckedChange={(checked) => setLaunchComplianceAccepted(checked === true)}
+                        className="mt-1"
+                      />
+                      <label htmlFor="launch-publication-attestation" className="text-xs leading-5">
+                        I agree to the{" "}
+                        <a href="/terms" className="underline">
+                          Terms
+                        </a>{" "}
+                        and{" "}
+                        <a href="/acceptable-use" className="underline">
+                          Acceptable Use Policy
+                        </a>
+                        , acknowledge the 5% platform fee, and confirm this project does not involve
+                        sanctioned or prohibited persons, entities, causes or jurisdictions.
+                      </label>
+                    </div>
+                    <fieldset>
+                      <legend className="text-xs font-semibold leading-5">
+                        Does this primarily benefit another person, organization, charity, political
+                        cause or geographic cause?
+                      </legend>
+                      <div className="mt-2 flex gap-4">
+                        {(["no", "yes"] as const).map((answer) => (
+                          <label
+                            key={answer}
+                            className="flex items-center gap-2 text-xs font-medium"
+                          >
+                            <input
+                              type="radio"
+                              name="launch-beneficiary"
+                              checked={launchBenefitsThirdPartyOrCause === answer}
+                              onChange={() => setLaunchBenefitsThirdPartyOrCause(answer)}
+                              className="size-4 accent-foreground"
+                            />
+                            {answer === "yes" ? "Yes" : "No"}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={
+                      isLaunching ||
+                      !launchComplianceAccepted ||
+                      launchBenefitsThirdPartyOrCause === null
+                    }
+                    onClick={() => void launchProject()}
+                  >
+                    {isLaunching ? "Launching…" : "Launch project"}
+                  </Button>
+                </div>
               ) : (
                 <ProjectFavoriteButton
                   slug={project.slug}

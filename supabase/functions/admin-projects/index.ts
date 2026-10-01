@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
+import { deliverProjectLaunchEmails } from "../_shared/audience-email.ts";
 
 const origin = "https://backedit.co";
 const ownerAdminUserId = "ce29db8a-c666-4688-9cc9-dbbfead8bbfc";
@@ -128,7 +129,7 @@ async function loadProjects(admin: SupabaseClient) {
   const { data, error } = await admin
     .from("projects")
     .select(
-      "id, slug, name, image_url, status, initial_backed_amount, successful_backed_amount, created_at, admin_archived_at, profiles!inner(username, display_name, avatar_url)",
+      "id, slug, name, image_url, status, initial_backed_amount, successful_backed_amount, created_at, admin_archived_at, compliance_review_status, compliance_intended_status, compliance_benefits_third_party_or_cause, compliance_reviewed_at, compliance_review_outcome, profiles!inner(username, display_name, avatar_url), project_compliance_flags(reason, status)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -470,6 +471,45 @@ function stringId(value: unknown) {
   return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
 }
 
+async function reviewProject(
+  admin: SupabaseClient,
+  adminUserId: string,
+  projectId: string,
+  outcome: "approved" | "rejected",
+) {
+  const { data, error } = await admin.rpc("review_project_compliance", {
+    p_project_id: projectId,
+    p_admin_id: adminUserId,
+    p_outcome: outcome,
+  });
+  if (error) {
+    if (error.message.includes("project_not_pending_review"))
+      return json({ error: "project_not_pending_review" }, 409);
+    throw error;
+  }
+  const result = data?.[0] as
+    | {
+        project_id: string;
+        project_slug: string;
+        project_status: string;
+        launch_event_id: string | null;
+      }
+    | undefined;
+  if (!result) throw new Error("compliance_review_result_missing");
+
+  let notifications = { sent: 0, failed: 0 };
+  if (outcome === "approved" && result.launch_event_id) {
+    const { data: project, error: projectError } = await admin
+      .from("projects")
+      .select("id, slug, name")
+      .eq("id", result.project_id)
+      .single();
+    if (projectError) throw projectError;
+    notifications = await deliverProjectLaunchEmails(admin, project, result.launch_event_id);
+  }
+  return json({ reviewed: true, outcome, status: result.project_status, notifications });
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -498,6 +538,14 @@ Deno.serve(async (request) => {
       return projectId
         ? await deleteProject(actor.admin, projectId)
         : json({ error: "project_required" }, 400);
+    }
+    if (action === "review_project") {
+      const projectId = stringId(payload.projectId);
+      const outcome =
+        payload.outcome === "approved" || payload.outcome === "rejected" ? payload.outcome : null;
+      return projectId && outcome
+        ? await reviewProject(actor.admin, actor.userId, projectId, outcome)
+        : json({ error: "invalid_review_request" }, 400);
     }
     if (action === "delete_user") {
       const userId = stringId(payload.userId);

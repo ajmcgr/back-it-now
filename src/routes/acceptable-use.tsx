@@ -41,7 +41,10 @@ function AcceptableUsePage() {
                 profit participation, ownership interests or other financial returns.
               </li>
               <li>Money transmission or payment processing for third parties.</li>
-              <li>Sanctions evasion or activity involving prohibited jurisdictions or persons.</li>
+              <li>
+                Sanctions evasion or activity involving prohibited jurisdictions, persons or
+                entities.
+              </li>
               <li>
                 Intellectual property infringement, including unauthorized use of others' work.
               </li>

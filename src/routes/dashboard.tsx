@@ -69,6 +69,7 @@ function backingStatus(backing: BackingRecord) {
 }
 
 function Dashboard() {
+  const pendingReview = new URLSearchParams(window.location.search).get("review") === "pending";
   const [activeTab, setActiveTab] = useState<DashboardTab>("created");
   const [projects, setProjects] = useState<CreatorProject[]>([]);
   const [backings, setBackings] = useState<BackingRecord[]>([]);
@@ -240,6 +241,14 @@ function Dashboard() {
 
   return (
     <main className="container-backed py-14 sm:py-20">
+      {pendingReview ? (
+        <div className="mb-8 rounded-md border border-primary/30 bg-primary/5 p-5" role="status">
+          <p className="font-semibold">Your project needs a quick review before it can go live.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You can track its review status with your other projects below.
+          </p>
+        </div>
+      ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-4">
         <h1 className="min-w-0 text-3xl font-semibold sm:text-5xl">Dashboard</h1>
         <Button asChild>
@@ -339,13 +348,15 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
               <strong className="block">{project.name}</strong>
               <span className="text-xs text-muted-foreground">{funded}% funded</span>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-primary">
-                <Link
-                  to="/projects/$slug"
-                  params={{ slug: project.slug }}
-                  className="hover:underline"
-                >
-                  View
-                </Link>
+                {project.status !== "pending_review" ? (
+                  <Link
+                    to="/projects/$slug"
+                    params={{ slug: project.slug }}
+                    className="hover:underline"
+                  >
+                    View
+                  </Link>
+                ) : null}
                 <Link
                   to="/projects/$slug/edit"
                   params={{ slug: project.slug }}
@@ -358,7 +369,9 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
                     Share
                   </a>
                 )}
-                {project.status !== "prelaunch" && (
+                {["live", "funded", "completed", "cancelling", "cancelled"].includes(
+                  project.status,
+                ) && (
                   <a href={`/projects/${project.slug}#backers`} className="hover:underline">
                     Backers
                   </a>
@@ -368,7 +381,11 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
             <div>
               <span className="mb-1 block text-xs text-muted-foreground md:hidden">Status</span>
               <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold capitalize">
-                {project.status === "prelaunch" ? "Pre-launch" : project.status}
+                {project.status === "prelaunch"
+                  ? "Pre-launch"
+                  : project.status === "pending_review"
+                    ? "Compliance review"
+                    : project.status}
               </span>
               {project.cancellation ? (
                 <p className="mt-2 text-xs text-muted-foreground">

@@ -23,6 +23,12 @@ export type AdminProject = {
   successful_backed_amount: number;
   created_at: string;
   admin_archived_at: string | null;
+  compliance_review_status: "not_required" | "pending" | "approved" | "rejected";
+  compliance_intended_status: "live" | "prelaunch" | null;
+  compliance_benefits_third_party_or_cause: boolean | null;
+  compliance_reviewed_at: string | null;
+  compliance_review_outcome: "approved" | "rejected" | null;
+  project_compliance_flags: Array<{ reason: string; status: "open" | "resolved" }>;
   profiles: {
     username: string | null;
     display_name: string | null;

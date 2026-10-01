@@ -105,6 +105,7 @@ function messageFor(error: unknown) {
     return "We could not prepare your public creator profile. Choose a username in Settings, then try again.";
   if (message.includes("invalid_project_values"))
     return "Check the funding goal, deadline, reward, category, and project media, then try again.";
+  if (message.includes("compliance_attestation_required")) return "compliance_attestation_required";
   return "We could not publish this project. Please check the details and try again.";
 }
 
@@ -157,11 +158,27 @@ Deno.serve(async (request) => {
     if (body.action === "publish") {
       const { data: pendingDraft } = await admin
         .from("project_drafts")
-        .select("payload")
+        .select("payload, project_id")
         .eq("id", id)
         .eq("secret_hash", secretHash)
         .maybeSingle();
       if (!pendingDraft) return respond({ error: "This draft is no longer available." }, 404);
+      if (!pendingDraft.project_id) {
+        if (body.complianceAttested !== true)
+          return respond({ error: "compliance_attestation_required" }, 422);
+        if (typeof body.benefitsThirdPartyOrCause !== "boolean")
+          return respond({ error: "compliance_beneficiary_answer_required" }, 422);
+        const { error: attestationError } = await admin.rpc("record_draft_compliance_attestation", {
+          p_draft_id: id,
+          p_secret_hash: secretHash,
+          p_user_id: auth.user.id,
+          p_benefits_third_party_or_cause: body.benefitsThirdPartyOrCause,
+        });
+        if (attestationError) {
+          const code = messageFor(attestationError);
+          return respond({ error: code }, code === "compliance_attestation_required" ? 422 : 403);
+        }
+      }
       const pendingPayload = (pendingDraft.payload ?? {}) as Record<string, unknown>;
       const storagePublicPrefix = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/project-media/`;
       const galleryMedia = sanitizeGalleryMedia(pendingPayload.galleryMedia ?? [], {

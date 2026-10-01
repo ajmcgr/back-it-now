@@ -37,6 +37,29 @@ Deno.serve(async (request) => {
     const input = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const slug = typeof input.slug === "string" ? input.slug : "";
     if (!slugPattern.test(slug)) return reply(400, { error: "invalid_project" });
+    if (input.complianceAttested !== true)
+      return reply(422, { error: "compliance_attestation_required" });
+    if (typeof input.benefitsThirdPartyOrCause !== "boolean")
+      return reply(422, { error: "compliance_beneficiary_answer_required" });
+
+    const { data: complianceStatus, error: complianceError } = await admin.rpc(
+      "record_existing_project_compliance",
+      {
+        p_project_slug: slug,
+        p_user_id: auth.user.id,
+        p_benefits_third_party_or_cause: input.benefitsThirdPartyOrCause,
+      },
+    );
+    if (complianceError) {
+      if (complianceError.message.includes("project_launch_denied"))
+        return reply(403, { error: "project_launch_denied" });
+      if (complianceError.message.includes("project_not_prelaunch"))
+        return reply(409, { error: "project_not_prelaunch" });
+      throw complianceError;
+    }
+    if (complianceStatus === "pending_review") {
+      return reply(200, { slug, status: "pending_review", launched: false });
+    }
 
     const { data, error } = await userClient.rpc("launch_prelaunch_project", {
       p_project_slug: slug,

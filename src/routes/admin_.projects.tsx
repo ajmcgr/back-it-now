@@ -80,6 +80,23 @@ function AdminProjects() {
       setBusy(false);
     }
   }
+  async function reviewCompliance(project: AdminProject, outcome: "approved" | "rejected") {
+    setBusy(true);
+    setMessage("");
+    try {
+      await invokeAdmin("review_project", { projectId: project.id, outcome });
+      setMessage(
+        outcome === "approved"
+          ? `${project.name} was approved for ${project.compliance_intended_status ?? "live"}.`
+          : `${project.name} was rejected and suspended.`,
+      );
+      await load();
+    } catch {
+      setMessage("The compliance review could not be saved. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (denied) return <AdminUnavailable message="You don’t have access to Backed Admin." />;
   if (!projects) return <AdminLoading />;
@@ -97,12 +114,13 @@ function AdminProjects() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[780px] text-sm">
+          <table className="w-full min-w-[920px] text-sm">
             <thead className="border-b border-border bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-4">Project</th>
                 <th>Creator</th>
                 <th>Status</th>
+                <th>Compliance</th>
                 <th>Amount backed</th>
                 <th>Created</th>
                 <th className="p-4 text-right">Actions</th>
@@ -146,6 +164,34 @@ function AdminProjects() {
                         </p>
                       ) : null}
                     </td>
+                    <td>
+                      {project.compliance_review_status === "pending" ? (
+                        <>
+                          <span className="font-semibold">Needs review</span>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Beneficiary answer:{" "}
+                            {project.compliance_benefits_third_party_or_cause ? "Yes" : "No"}
+                          </p>
+                        </>
+                      ) : project.project_compliance_flags?.some(
+                          (flag) => flag.status === "open",
+                        ) ? (
+                        <>
+                          <span className="font-semibold">Manual review flagged</span>
+                          <p className="mt-1 max-w-64 text-xs text-muted-foreground">
+                            {
+                              project.project_compliance_flags.find(
+                                (flag) => flag.status === "open",
+                              )?.reason
+                            }
+                          </p>
+                        </>
+                      ) : (
+                        <span className="capitalize text-muted-foreground">
+                          {project.compliance_review_status.replace("_", " ")}
+                        </span>
+                      )}
+                    </td>
                     <td className="tabular-nums">
                       {formatMoney(
                         project.initial_backed_amount + project.successful_backed_amount,
@@ -154,6 +200,26 @@ function AdminProjects() {
                     <td>{new Date(project.created_at).toLocaleDateString()}</td>
                     <td className="p-4">
                       <div className="flex justify-end gap-1">
+                        {project.compliance_review_status === "pending" ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => void reviewCompliance(project, "approved")}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => void reviewCompliance(project, "rejected")}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        ) : null}
                         {failed.length > 0 ? (
                           <Button
                             variant="outline"

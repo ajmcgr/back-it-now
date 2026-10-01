@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -100,6 +101,10 @@ function StartPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [complianceAccepted, setComplianceAccepted] = useState(false);
+  const [benefitsThirdPartyOrCause, setBenefitsThirdPartyOrCause] = useState<"yes" | "no" | null>(
+    null,
+  );
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
   const publishAfterAuthAttempted = useRef(false);
@@ -270,8 +275,17 @@ function StartPage() {
         location.assign(`/auth?next=${encodeURIComponent("/start?publish=1")}`);
         return;
       }
+      if (!complianceAccepted) throw new Error("Confirm the publication requirements to continue.");
+      if (benefitsThirdPartyOrCause === null)
+        throw new Error("Answer the project beneficiary question to continue.");
       const { data, error } = await supabase!.functions.invoke("project-drafts", {
-        body: { action: "publish", id: record.id, secret: record.secret },
+        body: {
+          action: "publish",
+          id: record.id,
+          secret: record.secret,
+          complianceAttested: true,
+          benefitsThirdPartyOrCause: benefitsThirdPartyOrCause === "yes",
+        },
       });
       if (error || !data?.slug)
         throw new Error(
@@ -281,6 +295,10 @@ function StartPage() {
         );
       localStorage.removeItem("backed-project-draft");
       localStorage.removeItem("backed-project-draft-record");
+      if (data.status === "pending_review") {
+        location.assign("/dashboard?review=pending");
+        return;
+      }
       location.assign(
         `/projects/${data.slug}?published=1${data.status === "prelaunch" ? "&prelaunch=1" : "&share=1"}`,
       );
@@ -655,6 +673,60 @@ function StartPage() {
                     </label>
                   ) : null}
                 </div>
+                <div className="mt-6 space-y-5 rounded-md border border-border p-5">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="publication-attestation"
+                      checked={complianceAccepted}
+                      onCheckedChange={(checked) => setComplianceAccepted(checked === true)}
+                      className="mt-1"
+                    />
+                    <label
+                      htmlFor="publication-attestation"
+                      className="text-sm leading-6 text-foreground"
+                    >
+                      I agree to the{" "}
+                      <a href="/terms" target="_blank" rel="noreferrer" className="underline">
+                        Terms
+                      </a>{" "}
+                      and{" "}
+                      <a
+                        href="/acceptable-use"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        Acceptable Use Policy
+                      </a>
+                      , acknowledge Backed’s 5% platform fee, and confirm this project does not
+                      involve sanctioned or prohibited persons, entities, causes or jurisdictions.
+                    </label>
+                  </div>
+                  <fieldset>
+                    <legend className="text-sm font-semibold leading-6">
+                      Does this project raise funds for or primarily benefit another person,
+                      organization, charity, political cause or geographic cause?
+                    </legend>
+                    <div className="mt-3 flex gap-5">
+                      {(["no", "yes"] as const).map((answer) => (
+                        <label key={answer} className="flex items-center gap-2 text-sm font-medium">
+                          <input
+                            type="radio"
+                            name="benefits-third-party-or-cause"
+                            value={answer}
+                            checked={benefitsThirdPartyOrCause === answer}
+                            onChange={() => setBenefitsThirdPartyOrCause(answer)}
+                            className="size-4 accent-foreground"
+                          />
+                          {answer === "yes" ? "Yes" : "No"}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                      “Yes” sends the project for a quick review before it can go live.
+                    </p>
+                  </fieldset>
+                </div>
               </div>
             )}
           </div>
@@ -679,7 +751,13 @@ function StartPage() {
                 <ArrowRight />
               </Button>
             ) : (
-              <Button disabled={isSaving} onClick={() => void publish()}>
+              <Button
+                disabled={
+                  isSaving ||
+                  (isAuthenticated && (!complianceAccepted || benefitsThirdPartyOrCause === null))
+                }
+                onClick={() => void publish()}
+              >
                 {isSaving
                   ? "Saving…"
                   : isAuthenticated
