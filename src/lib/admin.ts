@@ -18,26 +18,69 @@ export type AdminProjectComplianceFlag = {
   status: "open" | "resolved";
 };
 
+export type AdminProjectAttestation = {
+  id: string;
+  accepted_at: string;
+  acceptable_use_version: string;
+  terms_version: string;
+  attestation_type: string;
+  benefits_third_party_or_cause: boolean;
+};
+
+export type AdminProjectReview = {
+  reviewed_at: string;
+  review_outcome: "approved" | "rejected" | "needs_information";
+  review_note: string;
+  evidence_urls: string[];
+  stripe_connect_ready: boolean;
+  acceptable_use_version: string;
+};
+
+export type AdminProjectReward = {
+  title: string;
+  description: string;
+  amount: number;
+  total_quantity: number;
+};
+
 export type AdminProject = {
   id: string;
   slug: string;
   name: string;
+  summary: string;
+  description: string;
   image_url: string | null;
+  gallery_media: unknown;
+  category: string;
+  external_website: string | null;
+  location: string | null;
+  project_dates: string | null;
+  funding_goal_amount: number;
+  deadline_at: string | null;
   status: string;
   initial_backed_amount: number;
   successful_backed_amount: number;
   created_at: string;
   admin_archived_at: string | null;
-  compliance_review_status: "not_required" | "pending" | "approved" | "rejected";
+  compliance_review_status:
+    "not_required" | "pending" | "needs_information" | "approved" | "rejected";
   compliance_intended_status: "live" | "prelaunch" | null;
   compliance_benefits_third_party_or_cause: boolean | null;
   compliance_reviewed_at: string | null;
-  compliance_review_outcome: "approved" | "rejected" | null;
+  compliance_review_outcome: "approved" | "rejected" | "needs_information" | null;
   project_compliance_flags: AdminProjectComplianceFlag[] | AdminProjectComplianceFlag | null;
+  project_compliance_attestations: AdminProjectAttestation[] | AdminProjectAttestation | null;
+  project_compliance_reviews: AdminProjectReview[] | AdminProjectReview | null;
+  rewards: AdminProjectReward[] | AdminProjectReward | null;
   profiles: {
     username: string | null;
     display_name: string | null;
     avatar_url: string | null;
+    stripe_account_id: string | null;
+    stripe_onboarding_complete: boolean;
+    stripe_charges_enabled: boolean;
+    stripe_payouts_enabled: boolean;
+    stripe_requirements_due: string[];
   };
   project_cancellations: {
     status: string;

@@ -216,9 +216,11 @@ function EditProject() {
           : "Could not save your project. Please check the details and try again.",
       );
     setMessage(
-      restricted
-        ? "Project details saved. Funding, deadline, and reward commitments are locked after backing."
-        : "Project saved.",
+      data.reviewRequired
+        ? "Project saved and returned to review because material details changed."
+        : restricted
+          ? "Project details saved. Funding, deadline, and reward commitments are locked after backing."
+          : "Project saved.",
     );
   }
   async function openCancellation() {

@@ -723,7 +723,8 @@ function StartPage() {
                       ))}
                     </div>
                     <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                      “Yes” sends the project for a quick review before it can go live.
+                      Your answer is included in Backed’s review. Cause or beneficiary projects
+                      receive enhanced manual review.
                     </p>
                   </fieldset>
                 </div>
@@ -763,7 +764,7 @@ function StartPage() {
                   : isAuthenticated
                     ? (draftText(draft["launchMode"]) || "live") === "prelaunch"
                       ? "Start pre-launch"
-                      : "Launch project"
+                      : "Submit for review"
                     : "Sign in to publish"}
               </Button>
             )}

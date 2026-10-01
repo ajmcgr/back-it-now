@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import Stripe from "npm:stripe@18.5.0";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
 import { deliverProjectLaunchEmails } from "../_shared/audience-email.ts";
 
@@ -19,6 +20,67 @@ const adminClient = () =>
   createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+const stripe = () => {
+  const key = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!key?.startsWith("sk_live_") && !key?.startsWith("rk_live_"))
+    throw new Error("stripe_live_key_required");
+  return new Stripe(key);
+};
+
+const sanitizeEvidenceUrls = (value: unknown) => {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > 5) return null;
+  const urls: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") return null;
+    const candidate = item.trim();
+    if (!candidate) continue;
+    if (candidate.length > 500) return null;
+    try {
+      const url = new URL(candidate);
+      if (url.protocol !== "https:" || !url.hostname) return null;
+      urls.push(url.toString());
+    } catch {
+      return null;
+    }
+  }
+  return [...new Set(urls)];
+};
+
+async function refreshCreatorConnectReadiness(admin: SupabaseClient, projectId: string) {
+  const { data: project, error: projectError } = await admin
+    .from("projects")
+    .select("creator_id")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (projectError || !project) throw projectError ?? new Error("project_not_found");
+
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("stripe_account_id")
+    .eq("id", project.creator_id)
+    .maybeSingle();
+  if (profileError || !profile) throw profileError ?? new Error("profile_not_found");
+  if (!profile.stripe_account_id) return false;
+
+  const account = await stripe().accounts.retrieve(profile.stripe_account_id);
+  if ("deleted" in account && account.deleted) return false;
+  const requirementsDue = account.requirements?.currently_due ?? [];
+  const ready = account.details_submitted && account.charges_enabled && account.payouts_enabled;
+  const { error: updateError } = await admin
+    .from("profiles")
+    .update({
+      stripe_onboarding_complete: account.details_submitted,
+      stripe_charges_enabled: account.charges_enabled,
+      stripe_payouts_enabled: account.payouts_enabled,
+      stripe_requirements_due: requirementsDue,
+    })
+    .eq("id", project.creator_id)
+    .eq("stripe_account_id", account.id);
+  if (updateError) throw updateError;
+  return ready;
+}
 
 async function authorize(request: Request) {
   const authorization = request.headers.get("Authorization");
@@ -129,7 +191,7 @@ async function loadProjects(admin: SupabaseClient) {
   const { data, error } = await admin
     .from("projects")
     .select(
-      "id, slug, name, image_url, status, initial_backed_amount, successful_backed_amount, created_at, admin_archived_at, compliance_review_status, compliance_intended_status, compliance_benefits_third_party_or_cause, compliance_reviewed_at, compliance_review_outcome, profiles!inner(username, display_name, avatar_url), project_compliance_flags(reason, status)",
+      "id, slug, name, summary, description, image_url, gallery_media, category, external_website, location, project_dates, funding_goal_amount, deadline_at, status, initial_backed_amount, successful_backed_amount, created_at, admin_archived_at, compliance_review_status, compliance_intended_status, compliance_benefits_third_party_or_cause, compliance_reviewed_at, compliance_review_outcome, profiles!inner(username, display_name, avatar_url, stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due), rewards(title, description, amount, total_quantity), project_compliance_attestations(id, accepted_at, acceptable_use_version, terms_version, attestation_type, benefits_third_party_or_cause), project_compliance_reviews(reviewed_at, review_outcome, review_note, evidence_urls, stripe_connect_ready, acceptable_use_version), project_compliance_flags(reason, status)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -475,16 +537,29 @@ async function reviewProject(
   admin: SupabaseClient,
   adminUserId: string,
   projectId: string,
-  outcome: "approved" | "rejected",
+  outcome: "approved" | "rejected" | "needs_information",
+  reviewNote: string,
+  evidenceUrls: string[],
 ) {
+  const connectReady = await refreshCreatorConnectReadiness(admin, projectId);
+  if (outcome === "approved" && !connectReady)
+    return json({ error: "creator_connect_not_ready" }, 409);
   const { data, error } = await admin.rpc("review_project_compliance", {
     p_project_id: projectId,
     p_admin_id: adminUserId,
     p_outcome: outcome,
+    p_review_note: reviewNote,
+    p_evidence_urls: evidenceUrls,
   });
   if (error) {
     if (error.message.includes("project_not_pending_review"))
       return json({ error: "project_not_pending_review" }, 409);
+    if (error.message.includes("creator_connect_not_ready"))
+      return json({ error: "creator_connect_not_ready" }, 409);
+    if (error.message.includes("project_information_incomplete"))
+      return json({ error: "project_information_incomplete" }, 409);
+    if (error.message.includes("invalid_review_note"))
+      return json({ error: "invalid_review_note" }, 400);
     throw error;
   }
   const result = data?.[0] as
@@ -542,9 +617,22 @@ Deno.serve(async (request) => {
     if (action === "review_project") {
       const projectId = stringId(payload.projectId);
       const outcome =
-        payload.outcome === "approved" || payload.outcome === "rejected" ? payload.outcome : null;
-      return projectId && outcome
-        ? await reviewProject(actor.admin, actor.userId, projectId, outcome)
+        payload.outcome === "approved" ||
+        payload.outcome === "rejected" ||
+        payload.outcome === "needs_information"
+          ? payload.outcome
+          : null;
+      const reviewNote = typeof payload.reviewNote === "string" ? payload.reviewNote.trim() : "";
+      const evidenceUrls = sanitizeEvidenceUrls(payload.evidenceUrls);
+      return projectId && outcome && reviewNote.length >= 10 && evidenceUrls
+        ? await reviewProject(
+            actor.admin,
+            actor.userId,
+            projectId,
+            outcome,
+            reviewNote,
+            evidenceUrls,
+          )
         : json({ error: "invalid_review_request" }, 400);
     }
     if (action === "delete_user") {

@@ -41,7 +41,7 @@ Deno.serve(async (request) => {
     const { data: project, error } = await admin
       .from("projects")
       .select(
-        "id, slug, name, summary, description, image_url, gallery_media, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at, status",
+        "id, slug, name, summary, description, image_url, gallery_media, category, external_website, location, project_dates, funding_goal_amount, deadline_at, successful_backed_amount, successful_backer_count, creator_archived_at, status, compliance_review_status",
       )
       .eq("slug", slug)
       .eq("creator_id", auth.user.id)
@@ -116,6 +116,16 @@ Deno.serve(async (request) => {
       location: bounded(body.location, 160) || null,
       project_dates: bounded(body.projectDates, 160) || null,
     };
+    let materialChanged =
+      project.name !== name ||
+      project.summary !== summary ||
+      project.description !== description ||
+      project.category !== category ||
+      (project.external_website ?? "") !== externalWebsite ||
+      (project.image_url ?? "") !== imageUrl ||
+      JSON.stringify(storedGalleryMedia(project.gallery_media)) !== JSON.stringify(galleryMedia) ||
+      (project.location ?? "") !== bounded(body.location, 160) ||
+      (project.project_dates ?? "") !== bounded(body.projectDates, 160);
     const backed = project.successful_backed_amount > 0 || project.successful_backer_count > 0;
     if (!backed) {
       const goal = Number(body.goal);
@@ -135,22 +145,48 @@ Deno.serve(async (request) => {
         return reply(422, { error: "invalid_project_economics" });
       if (reward && quantity < reward.claimed_quantity + reward.reserved_quantity)
         return reply(422, { error: "reward_capacity_below_claimed_or_reserved" });
-      updates.funding_goal_amount = Math.round(goal * 100);
-      updates.deadline_at = deadline.toISOString();
+      const goalAmount = Math.round(goal * 100);
+      const deadlineAt = deadline.toISOString();
+      updates.funding_goal_amount = goalAmount;
+      updates.deadline_at = deadlineAt;
+      materialChanged =
+        materialChanged ||
+        project.funding_goal_amount !== goalAmount ||
+        new Date(project.deadline_at).getTime() !== new Date(deadlineAt).getTime();
       if (reward) {
         const rewardName = bounded(body.rewardName, 160);
+        const rewardDescription = bounded(body.rewardDescription, 2000);
+        const rewardAmount = Math.round(price * 100);
         if (rewardName.length < 2) return reply(422, { error: "invalid_reward" });
+        materialChanged =
+          materialChanged ||
+          reward.title !== rewardName ||
+          reward.description !== rewardDescription ||
+          reward.amount !== rewardAmount ||
+          reward.total_quantity !== quantity;
         await admin
           .from("rewards")
           .update({
             title: rewardName,
-            description: bounded(body.rewardDescription, 2000),
-            amount: Math.round(price * 100),
+            description: rewardDescription,
+            amount: rewardAmount,
             total_quantity: quantity,
           })
           .eq("id", reward.id)
           .eq("project_id", project.id);
       }
+    }
+    const requiresFreshReview =
+      materialChanged &&
+      (project.compliance_review_status === "approved" ||
+        project.compliance_review_status === "needs_information");
+    if (requiresFreshReview) {
+      updates.status = "pending_review";
+      updates.compliance_review_status = "pending";
+      updates.compliance_intended_status = "live";
+      updates.compliance_reviewed_by = null;
+      updates.compliance_reviewed_at = null;
+      updates.compliance_review_outcome = null;
     }
     const { error: updateError } = await admin
       .from("projects")
@@ -175,7 +211,11 @@ Deno.serve(async (request) => {
         : [],
     );
     if (removedPaths.length) await admin.storage.from("project-media").remove(removedPaths);
-    return reply(200, { updated: true, restrictedEconomics: backed });
+    return reply(200, {
+      updated: true,
+      restrictedEconomics: backed,
+      reviewRequired: requiresFreshReview,
+    });
   } catch {
     return reply(400, { error: "invalid_project_request" });
   }

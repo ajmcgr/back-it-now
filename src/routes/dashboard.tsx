@@ -15,6 +15,7 @@ type CreatorProject = {
   slug: string;
   name: string;
   status: string;
+  compliance_review_status: string;
   funding_goal_amount: number;
   initial_backed_amount: number;
   successful_backed_amount: number;
@@ -82,6 +83,7 @@ function Dashboard() {
   const [loadError, setLoadError] = useState("");
   const [privacyUpdateId, setPrivacyUpdateId] = useState<string | null>(null);
   const [privacyError, setPrivacyError] = useState("");
+  const [creatorConnectReady, setCreatorConnectReady] = useState(false);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
@@ -92,11 +94,11 @@ function Dashboard() {
       const { data: session } = await client.auth.getSession();
       if (!session.session) return window.location.assign("/auth?next=/dashboard");
       try {
-        const [createdResult, backingResult, favoriteResult] = await Promise.all([
+        const [createdResult, backingResult, favoriteResult, profileResult] = await Promise.all([
           client
             .from("projects")
             .select(
-              "id, slug, name, status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
+              "id, slug, name, status, compliance_review_status, funding_goal_amount, initial_backed_amount, successful_backed_amount, successful_backer_count, deadline_at",
             )
             .eq("creator_id", session.session.user.id)
             .order("created_at", { ascending: false }),
@@ -108,8 +110,20 @@ function Dashboard() {
             .eq("backer_id", session.session.user.id)
             .order("paid_at", { ascending: false }),
           client.rpc("list_my_favorite_projects"),
+          client
+            .from("profiles")
+            .select(
+              "stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_requirements_due",
+            )
+            .eq("id", session.session.user.id)
+            .maybeSingle(),
         ]);
-        if (createdResult.error || backingResult.error || favoriteResult.error)
+        if (
+          createdResult.error ||
+          backingResult.error ||
+          favoriteResult.error ||
+          profileResult.error
+        )
           throw new Error("Your dashboard is temporarily unavailable.");
         const ownBackings = (backingResult.data ?? []) as BackingRecord[];
         const createdProjects = (createdResult.data ?? []) as CreatorProject[];
@@ -123,6 +137,13 @@ function Dashboard() {
           }),
         );
         setProjects(projectsWithCancellation);
+        const payoutProfile = profileResult.data;
+        setCreatorConnectReady(
+          Boolean(payoutProfile?.stripe_account_id) &&
+            Boolean(payoutProfile?.stripe_onboarding_complete) &&
+            Boolean(payoutProfile?.stripe_charges_enabled) &&
+            Boolean(payoutProfile?.stripe_payouts_enabled),
+        );
         setBackings(ownBackings);
         setFavoriteProjects(
           (favoriteResult.data ?? []).flatMap((row: Record<string, unknown>) => {
@@ -274,7 +295,7 @@ function Dashboard() {
       ) : isLoading ? (
         <DashboardSkeleton />
       ) : activeTab === "created" ? (
-        <CreatedProjects projects={projects} />
+        <CreatedProjects projects={projects} creatorConnectReady={creatorConnectReady} />
       ) : activeTab === "backed" ? (
         <BackedProjects
           projects={backedProjects}
@@ -311,7 +332,13 @@ function FavoriteProjects({ projects }: { projects: Project[] }) {
   );
 }
 
-function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
+function CreatedProjects({
+  projects,
+  creatorConnectReady,
+}: {
+  projects: CreatorProject[];
+  creatorConnectReady: boolean;
+}) {
   if (!projects.length)
     return (
       <div className="mt-8 rounded-md border border-border p-8 text-center">
@@ -384,9 +411,19 @@ function CreatedProjects({ projects }: { projects: CreatorProject[] }) {
                 {project.status === "prelaunch"
                   ? "Pre-launch"
                   : project.status === "pending_review"
-                    ? "Compliance review"
+                    ? project.compliance_review_status === "needs_information"
+                      ? "More information needed"
+                      : "Under review"
                     : project.status}
               </span>
+              {project.status === "pending_review" && !creatorConnectReady ? (
+                <Link
+                  to="/settings"
+                  className="mt-2 block text-xs font-semibold text-primary hover:underline"
+                >
+                  Complete Stripe setup
+                </Link>
+              ) : null}
               {project.cancellation ? (
                 <p className="mt-2 text-xs text-muted-foreground">
                   {project.cancellation.counts.succeeded} of{" "}

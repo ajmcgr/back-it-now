@@ -49,18 +49,49 @@ Deno.serve(async (req) => {
 
     const { data: project, error: projectError } = await admin
       .from("projects")
-      .select("id, creator_id, slug, status, deadline_at, currency")
+      .select("id, creator_id, slug, status, deadline_at, currency, compliance_review_status")
       .eq("slug", projectSlug)
       .single();
     if (
       projectError ||
       !project ||
       project.status !== "live" ||
+      project.compliance_review_status !== "approved" ||
       !project.deadline_at ||
       new Date(project.deadline_at).getTime() <= Date.now()
     )
       return json({ error: "project_unavailable" }, 409);
     if (user?.id === project.creator_id) return json({ error: "creator_cannot_back_project" }, 403);
+
+    const { data: creatorProfile, error: creatorProfileError } = await admin
+      .from("profiles")
+      .select("stripe_account_id")
+      .eq("id", project.creator_id)
+      .maybeSingle();
+    if (creatorProfileError || !creatorProfile?.stripe_account_id)
+      return json({ error: "project_unavailable" }, 409);
+    const stripe = getStripe();
+    const creatorAccount = await stripe.accounts.retrieve(creatorProfile.stripe_account_id);
+    if (
+      ("deleted" in creatorAccount && creatorAccount.deleted) ||
+      !("details_submitted" in creatorAccount) ||
+      !creatorAccount.details_submitted ||
+      !creatorAccount.charges_enabled ||
+      !creatorAccount.payouts_enabled
+    )
+      return json({ error: "project_unavailable" }, 409);
+
+    const { error: connectUpdateError } = await admin
+      .from("profiles")
+      .update({
+        stripe_onboarding_complete: creatorAccount.details_submitted,
+        stripe_charges_enabled: creatorAccount.charges_enabled,
+        stripe_payouts_enabled: creatorAccount.payouts_enabled,
+        stripe_requirements_due: creatorAccount.requirements?.currently_due ?? [],
+      })
+      .eq("id", project.creator_id)
+      .eq("stripe_account_id", creatorAccount.id);
+    if (connectUpdateError) return json({ error: "project_unavailable" }, 409);
 
     const { data: rewards, error: rewardError } = await admin
       .from("rewards")
@@ -106,7 +137,6 @@ Deno.serve(async (req) => {
           await admin.rpc("release_reward_reservation", { p_reservation_id: reservationId });
         return json({ error: "project_unavailable" }, 409);
       }
-      const stripe = getStripe();
       const checkoutMetadata = {
         reservation_id: reservationId ?? "",
         reward_id: claimReward && reward ? reward.id : "",
@@ -174,7 +204,7 @@ Deno.serve(async (req) => {
         .is("converted_at", null);
       if (checkoutSessionId) {
         try {
-          await getStripe().checkout.sessions.expire(checkoutSessionId);
+          await stripe.checkout.sessions.expire(checkoutSessionId);
         } catch {
           // The reservation is still released below; Stripe will also expire this session naturally.
         }
