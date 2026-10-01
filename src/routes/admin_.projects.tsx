@@ -131,6 +131,12 @@ function AdminProjects() {
                 const creator = project.profiles;
                 const archived = Boolean(project.admin_archived_at);
                 const cancellation = project.project_cancellations;
+                const complianceFlags = Array.isArray(project.project_compliance_flags)
+                  ? project.project_compliance_flags
+                  : project.project_compliance_flags
+                    ? [project.project_compliance_flags]
+                    : [];
+                const openComplianceFlag = complianceFlags.find((flag) => flag.status === "open");
                 const refundRows = cancellation?.project_cancellation_refunds ?? [];
                 const refunded = refundRows.filter((refund) => refund.status === "succeeded");
                 const failed = refundRows.filter((refund) => refund.status === "failed");
@@ -173,17 +179,11 @@ function AdminProjects() {
                             {project.compliance_benefits_third_party_or_cause ? "Yes" : "No"}
                           </p>
                         </>
-                      ) : project.project_compliance_flags?.some(
-                          (flag) => flag.status === "open",
-                        ) ? (
+                      ) : openComplianceFlag ? (
                         <>
                           <span className="font-semibold">Manual review flagged</span>
                           <p className="mt-1 max-w-64 text-xs text-muted-foreground">
-                            {
-                              project.project_compliance_flags.find(
-                                (flag) => flag.status === "open",
-                              )?.reason
-                            }
+                            {openComplianceFlag.reason}
                           </p>
                         </>
                       ) : (

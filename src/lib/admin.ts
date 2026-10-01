@@ -13,6 +13,11 @@ export type AdminOverview = {
   pastSevenDays: AdminTotals;
 };
 
+export type AdminProjectComplianceFlag = {
+  reason: string;
+  status: "open" | "resolved";
+};
+
 export type AdminProject = {
   id: string;
   slug: string;
@@ -28,7 +33,7 @@ export type AdminProject = {
   compliance_benefits_third_party_or_cause: boolean | null;
   compliance_reviewed_at: string | null;
   compliance_review_outcome: "approved" | "rejected" | null;
-  project_compliance_flags: Array<{ reason: string; status: "open" | "resolved" }>;
+  project_compliance_flags: AdminProjectComplianceFlag[] | AdminProjectComplianceFlag | null;
   profiles: {
     username: string | null;
     display_name: string | null;
